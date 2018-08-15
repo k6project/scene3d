@@ -12,9 +12,15 @@
     <ClCompile Include="src\fbx_utils.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\xgetopt.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\fbx_utils.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xgetopt.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
