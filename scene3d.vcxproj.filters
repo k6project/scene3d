@@ -9,5 +9,8 @@
     <ClCompile Include="src\main.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\fbxsdk.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

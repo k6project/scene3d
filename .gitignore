@@ -1,3 +1,6 @@
 /scene3d.VC.db
 /scene3d.VC.VC.opendb
-.vs
+.vs/
+build/
+ext/
+/scene3d.vcxproj.user
