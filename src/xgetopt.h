@@ -12,20 +12,24 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
+
 #ifndef XGETOPT_H
 #define XGETOPT_H
 
 #ifdef __cplusplus
-#define C_API extern "C"
+#define XGETOPT_API extern "C"
 #else // __cplusplus
-#define C_API extern
+#define XGETOPT_API extern
 #endif // __cplusplus
 
 #include <tchar.h>
 
-C_API int optind, opterr;
-C_API TCHAR *optarg;
+XGETOPT_API int optind, opterr;
+XGETOPT_API TCHAR *optarg;
 
-C_API int getopt(int argc, TCHAR *argv[], TCHAR *optstring);
+XGETOPT_API int getopt(int argc, TCHAR *argv[], TCHAR *optstring);
 
-#endif //XGETOPT_H
+#endif // XGETOPT_H
+
+#endif // _MSC_VER

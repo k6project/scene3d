@@ -1,9 +1,9 @@
 #pragma once
 
 #ifdef __cplusplus
-#define FBX_API extern "C"
+#define FBX_UTILS_API extern "C"
 #else // __cplusplus
-#define FBX_API
+#define FBX_UTILS_API
 #endif // __cplusplus
 
-FBX_API void FbxLoadScene();
+FBX_UTILS_API void FbxLoadScene();
