@@ -6,4 +6,4 @@
 #define FBX_UTILS_API
 #endif // __cplusplus
 
-FBX_UTILS_API void FbxLoadScene();
+FBX_UTILS_API void FbxLoadScene(const char* fName);

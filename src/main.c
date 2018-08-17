@@ -10,12 +10,11 @@
 #include "xgetopt.h"
 #endif // _MSC_VER
 
-struct CommandLine_
+typedef struct CommandLine
 {
 	const char* InFile;
-};
-
-typedef struct CommandLine_ CommandLine;
+    const char* OutFile;
+} CommandLine;
 
 void AppParseCommandLine(int argc, char** argv, CommandLine* cmd)
 {
@@ -27,19 +26,23 @@ void AppParseCommandLine(int argc, char** argv, CommandLine* cmd)
 		case 'i':
 			cmd->InFile = optarg;
 			break;
-		default:
+        case 'o':
+            cmd->OutFile = optarg;
+            break;
+        default:
 			break;
 		}
 	}
 }
 
-void AppMain(int argc, char** argv)
+int AppMain(int argc, char** argv)
 {
 	CommandLine cmd;
 	memset(&cmd, 0, sizeof(cmd));
 	AppParseCommandLine(argc, argv, &cmd);
 	if (cmd.InFile)
 	{
-		FbxLoadScene();
+		FbxLoadScene(cmd.InFile);
 	}
+    return 0;
 }
