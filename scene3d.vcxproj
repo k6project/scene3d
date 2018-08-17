@@ -149,10 +149,13 @@
   <ItemGroup>
     <ClCompile Include="src\fbx_utils.cpp" />
     <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\utils.c" />
     <ClCompile Include="src\xgetopt.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\fbx_utils.h" />
+    <ClInclude Include="src\macros.h" />
+    <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\xgetopt.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

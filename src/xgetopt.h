@@ -17,18 +17,14 @@
 #ifndef XGETOPT_H
 #define XGETOPT_H
 
-#ifdef __cplusplus
-#define XGETOPT_API extern "C"
-#else // __cplusplus
-#define XGETOPT_API extern
-#endif // __cplusplus
+#include "macros.h"
 
 #include <tchar.h>
 
-XGETOPT_API int optind, opterr;
-XGETOPT_API TCHAR *optarg;
+C_API int optind, opterr;
+C_API TCHAR *optarg;
 
-XGETOPT_API int getopt(int argc, TCHAR *argv[], TCHAR *optstring);
+C_API int getopt(int argc, TCHAR *argv[], TCHAR *optstring);
 
 #endif // XGETOPT_H
 
