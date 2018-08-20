@@ -13,7 +13,7 @@ static struct
 {
 	BOOL IsClosing;
 	RECT WindowRect;
-	HWND WindowHandle;
+	AppWindow Window;
 } GAppState;
 
 static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
@@ -42,7 +42,7 @@ EResult AppStartup()
 	WNDCLASS wndClass;
 	LPCSTR className = WNDCLS_NAME;
 	GAppState.IsClosing = FALSE;
-	GAppState.WindowHandle = NULL;
+	GAppState.Window.Handle = NULL;
 	ZeroMemory(&wndClass, sizeof(wndClass));
 	wndClass.style = CS_OWNDC;
 	wndClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
@@ -68,12 +68,14 @@ EResult AppStartup()
 	int top = ((monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top) - rows) >> 1;
 	LPSTR title = PROGRAM_NAME;
 	HINSTANCE inst = GetModuleHandle(NULL);
-	GAppState.WindowHandle = CreateWindow(className, title, style, left, top, cols, rows, NULL, NULL, inst, NULL);
-	if (!GAppState.WindowHandle)
+	GAppState.Window.Handle = CreateWindow(className, title, style, left, top, cols, rows, NULL, NULL, inst, NULL);
+	if (!GAppState.Window.Handle)
 	{
 		AppMessage("CreateWindow returned NULL");
 		return RES_PLATFORM_ERROR;
 	}
+	GAppState.Window.Width = WINDOW_WIDTH;
+	GAppState.Window.Height = WINDOW_HEIGHT;
 	return RES_NO_ERROR;
 }
 
@@ -85,7 +87,7 @@ EResult AppIsFinished()
 void AppPollEvents()
 {
 	MSG msg;
-	while (PeekMessage(&msg, GAppState.WindowHandle, 0, 0, PM_REMOVE))
+	while (PeekMessage(&msg, GAppState.Window.Handle, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
@@ -103,7 +105,12 @@ void AppMessage(const char* format, ...)
 	va_start(args, format);
 	vsnprintf_s(msg, sizeof(msg), _TRUNCATE, format, args);
 	va_end(args);
-	MessageBox(GAppState.WindowHandle, msg, "", MB_OK);
+	MessageBox(GAppState.Window.Handle, msg, "", MB_OK);
+}
+
+C_API const AppWindow* AppGetWindow()
+{
+	return &GAppState.Window;
 }
 
 #endif // _MSC_VER
