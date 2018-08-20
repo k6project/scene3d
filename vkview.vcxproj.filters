@@ -9,5 +9,16 @@
     <ClCompile Include="src\vkview\main.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\vkview\platform.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\vkview\coredefs.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vkview\platform.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
