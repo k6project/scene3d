@@ -53,7 +53,9 @@ struct FbxDebugInfo : public IFbxNodeHandler
 			}
 			for (int i = 0; i < fbxMesh->GetPolygonCount(); i ++)
 			{
+                FbxVector4 fbxNormal;
 				int fbxFaceSize = fbxMesh->GetPolygonSize(i);
+                fbxMesh->GetPolygonVertexNormal(i, 0, fbxNormal);
 				int* start = &vertices[fbxMesh->GetPolygonVertexIndex(i)];
 			}
 		}
