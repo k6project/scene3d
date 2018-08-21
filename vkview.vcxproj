@@ -141,12 +141,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\vkview\assets.c" />
     <ClCompile Include="src\vkview\main.c" />
     <ClCompile Include="src\vkview\platform.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vkview\platform.h" />
     <ClInclude Include="src\vkview\coredefs.h" />
+    <ClInclude Include="src\vkview\assets.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="src\vkview\vkview.vert">

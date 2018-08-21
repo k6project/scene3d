@@ -12,6 +12,9 @@
     <ClCompile Include="src\vkview\platform.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="src\vkview\assets.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vkview\coredefs.h">
@@ -20,10 +23,11 @@
     <ClInclude Include="src\vkview\platform.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\vkview\assets.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\vkview\vkview.vert">
-      <Filter>src</Filter>
-    </None>
+    <CustomBuild Include="src\vkview\vkview.vert" />
   </ItemGroup>
 </Project>
