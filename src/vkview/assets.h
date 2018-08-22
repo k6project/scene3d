@@ -1,5 +1,7 @@
 #pragma once
 
+#define TEXTURE_FILE(n) "textures/" #n ".tga"
+
 typedef struct Image
 {
 	int Width;

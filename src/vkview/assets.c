@@ -66,7 +66,17 @@ static EResult TGAReadUncompressed(FILE* fp, Image* img, const TGAHeader* tgaHea
 	{
 		TGAOrigin origin = TGA_ORIGIN((*tgaHeader));
 		int rowStep = (origin == TGA_LOWER_LEFT) ? -1 : 1;
+		const int rowSize = tgaHeader->Width * (tgaHeader->BitsPerPixel >> 3);
 		int row = (origin == TGA_LOWER_LEFT) ? (tgaHeader->Height - 1) : 0;
+		for (int r = 0; r < tgaHeader->Height; r++, row += rowStep)
+		{
+			void* rowMem = ((char*)img->Data) + row * rowSize;
+			if (fread(rowMem, rowSize, 1, fp) != 1)
+			{
+				return RES_PLATFORM_ERROR;
+			}
+		}
+		return RES_NO_ERROR;
 	}
 	return RES_UNKNOWN_ERROR;
 }
@@ -83,8 +93,10 @@ C_API EResult TGALoadImage(const char* fName, Image** image)
 	fread(&tgaHeader, TGA_HEADER_SIZE, 1, fp);
 	fseek(fp, tgaHeader.ImgIdSize, SEEK_CUR); //skip image id section
 	Image* img = (extImage) ? *image : (Image*)malloc(sizeof(Image));
-	img->DataSize = (tgaHeader.Width * tgaHeader.Height) * 4;
+	img->DataSize = (tgaHeader.Width * tgaHeader.Height) * (tgaHeader.BitsPerPixel >> 3);
 	img->Data = malloc(img->DataSize);
+	img->Width = tgaHeader.Width;
+	img->Height = tgaHeader.Height;
 	EResult res = RES_NO_ERROR;
 	switch (tgaHeader.ImageType)
 	{

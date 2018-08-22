@@ -4,9 +4,8 @@
 
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
-	Image image;
-	Image* tmp = &image;
-	TGALoadImage("textures/4pixel.tga", &tmp);
+	Image image, *tmp = &image;
+	TGALoadImage(TEXTURE_FILE(4pixel), &tmp);
 	return 0;
 
 	EResult res = AppStartup();
