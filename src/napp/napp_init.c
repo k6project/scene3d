@@ -1,3 +1,4 @@
+#define NAPP_PRIVATE
 #include "napp_private.h"
 
 #include <string.h>

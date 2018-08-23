@@ -6,3 +6,5 @@ ext/
 /scene3d.vcxproj.user
 shaders/*.spv
 /vkview.vcxproj.user
+xcode.sh
+
