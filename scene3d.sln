@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scene3d", "scene3d.vcxproj"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vkview", "vkview.vcxproj", "{B5ADA8AA-55FC-4CDD-AFE4-1BB30AA4DB8B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libnapp", "libnapp.vcxproj", "{CA9E8189-72C5-41D9-AF79-C08E75810062}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{B5ADA8AA-55FC-4CDD-AFE4-1BB30AA4DB8B}.Release|x64.Build.0 = Release|x64
 		{B5ADA8AA-55FC-4CDD-AFE4-1BB30AA4DB8B}.Release|x86.ActiveCfg = Release|Win32
 		{B5ADA8AA-55FC-4CDD-AFE4-1BB30AA4DB8B}.Release|x86.Build.0 = Release|Win32
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Debug|x64.ActiveCfg = Debug|x64
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Debug|x64.Build.0 = Debug|x64
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Debug|x86.ActiveCfg = Debug|Win32
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Debug|x86.Build.0 = Debug|Win32
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Release|x64.ActiveCfg = Release|x64
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Release|x64.Build.0 = Release|x64
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Release|x86.ActiveCfg = Release|Win32
+		{CA9E8189-72C5-41D9-AF79-C08E75810062}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
