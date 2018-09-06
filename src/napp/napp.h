@@ -10,6 +10,7 @@
 
 typedef struct NAppWindowInfo
 {
+    const char* Title;
 	int XOrg, YOrg, Width, Height;
 	bool IsFullscreen;
 } NAppWindowInfo;
@@ -26,6 +27,8 @@ NAPP_API void NAppDestroyWindow(NAppWindow* window);
 
 NAPP_API void NAppPollEvents(NAppWindow* window);
 
-NAPP_API bool NAppIsFinished();
+NAPP_API bool NAppIsFinished(void);
 
-NAPP_API void NAppFinalize();
+NAPP_API void NAppFinalize(void);
+
+NAPP_API int NAppRun(void);
