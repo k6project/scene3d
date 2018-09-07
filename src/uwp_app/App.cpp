@@ -1,7 +1,12 @@
-﻿#include "pch.h"
-#include "App.h"
+﻿#include "App.h"
 
+#include <pix.h>
+#include <d3d12.h>
 #include <ppltasks.h>
+
+#if defined(_DEBUG)
+#include <dxgidebug.h>
+#endif
 
 using namespace uwp_app;
 
@@ -16,17 +21,6 @@ using namespace Windows::Foundation;
 using namespace Windows::Graphics::Display;
 
 using Microsoft::WRL::ComPtr;
-
-// The DirectX 12 Application template is documented at http://go.microsoft.com/fwlink/?LinkID=613670&clcid=0x409
-
-// The main function is only used to initialize our IFrameworkView class.
-[Platform::MTAThread]
-int main(Platform::Array<Platform::String^>^)
-{
-	auto direct3DApplicationSource = ref new Direct3DApplicationSource();
-	CoreApplication::Run(direct3DApplicationSource);
-	return 0;
-}
 
 IFrameworkView^ Direct3DApplicationSource::CreateView()
 {
@@ -97,20 +91,20 @@ void App::Run()
 			CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
 			auto commandQueue = GetDeviceResources()->GetCommandQueue();
-			PIXBeginEvent(commandQueue, 0, L"Update");
+			PIXBeginEvent(0, L"Update");
 			{
 				m_main->Update();
 			}
-			PIXEndEvent(commandQueue);
+			PIXEndEvent();
 
-			PIXBeginEvent(commandQueue, 0, L"Render");
+			PIXBeginEvent(0, L"Render");
 			{
 				if (m_main->Render())
 				{
 					GetDeviceResources()->Present();
 				}
 			}
-			PIXEndEvent(commandQueue);
+			PIXEndEvent();
 		}
 		else
 		{

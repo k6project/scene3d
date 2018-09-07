@@ -1,9 +1,11 @@
-﻿#include "pch.h"
-#include "Sample3DSceneRenderer.h"
+﻿#include "Sample3DSceneRenderer.h"
 
 #include "..\Common\DirectXHelper.h"
 #include <ppltasks.h>
 #include <synchapi.h>
+
+#include <pix.h>
+#include <DirectXColors.h>
 
 using namespace uwp_app;
 

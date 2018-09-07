@@ -1,5 +1,4 @@
-﻿#include "pch.h"
-#include "DeviceResources.h"
+﻿#include "DeviceResources.h"
 #include "DirectXHelper.h"
 
 using namespace DirectX;

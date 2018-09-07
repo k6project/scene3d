@@ -1,6 +1,8 @@
 ﻿#pragma once
 
-#include "pch.h"
+#include <wrl.h>
+#include <pix.h>
+
 #include "Common\DeviceResources.h"
 #include "uwp_appMain.h"
 

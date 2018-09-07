@@ -68,6 +68,9 @@
     <ClCompile Include="src\uwp_app\Common\DeviceResources.cpp">
       <Filter>src\Common</Filter>
     </ClCompile>
+    <ClCompile Include="src\uwp_app\uwp_main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\uwp_app\Content\Sample3DSceneRenderer.h">

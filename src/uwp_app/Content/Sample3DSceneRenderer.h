@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include <memory>
+#include <vector>
+
 #include "..\Common\DeviceResources.h"
 #include "ShaderStructures.h"
 #include "..\Common\StepTimer.h"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform.h"
+
 #ifdef __cplusplus
 #define NAPP_API extern "C"
 #else

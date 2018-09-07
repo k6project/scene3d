@@ -1,5 +1,12 @@
 ﻿#pragma once
 
+#include <wrl/client.h>
+#include <agile.h>
+#include <dxgi1_4.h>
+#include <DirectXMath.h>
+
+#include "d3dx12.h"
+
 namespace DX
 {
 	static const UINT c_frameCount = 3;		// Use triple buffering.
