@@ -11,6 +11,8 @@ namespace DX
 {
 	static const UINT c_frameCount = 3;		// Use triple buffering.
 
+	void ReportLiveObjects();
+
 	// Controls all the DirectX device resources.
 	class DeviceResources
 	{

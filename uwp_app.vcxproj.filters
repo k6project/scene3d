@@ -7,22 +7,10 @@
     <Filter Include="src">
       <UniqueIdentifier>{87961c52-c9e1-4a9b-85e4-52a2524d4c92}</UniqueIdentifier>
     </Filter>
-    <ClInclude Include="src\uwp_app\App.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\uwp_app\uwp_appMain.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\uwp_app\pch.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClCompile Include="src\uwp_app\App.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\uwp_app\uwp_appMain.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\uwp_app\pch.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <Filter Include="src\Common">

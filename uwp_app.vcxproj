@@ -160,7 +160,6 @@
     <Image Include="textures\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\uwp_app\App.h" />
     <ClInclude Include="src\uwp_app\Common\d3dx12.h" />
     <ClInclude Include="src\uwp_app\Common\DeviceResources.h" />
     <ClInclude Include="src\uwp_app\Common\DirectXHelper.h" />
@@ -168,19 +167,11 @@
     <ClInclude Include="src\uwp_app\Content\Sample3DSceneRenderer.h" />
     <ClInclude Include="src\uwp_app\Content\ShaderStructures.h" />
     <ClInclude Include="src\uwp_app\uwp_appMain.h" />
-    <ClInclude Include="src\uwp_app\pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\uwp_app\App.cpp" />
     <ClCompile Include="src\uwp_app\Common\DeviceResources.cpp" />
     <ClCompile Include="src\uwp_app\Content\Sample3DSceneRenderer.cpp" />
     <ClCompile Include="src\uwp_app\uwp_appMain.cpp" />
-    <ClCompile Include="src\uwp_app\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\uwp_app\uwp_main.cpp" />
   </ItemGroup>
   <ItemGroup>

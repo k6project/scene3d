@@ -11,7 +11,7 @@ namespace uwp_app
 	{
 	public:
 		uwp_appMain();
-		void CreateRenderers(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		void CreateRenderers(DX::DeviceResources* deviceResources);
 		void Update();
 		bool Render();
 

@@ -13,7 +13,7 @@ namespace uwp_app
 	class Sample3DSceneRenderer
 	{
 	public:
-		Sample3DSceneRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources);
+		Sample3DSceneRenderer(DX::DeviceResources* deviceResources);
 		~Sample3DSceneRenderer();
 		void CreateDeviceDependentResources();
 		void CreateWindowSizeDependentResources();
@@ -35,7 +35,7 @@ namespace uwp_app
 		static const UINT c_alignedConstantBufferSize = (sizeof(ModelViewProjectionConstantBuffer) + 255) & ~255;
 
 		// Cached pointer to device resources.
-		std::shared_ptr<DX::DeviceResources> m_deviceResources;
+		DX::DeviceResources* m_deviceResources;
 
 		// Direct3D resources for cube geometry.
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>	m_commandList;

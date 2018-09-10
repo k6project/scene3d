@@ -1,6 +1,8 @@
 ﻿#include "DeviceResources.h"
 #include "DirectXHelper.h"
 
+#include <dxgidebug.h>
+
 using namespace DirectX;
 using namespace Microsoft::WRL;
 using namespace Windows::Foundation;
@@ -80,13 +82,7 @@ DX::DeviceResources::DeviceResources(DXGI_FORMAT backBufferFormat, DXGI_FORMAT d
 	m_effectiveDpi(-1.0f),
 	m_deviceRemoved(false)
 {
-	CreateDeviceIndependentResources();
 	CreateDeviceResources();
-}
-
-// Configures resources that don't depend on the Direct3D device.
-void DX::DeviceResources::CreateDeviceIndependentResources()
-{
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
@@ -586,4 +582,15 @@ void DX::DeviceResources::GetHardwareAdapter(IDXGIAdapter1** ppAdapter)
 	}
 
 	*ppAdapter = adapter.Detach();
+}
+
+void DX::ReportLiveObjects()
+{
+#if defined(_DEBUG)
+	ComPtr<IDXGIDebug1> dxgiDebug;
+	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
+	{
+		dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+	}
+#endif
 }

@@ -1,5 +1,4 @@
-﻿#include "pch.h"
-#include "uwp_appMain.h"
+﻿#include "uwp_appMain.h"
 #include "Common\DirectXHelper.h"
 
 using namespace uwp_app;
@@ -21,11 +20,9 @@ uwp_appMain::uwp_appMain()
 }
 
 // Creates and initializes the renderers.
-void uwp_appMain::CreateRenderers(const std::shared_ptr<DX::DeviceResources>& deviceResources)
+void uwp_appMain::CreateRenderers(DX::DeviceResources* deviceResources)
 {
-	// TODO: Replace this with your app's content initialization.
 	m_sceneRenderer = std::unique_ptr<Sample3DSceneRenderer>(new Sample3DSceneRenderer(deviceResources));
-
 	OnWindowSizeChanged();
 }
 
