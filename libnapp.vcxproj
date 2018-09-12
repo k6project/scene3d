@@ -130,11 +130,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\napp\napp.h" />
+    <ClInclude Include="src\napp\napp_main.h" />
     <ClInclude Include="src\napp\napp_private.h" />
     <ClInclude Include="src\napp\platform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\napp\napp_init.c" />
+    <ClCompile Include="src\napp\napp_winapi.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

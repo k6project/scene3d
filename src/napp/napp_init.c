@@ -7,9 +7,9 @@ NAppState GState;
 
 static bool GIsInitialized = false;
 
-extern bool NAppInitializeImpl(void);
+//extern bool NAppInitializeImpl(void);
 
-bool NAppInitialize(const int argc, const char** argv)
+/*bool NAppInitialize()
 {
 	if (!GIsInitialized)
 	{
@@ -17,7 +17,7 @@ bool NAppInitialize(const int argc, const char** argv)
 		GIsInitialized = NAppInitializeImpl();
 	}
 	return GIsInitialized;
-}
+}*/
 
 extern bool NAppCreateWindowImpl(NAppWindow* window);
 extern void NAppShutdownImpl();

@@ -2,22 +2,29 @@
 #include "platform.h"
 #include "assets.h"
 
-int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
+#include <napp/napp_main.h>
+
+/*int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	EResult res = AppStartup();
 	if (res != RES_NO_ERROR)
 	{
 		return show;
 	}
-	//VkInitialize()
-	////VkCreatePipeline(shader, fixed)
-	////VkCreateVertexArray()
-	////VkCreateTexture()
 	while (AppIsFinished() != RES_APP_SHUTDOWN)
 	{
-		//VkRenderScene();
 		AppPollEvents();
 	}
 	AppShutdown();
     return show;
+}*/
+
+static void NAppMain()
+{
+	if (NAppInitialize())
+	{
+		//NAppSetFullscreen(false);
+		//NAppSetViewSize(1280, 800);
+		NAppRun();
+	}
 }
