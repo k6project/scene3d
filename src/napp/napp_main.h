@@ -2,14 +2,10 @@
 
 #include "napp.h"
 
-NAPP_API bool NAppInitialize();
-
-NAPP_API int NAppRun(void);
-
 #if defined(_NAPP_WINAPI_)
 
 #define NAPP_MAIN_IMPL \
-	extern void NAppArgv(LPSTR); \
+	NAPP_API void NAppArgv(LPSTR); \
     int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) \
 	{ \
 		NAppArgv(cmd); \
@@ -21,7 +17,7 @@ NAPP_API int NAppRun(void);
 
 //TODO
 
-#elif defined(_NAPP_MAC_)
+#elif defined(_NAPP_MACOS_)
 
 #define NAPP_MAIN_IMPL \
 	NAPP_API void NAppArgv(int, char**); \
@@ -39,6 +35,10 @@ NAPP_API int NAppRun(void);
 #endif
 
 #define NAppMain() \
-    NAppMainImpl(); \
+    NAppMainImpl(void); \
     NAPP_MAIN_IMPL \
-    void NAppMainImpl()
+    void NAppMainImpl(void)
+
+NAPP_API bool NAppInitialize(void);
+
+NAPP_API void NAppRun(void);

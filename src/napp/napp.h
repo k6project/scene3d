@@ -8,6 +8,12 @@
 
 #include <stdbool.h>
 
+NAPP_API void NAppSetFullscreen(bool value);
+
+NAPP_API void NAppSetViewSize(int width, int height);
+
+/*******************/
+
 typedef struct NAppWindowInfo
 {
     const char* Title;

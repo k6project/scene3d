@@ -1,3 +1,4 @@
+#if 0
 #import <Cocoa/Cocoa.h>
 #import <AppKit/AppKit.h>
 
@@ -79,41 +80,6 @@ bool NAppCreateWindowImpl(NAppWindow* window)
 }
 @end
 
-bool NAppInitializeImpl(void)
-{
-    if (NSApp)
-    {
-        return true;
-    }
-    
-    [NSApplication sharedApplication];
-    
-    NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
-    id appName = [info objectForKey:@"CFBundleDisplayName"];
-    if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
-    {
-        appName = [info objectForKey:@"CFBundleName"];
-    }
-    if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
-    {
-        appName = [info objectForKey:@"CFBundleExecutable"];
-    }
-    assert(appName && [appName isKindOfClass:[NSString class]] && ![appName isEqualToString:@""]);
-
-    NSMenu* menuBar = [[NSMenu alloc] init];
-    [NSApp setMainMenu:menuBar];
-    NSMenuItem* appItem = [menuBar addItemWithTitle:appName
-                                             action:NULL
-                                      keyEquivalent:@""];
-    NSMenu* appSubMenu = [[NSMenu alloc] init];
-    [appSubMenu addItemWithTitle:@"Quit"
-                          action:@selector(terminate:)
-                   keyEquivalent:@"q"];
-    [appItem setSubmenu:appSubMenu];
-    
-    return true;
-}
-
 int NAppRun(void)
 {
     NAppDelegate* nappDelegate = [[NAppDelegate alloc] init];
@@ -126,3 +92,4 @@ void NAppShutdownImpl(void)
 {
     [NSApp terminate: [NSApp delegate]];
 }
+#endif
