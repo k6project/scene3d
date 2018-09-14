@@ -8,3 +8,4 @@ shaders/*.spv
 /vkview.vcxproj.user
 xcode.sh
 
+/uwp_app.vcxproj.user
