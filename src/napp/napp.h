@@ -1,13 +1,16 @@
 #pragma once
 
 #ifdef __cplusplus
+#ifndef _NAPP_WRL_
 #define NAPP_API extern "C"
+#else
+#define NAPP_API
+#endif
 #else
 #define NAPP_API
 #endif
 
 #include <stdbool.h>
-#include <vulkan/vulkan.h>
 
 NAPP_API void NAppSetFullscreen(bool value);
 

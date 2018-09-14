@@ -9,15 +9,12 @@
     <ClInclude Include="src\napp\napp.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\napp\platform.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\napp\napp_private.h">
+    <ClInclude Include="src\napp\napp_main.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\napp\napp_init.c">
+    <ClCompile Include="src\napp\napp_winrt.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

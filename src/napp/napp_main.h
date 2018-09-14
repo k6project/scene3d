@@ -15,7 +15,15 @@
 
 #elif defined(_NAPP_WRL_)
 
-//TODO
+#define NAPP_MAIN_IMPL \
+    NAPP_API void NAppArgv(Platform::Array<Platform::String^>^); \
+	[Platform::MTAThread] \
+	int main(Platform::Array<Platform::String^>^ argv) \
+	{ \
+		NAppArgv(argv); \
+        NAppMainImpl(); \
+        return 0; \
+    } \
 
 #elif defined(_NAPP_MACOS_)
 
