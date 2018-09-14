@@ -69,9 +69,7 @@ bool NAppInitialize(void)
     {
         return true;
     }
-    
     [NSApplication sharedApplication];
-    
     NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
     id appName = [info objectForKey:@"CFBundleDisplayName"];
     if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
@@ -83,7 +81,6 @@ bool NAppInitialize(void)
         appName = [info objectForKey:@"CFBundleExecutable"];
     }
     assert(appName && [appName isKindOfClass:[NSString class]] && ![appName isEqualToString:@""]);
-    
     NSMenu* menuBar = [[NSMenu alloc] init];
     [NSApp setMainMenu:menuBar];
     NSMenuItem* appItem = [menuBar addItemWithTitle:appName
@@ -94,7 +91,6 @@ bool NAppInitialize(void)
                           action:@selector(terminate:)
                    keyEquivalent:@"q"];
     [appItem setSubmenu:appSubMenu];
-    
     return true;
 }
 

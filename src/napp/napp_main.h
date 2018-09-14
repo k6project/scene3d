@@ -28,7 +28,7 @@
 		return 0; \
 	} \
 
-#else // Undefined build platform
+#else
 
 #error Undefined build platform
 

@@ -7,6 +7,7 @@
 #endif
 
 #include <stdbool.h>
+#include <vulkan/vulkan.h>
 
 NAPP_API void NAppSetFullscreen(bool value);
 

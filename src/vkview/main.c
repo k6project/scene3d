@@ -1,7 +1,3 @@
-#include "coredefs.h"
-#include "platform.h"
-#include "assets.h"
-
 #include <napp/napp_main.h>
 
 /*int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
@@ -23,8 +19,8 @@ static void NAppMain()
 {
 	if (NAppInitialize())
 	{
-		//NAppSetFullscreen(false);
-		//NAppSetViewSize(1280, 800);
+		NAppSetFullscreen(false);
+		NAppSetViewSize(1280, 800);
 		NAppRun();
 	}
 }
