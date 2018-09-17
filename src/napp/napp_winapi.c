@@ -6,8 +6,11 @@ static struct
 {
 	HWND Window;
 	RECT ViewRect;
+	DWORD WindowStyle;
 	MONITORINFO MonitorInfo;
 	bool IsInitialized;
+	bool IsFullscreen;
+	bool IsRunning;
 } NApp;
 
 static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
@@ -17,7 +20,7 @@ static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		//GAppState.IsClosing = TRUE;
+		NApp.IsRunning = false;
 		break;
 	case WM_CLOSE:
 		DestroyWindow(wnd);
@@ -32,6 +35,24 @@ static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 NAPP_API void NAppArgv(LPSTR cmd)
 {
 }
+
+void NAppSetFullscreen(bool value)
+{
+	if (value)
+	{
+	}
+	else
+	{
+		NApp.WindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
+	}
+	NApp.IsFullscreen = value;
+}
+
+void NAppSetViewSize(int width, int height)
+{
+	SetRect(&NApp.ViewRect, 0, 0, width, height);
+}
+
 
 bool NAppInitialize()
 {
@@ -49,7 +70,8 @@ bool NAppInitialize()
 		wndClass.lpszClassName = "NAPP_WND";
 		if (RegisterClass(&wndClass))
 		{
-			HMONITOR Monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTONEAREST);
+			NApp.MonitorInfo.cbSize = sizeof(MONITORINFO);
+			HMONITOR Monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
 			GetMonitorInfo(Monitor, &NApp.MonitorInfo);
 			NApp.IsInitialized = true;
 		}
@@ -63,11 +85,26 @@ bool NAppInitialize()
 
 void NAppRun()
 {
-	//todo create window
-	MSG msg;
-	while (PeekMessage(&msg, NApp.Window, 0, 0, PM_REMOVE))
+	LPSTR title = "";
+	RECT windowRect = NApp.ViewRect;
+	HINSTANCE inst = GetModuleHandle(NULL);
+	AdjustWindowRect(&NApp.ViewRect, NApp.WindowStyle, FALSE);
+	int rows = windowRect.bottom - windowRect.top;
+	int cols = windowRect.right - windowRect.left;
+	int left = ((NApp.MonitorInfo.rcMonitor.right - NApp.MonitorInfo.rcMonitor.left) - cols) >> 1;
+	int top = ((NApp.MonitorInfo.rcMonitor.bottom - NApp.MonitorInfo.rcMonitor.top) - rows) >> 1;
+	NApp.Window = CreateWindow("NAPP_WND", title, NApp.WindowStyle, left, top, cols, rows, NULL, NULL, inst, NULL);
+	if (NApp.Window)
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		MSG msg;
+		NApp.IsRunning = true;
+		while (NApp.IsRunning)
+		{
+			while (PeekMessage(&msg, NApp.Window, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
 	}
 }

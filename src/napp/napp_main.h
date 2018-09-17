@@ -4,6 +4,7 @@
 
 #if defined(_NAPP_WINAPI_)
 
+#include <windows.h>
 #define NAPP_MAIN_IMPL \
 	NAPP_API void NAppArgv(LPSTR); \
     int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show) \
