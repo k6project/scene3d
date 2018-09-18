@@ -30,6 +30,12 @@
     <ClInclude Include="src\napp\napp_vulkan.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\napp\napp_vkinstance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\napp\napp_vkdevice.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\napp\napp_init.c">

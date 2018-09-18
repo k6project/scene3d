@@ -12,6 +12,10 @@
 
 #include <stdbool.h>
 
+typedef void*(*NAppStartupProc)();
+typedef void(*NAppShutdownProc)(void*);
+typedef void(*NAppUpdateProc)(void*);
+
 NAPP_API void NAppSetFullscreen(bool value);
 
 NAPP_API void NAppSetViewSize(int width, int height);

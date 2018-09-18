@@ -5,15 +5,9 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
-//declare pointers to API functions (primary device)
+#define VULKAN_API_DEVICE(f) extern PFN_vk ## f ## vk ## f ;
+#include "napp_vkdevice.h"
 
-//declare structure for MGPUVulkanDevice ()
+NAPP_API void NAppVkInit();
 
-typedef struct MGPUVulkanDevice
-{
-	PFN_vkAllocateMemory AllocateMemory;
-} MGPUVulkanDevice;
-
-NAPP_API void NAppVulkanInit();
-
-NAPP_API VkDevice NAppVulkanCreateDevice(int physicalDevice, const VkDeviceCreateInfo* info, MGPUVulkanDevice* mgpuDevice);
+NAPP_API VkDevice NAppVkCreateDevice(int phDevice, const VkDeviceCreateInfo* info);

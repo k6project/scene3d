@@ -1,6 +1,17 @@
 #include "napp.h"
 
+#ifdef _NAPP_WINAPI_
+
 #include <windows.h>
+
+static void* NAppStartupDummy()
+{
+	return NULL;
+}
+
+static void NAppLifecycleDummy(void* arg)
+{
+}
 
 static struct  
 {
@@ -11,6 +22,10 @@ static struct
 	bool IsInitialized;
 	bool IsFullscreen;
 	bool IsRunning;
+	NAppStartupProc StartupProc;
+	NAppShutdownProc ShutdownProc;
+	NAppUpdateProc UpdateProc;
+	void* GlobalState;
 } NApp;
 
 static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
@@ -56,7 +71,6 @@ void NAppSetViewSize(int width, int height)
 
 bool NAppInitialize()
 {
-
 	if (!NApp.IsInitialized)
 	{
 		WNDCLASS wndClass;
@@ -79,6 +93,9 @@ bool NAppInitialize()
 		{
 			//AppMessage("Failed to register window class");
 		}
+		NApp.StartupProc = &NAppStartupDummy;
+		NApp.ShutdownProc = &NAppLifecycleDummy;
+		NApp.UpdateProc = &NAppLifecycleDummy;
 	}
 	return NApp.IsInitialized;
 }
@@ -98,6 +115,7 @@ void NAppRun()
 	{
 		MSG msg;
 		NApp.IsRunning = true;
+		NApp.GlobalState = NApp.StartupProc();
 		while (NApp.IsRunning)
 		{
 			while (PeekMessage(&msg, NApp.Window, 0, 0, PM_REMOVE))
@@ -105,6 +123,10 @@ void NAppRun()
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
+			NApp.UpdateProc(NApp.GlobalState);
 		}
+		NApp.ShutdownProc(NApp.GlobalState);
 	}
 }
+
+#endif

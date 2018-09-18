@@ -1,0 +1,36 @@
+#ifndef VULKAN_API_GOBAL
+#define VULKAN_API_GOBAL(proc)
+#endif
+VULKAN_API_GOBAL(CreateInstance)
+VULKAN_API_GOBAL(EnumerateInstanceLayerProperties)
+VULKAN_API_GOBAL(EnumerateInstanceExtensionProperties)
+#undef VULKAN_API_GOBAL
+
+#ifndef VULKAN_API_INSTANCE
+#define VULKAN_API_INSTANCE(proc)
+#endif
+VULKAN_API_INSTANCE(DestroyInstance)
+VULKAN_API_INSTANCE(EnumeratePhysicalDevices)
+VULKAN_API_INSTANCE(EnumerateDeviceExtensionProperties)
+VULKAN_API_INSTANCE(GetPhysicalDeviceProperties)
+VULKAN_API_INSTANCE(GetPhysicalDeviceFeatures)
+VULKAN_API_INSTANCE(GetPhysicalDeviceMemoryProperties)
+VULKAN_API_INSTANCE(GetPhysicalDeviceQueueFamilyProperties)
+VULKAN_API_INSTANCE(GetPhysicalDeviceSurfaceSupportKHR)
+VULKAN_API_INSTANCE(GetPhysicalDeviceSurfaceCapabilitiesKHR)
+VULKAN_API_INSTANCE(GetPhysicalDeviceSurfaceFormatsKHR)
+VULKAN_API_INSTANCE(GetPhysicalDeviceSurfacePresentModesKHR)
+VULKAN_API_INSTANCE(DestroySurfaceKHR)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+VULKAN_API_INSTANCE(CreateWin32SurfaceKHR)
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+VULKAN_API_INSTANCE(CreateMacOSSurfaceMVK)
+#endif
+#ifdef VK_DEBUG
+VULKAN_API_INSTANCE(CreateDebugReportCallbackEXT)
+VULKAN_API_INSTANCE(DebugReportMessageEXT)
+VULKAN_API_INSTANCE(DestroyDebugReportCallbackEXT)
+#endif
+VULKAN_API_INSTANCE(GetDeviceProcAddr)
+VULKAN_API_INSTANCE(CreateDevice)
+#undef VULKAN_API_INSTANCE

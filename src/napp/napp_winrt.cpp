@@ -13,7 +13,6 @@ using namespace Windows::Graphics::Display;
 
 static void OnGlobalVisibilityChanged(CoreWindow^ sender, VisibilityChangedEventArgs^ args)
 {
-
 }
 
 ref class NAppView sealed : public Windows::ApplicationModel::Core::IFrameworkView
