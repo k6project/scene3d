@@ -4,14 +4,16 @@ project(scene3d C)
 set(LIBNAPP_SOURCES 
     src/napp/napp.h
     src/napp/napp_main.h
+    src/napp/napp_vulkan.h
+    src/napp/napp_vulkan.c
 )
 
 # MacOS
 
 if(APPLE)
 
-set(PLATFORM_MACRO _NAPP_MACOS_)
-set(VULKAN_INC $ENV{VULKAN_SDK}/macOS/include)
+set(PLATFORM_MACRO _NAPP_MACOS_ VK_USE_PLATFORM_MACOS_MVK)
+set(VULKAN_INC $ENV{VULKAN_SDK}macOS/include)
 
 set(LIBNAPP_SOURCES
     ${LIBNAPP_SOURCES}
@@ -29,7 +31,7 @@ set (VKVIEW_SOURCES
 )
 
 add_library(napp ${LIBNAPP_SOURCES})
-target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO} VK_NO_PROTOTYPES)
+target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO})
 target_include_directories(napp PUBLIC ${VULKAN_INC} src)
 
 add_executable(vkview WIN32 MACOSX_BUNDLE ${VKVIEW_SOURCES})
