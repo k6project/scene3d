@@ -12,6 +12,8 @@
 
 #include <stdbool.h>
 
+#include "napp_assert.h"
+
 typedef void*(*NAppStartupProc)();
 typedef void(*NAppShutdownProc)(void*);
 typedef void(*NAppUpdateProc)(void*);
