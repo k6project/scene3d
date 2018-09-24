@@ -48,6 +48,13 @@
     NAPP_MAIN_IMPL \
     void NAppMainImpl(void)
 
+#define napp_main() \
+    NAppMainImpl(void); \
+    NAPP_MAIN_IMPL \
+    void NAppMainImpl(void)
+
 NAPP_API bool NAppInitialize(void);
+#define napp_initialize() NAppInitialize()
 
 NAPP_API void NAppRun(void);
+#define napp_run() NAppRun()

@@ -14,33 +14,14 @@
 
 #include "napp_assert.h"
 
-typedef void*(*NAppStartupProc)();
-typedef void(*NAppShutdownProc)(void*);
-typedef void(*NAppUpdateProc)(void*);
-
 NAPP_API void NAppSetFullscreen(bool value);
+#define napp_set_fullscreen(v) NAppSetFullscreen(v)
 
 NAPP_API void NAppSetViewSize(int width, int height);
+#define napp_set_view_size(w,h) NAppSetViewSize(w,h)
 
-/*******************/
+NAPP_API void napp_set_startup_proc(void*(*)(void));
 
-typedef struct NAppWindowInfo
-{
-    const char* Title;
-	int XOrg, YOrg, Width, Height;
-	bool IsFullscreen;
-} NAppWindowInfo;
+NAPP_API void napp_set_main_loop_proc(void(*)(void*));
 
-typedef struct NAppWindow NAppWindow;
-
-NAPP_API NAppWindow* NAppCreateWindow(const NAppWindowInfo* windowInfo);
-
-NAPP_API const NAppWindowInfo* NAppGetWindowInfo(NAppWindow* window);
-
-NAPP_API void NAppDestroyWindow(NAppWindow* window);
-
-NAPP_API void NAppPollEvents(NAppWindow* window);
-
-NAPP_API bool NAppIsFinished(void);
-
-NAPP_API void NAppFinalize(void);
+NAPP_API void napp_set_shutdown_proc(void(*)(void*));

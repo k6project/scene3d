@@ -1,14 +1,12 @@
+#include <gl/gl.h>
 #include <napp/napp_main.h>
 
-static void NAppMain()
+static void napp_main()
 {
-	if (NAppInitialize())
+	if (napp_initialize())
 	{
-		NAppSetFullscreen(false);
-		NAppSetViewSize(1280, 800);
-		//NAppSetStartupProc()
-		//NAppSetShutdownProc()
-		//NAppSetUpdateProc()
-		NAppRun();
+		napp_set_fullscreen(false);
+		napp_set_view_size(1280, 800);
+		napp_run();
 	}
 }
