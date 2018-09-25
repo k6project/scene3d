@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scene3d", "scene3d.vcxproj", "{0D00E367-605E-4849-99F3-5A1C614FFF8E}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uwp_app", "uwp_app.vcxproj", "{27ED6C89-1183-4ED6-AC67-7319B48D706A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libnapp_uwp", "libnapp_uwp.vcxproj", "{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NAPP Library", "NAPP Library", "{F1814FB0-C1BB-4539-BF14-08BEA22A334C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -82,5 +84,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CA9E8189-72C5-41D9-AF79-C08E75810062} = {F1814FB0-C1BB-4539-BF14-08BEA22A334C}
+		{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11} = {F1814FB0-C1BB-4539-BF14-08BEA22A334C}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2A9338BC-9FE8-492D-85DA-572E41D8151C}
 	EndGlobalSection
 EndGlobal

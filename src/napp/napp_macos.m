@@ -14,6 +14,16 @@ NAPP_API void NAppArgv(int argc, char** argv)
 {
 }
 
+void NAppSetAppName(const char* value)
+{
+    NApp.ViewTitle = value;
+}
+
+const char* NAppGetAppName(void)
+{
+    return NApp.ViewTitle;
+}
+
 void NAppSetFullscreen(bool value)
 {
     NApp.IsFullscreen = value;
@@ -33,7 +43,6 @@ void NAppSetViewSize(int width, int height)
 
 @interface NAppWindowDelegate : NSObject<NSWindowDelegate>
 {
-@public NAppWindow* Window;
 }
 @end
 

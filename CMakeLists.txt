@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.3)
-project(scene3d C)
+project(scene3d C CXX)
 
 set(LIBNAPP_SOURCES 
     src/napp/napp.h
@@ -30,9 +30,16 @@ set (VKVIEW_SOURCES
     src/vkview/main.c
 )
 
+set (THE_BASE_SOURCES
+    src/the_base/main.cpp
+)
+
 add_library(napp ${LIBNAPP_SOURCES})
 target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO})
 target_include_directories(napp PUBLIC ${VULKAN_INC} src)
 
 add_executable(vkview WIN32 MACOSX_BUNDLE ${VKVIEW_SOURCES})
 target_link_libraries(vkview napp ${PLATFORM_LIBS})
+
+add_executable(the_base ${THE_BASE_SOURCES})
+target_include_directories(the_base PRIVATE extern/inc)

@@ -4,7 +4,7 @@
 
 #include <windows.h>
 
-static void* NAppStartupDummy()
+static void* NAppStartupDummy(void)
 {
 	return NULL;
 }
@@ -15,18 +15,18 @@ static void NAppLifecycleDummy(void* arg)
 
 static struct  
 {
-	HWND Window;
-	RECT ViewRect;
-	DWORD WindowStyle;
-	MONITORINFO MonitorInfo;
-	bool IsInitialized;
-	bool IsFullscreen;
-	bool IsRunning;
-	NAppStartupProc StartupProc;
-	NAppShutdownProc ShutdownProc;
-	NAppUpdateProc UpdateProc;
-	void* GlobalState;
-} NApp;
+	HWND window;
+	RECT view_rect;
+	DWORD wnd_style;
+	MONITORINFO monitor_info;
+	bool is_initialized;
+	bool is_fullscreen;
+	bool is_running;
+	void* (*startup_proc)(void);
+	void (*shutdown_proc)(void*);
+	void (*update_proc)(void*);
+	void* global_state;
+} g_app;
 
 static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 {
@@ -35,7 +35,7 @@ static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		NApp.IsRunning = false;
+		g_app.is_running = false;
 		break;
 	case WM_CLOSE:
 		DestroyWindow(wnd);
@@ -58,20 +58,20 @@ void NAppSetFullscreen(bool value)
 	}
 	else
 	{
-		NApp.WindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
+		g_app.wnd_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
 	}
-	NApp.IsFullscreen = value;
+	g_app.is_fullscreen = value;
 }
 
 void NAppSetViewSize(int width, int height)
 {
-	SetRect(&NApp.ViewRect, 0, 0, width, height);
+	SetRect(&g_app.view_rect, 0, 0, width, height);
 }
 
 
 bool NAppInitialize()
 {
-	if (!NApp.IsInitialized)
+	if (!g_app.is_initialized)
 	{
 		WNDCLASS wndClass;
 		ZeroMemory(&wndClass, sizeof(wndClass));
@@ -84,49 +84,64 @@ bool NAppInitialize()
 		wndClass.lpszClassName = "NAPP_WND";
 		if (RegisterClass(&wndClass))
 		{
-			NApp.MonitorInfo.cbSize = sizeof(MONITORINFO);
+			g_app.monitor_info.cbSize = sizeof(MONITORINFO);
 			HMONITOR Monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
-			GetMonitorInfo(Monitor, &NApp.MonitorInfo);
-			NApp.IsInitialized = true;
+			GetMonitorInfo(Monitor, &g_app.monitor_info);
+			g_app.is_initialized = true;
 		}
 		else
 		{
 			//AppMessage("Failed to register window class");
 		}
-		NApp.StartupProc = &NAppStartupDummy;
-		NApp.ShutdownProc = &NAppLifecycleDummy;
-		NApp.UpdateProc = &NAppLifecycleDummy;
+		g_app.startup_proc = &NAppStartupDummy;
+		g_app.shutdown_proc = &NAppLifecycleDummy;
+		g_app.update_proc = &NAppLifecycleDummy;
 	}
-	return NApp.IsInitialized;
+	return g_app.is_initialized;
 }
 
 void NAppRun()
 {
 	LPSTR title = "";
-	RECT windowRect = NApp.ViewRect;
+	RECT windowRect = g_app.view_rect;
 	HINSTANCE inst = GetModuleHandle(NULL);
-	AdjustWindowRect(&NApp.ViewRect, NApp.WindowStyle, FALSE);
+	AdjustWindowRect(&g_app.view_rect, g_app.wnd_style, FALSE);
 	int rows = windowRect.bottom - windowRect.top;
 	int cols = windowRect.right - windowRect.left;
-	int left = ((NApp.MonitorInfo.rcMonitor.right - NApp.MonitorInfo.rcMonitor.left) - cols) >> 1;
-	int top = ((NApp.MonitorInfo.rcMonitor.bottom - NApp.MonitorInfo.rcMonitor.top) - rows) >> 1;
-	NApp.Window = CreateWindow("NAPP_WND", title, NApp.WindowStyle, left, top, cols, rows, NULL, NULL, inst, NULL);
-	if (NApp.Window)
+	int left = ((g_app.monitor_info.rcMonitor.right - g_app.monitor_info.rcMonitor.left) - cols) >> 1;
+	int top = ((g_app.monitor_info.rcMonitor.bottom - g_app.monitor_info.rcMonitor.top) - rows) >> 1;
+	g_app.window = CreateWindow("NAPP_WND", title, g_app.wnd_style, left, top, cols, rows, NULL, NULL, inst, NULL);
+	if (g_app.window)
 	{
 		MSG msg;
-		NApp.IsRunning = true;
-		NApp.GlobalState = NApp.StartupProc();
-		while (NApp.IsRunning)
+		g_app.is_running = true;
+		g_app.global_state = g_app.startup_proc();
+		while (g_app.is_running)
 		{
-			while (PeekMessage(&msg, NApp.Window, 0, 0, PM_REMOVE))
+			while (PeekMessage(&msg, g_app.window, 0, 0, PM_REMOVE))
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-			NApp.UpdateProc(NApp.GlobalState);
+			g_app.update_proc(g_app.global_state);
 		}
-		NApp.ShutdownProc(NApp.GlobalState);
+		g_app.shutdown_proc(g_app.global_state);
 	}
+}
+
+void napp_set_startup_proc(void*(*proc)(void))
+{
+    g_app.startup_proc = (proc) ? proc : &NAppStartupDummy;
+}
+
+void napp_set_main_loop_proc(void(*proc)(void*))
+{
+    g_app.update_proc = (proc) ? proc : &NAppLifecycleDummy;
+}
+
+void napp_set_shutdown_proc(void(*proc)(void*))
+{
+    g_app.shutdown_proc = (proc) ? proc : &NAppLifecycleDummy;
 }
 
 #endif
