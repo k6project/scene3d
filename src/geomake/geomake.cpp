@@ -1,14 +1,19 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#define PAR_SHAPES_IMPLEMENTATION
+
 #include <par/par_shapes.h>
 #include <hmm/HandmadeMath.h>
 
-void print_db(const par_shapes_mesh* mesh, const bool do_filter)
+#include "writers.hpp"
+
+void present_mesh(const par_shapes_mesh* mesh, const bool do_filter = false, mesh_writer& out = default_writer())
 {
 	hmm_vec3* vertices = reinterpret_cast<hmm_vec3*>(mesh->points);
 	hmm_vec3* normals = reinterpret_cast<hmm_vec3*>(mesh->normals);
-	struct tmp_t { hmm_vec3 v, n; int prev, idx; } *filter = nullptr;
+	struct tmp_t { hmm_vec3 v, n; hmm_vec2 tc; int prev, idx; } *filter = nullptr;
 	filter = (tmp_t*)calloc(mesh->npoints, sizeof(tmp_t));
 	for (int i = 0; i < mesh->npoints; i++)
 	{
@@ -18,6 +23,7 @@ void print_db(const par_shapes_mesh* mesh, const bool do_filter)
 		filter[i].idx = (do_filter) ? -1 : i;
 	}
 	int unique = mesh->npoints, next = 0;
+
 	if (do_filter)
 	{
 		for (int i = 0; i < mesh->npoints; i++)
@@ -26,7 +32,6 @@ void print_db(const par_shapes_mesh* mesh, const bool do_filter)
 			{
 				filter[i].idx = next++;
 				const tmp_t& a = filter[i];
-				//printf("Add vertex %d\n", a.idx);
 				for (int j = i + 1; j < mesh->npoints; j++)
 				{
 					tmp_t& b = filter[j];
@@ -34,7 +39,6 @@ void print_db(const par_shapes_mesh* mesh, const bool do_filter)
 					const hmm_vec3 dn = HMM_SubtractVec3(a.n, b.n);
 					if (HMM_DotVec3(dv, dv) < 0.000001f && HMM_DotVec3(dn, dn) < 0.000001f)
 					{
-						//printf("    Remap vertex %d to %d\n", j, a.idx);
 						b.prev = i;
 						b.idx = a.idx;
 						--unique;
@@ -43,28 +47,41 @@ void print_db(const par_shapes_mesh* mesh, const bool do_filter)
 			}
 		}
 	}
-	char format[4] = { '-', '-', '-', '\0' };
-	if (mesh->points) format[0] = '+';
-	if (mesh->normals) format[1] = '+';
-	if (mesh->tcoords) format[2] = '+';
-	int bpi = (unique > 256) ? ((unique > 65535) ? 4 : 2) : 1;
-	printf("%d %d %d %s\n", unique, mesh->ntriangles, bpi, format);
+
+	out.begin_mesh(unique, mesh->ntriangles, (mesh->normals) != nullptr, (mesh->tcoords) != nullptr);
+	out.begin_vertices(unique);
 	for (int i = 0; i < mesh->npoints; i++)
 	{
 		const tmp_t& a = filter[i];
 		if (a.prev == -1)
 		{
-			printf("%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f\n",
-				a.v.X, a.v.Y, a.v.Z, a.n.X, a.n.Y, a.n.Z);
+			out.begin_vertex();
+			out.vertex_position(a.v);
+			if (mesh->normals)
+			{
+				out.vertex_normal(a.n);
+			}
+			if (mesh->tcoords)
+			{
+				out.vertex_texcoord(a.tc);
+			}
+			out.end_vertex();
 		}
 	}
+	out.end_vertices(unique);
+	out.begin_triangles(mesh->ntriangles);
 	for (int i = 0; i < mesh->ntriangles * 3;)
 	{
 		const tmp_t& a = filter[mesh->triangles[i++]];
 		const tmp_t& b = filter[mesh->triangles[i++]];
 		const tmp_t& c = filter[mesh->triangles[i++]];
-		printf("%d %d %d\n", a.idx, b.idx, c.idx);
+		out.begin_triangle();
+		out.triangle_indices(a.idx, b.idx, c.idx);
+		out.end_triangle();
 	}
+	out.end_triangles(mesh->ntriangles);
+	out.end_mesh();
+
 	free(filter);
 }
 
@@ -91,7 +108,7 @@ int main(int argc, char** argv)
 			par_shapes_compute_normals(mesh);
 			filter = true;
 		}
-		print_db(mesh, filter);
+		present_mesh(mesh, filter, json_writer());
 		par_shapes_free_mesh(mesh);
 	}
 	return 0;

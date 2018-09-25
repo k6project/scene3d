@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2003
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scene3d", "scene3d.vcxproj", "{0D00E367-605E-4849-99F3-5A1C614FFF8E}"
 EndProject
@@ -14,6 +14,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libnapp_uwp", "libnapp_uwp.vcxproj", "{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NAPP Library", "NAPP Library", "{F1814FB0-C1BB-4539-BF14-08BEA22A334C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "geomake", "geomake.vcxproj", "{716AEF62-1402-451E-9D1A-2E2C0D57CC51}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2AD8B8E2-83B8-40C5-BE0B-6072EC30462A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -81,6 +85,16 @@ Global
 		{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11}.Release|x64.Build.0 = Release|x64
 		{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11}.Release|x86.ActiveCfg = Release|Win32
 		{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11}.Release|x86.Build.0 = Release|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Debug|ARM.ActiveCfg = Debug|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Debug|x64.ActiveCfg = Debug|x64
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Debug|x64.Build.0 = Debug|x64
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Debug|x86.ActiveCfg = Debug|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Debug|x86.Build.0 = Debug|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Release|ARM.ActiveCfg = Release|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Release|x64.ActiveCfg = Release|x64
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Release|x64.Build.0 = Release|x64
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Release|x86.ActiveCfg = Release|Win32
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,6 +102,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{CA9E8189-72C5-41D9-AF79-C08E75810062} = {F1814FB0-C1BB-4539-BF14-08BEA22A334C}
 		{797ED0D6-BEE1-494D-A19D-1E2AB3EA5B11} = {F1814FB0-C1BB-4539-BF14-08BEA22A334C}
+		{716AEF62-1402-451E-9D1A-2E2C0D57CC51} = {2AD8B8E2-83B8-40C5-BE0B-6072EC30462A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2A9338BC-9FE8-492D-85DA-572E41D8151C}
