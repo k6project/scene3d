@@ -54,6 +54,7 @@ void NAppVkInit()
 	{
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 		NAppVulkan.DllHandle = LoadLibrary("vulkan-1.dll");
+        CHECK(NAppVulkan.DllHandle);
 		vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)GetProcAddress(NAppVulkan.DllHandle, "vkGetInstanceProcAddr");
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
         CFBundleRef bundle = CFBundleGetMainBundle();
@@ -77,12 +78,14 @@ void NAppVkInit()
         CFRelease(path);
         CFRelease(url);
         CFRelease(bundle);
+        CHECK(NAppVulkan.DllHandle);
         vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(NAppVulkan.DllHandle, "vkGetInstanceProcAddr");
 #endif
         NAppInitInstanceApi(VK_NULL_HANDLE);
         //create instance
         VkApplicationInfo appInfo;
         VKINIT(appInfo, VK_STRUCTURE_TYPE_APPLICATION_INFO);
+        appInfo.pApplicationName = NAppGetAppName();
         //
         VkInstanceCreateInfo info;
         VKINIT(info, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
