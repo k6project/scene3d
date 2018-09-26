@@ -85,8 +85,18 @@ void present_mesh(const par_shapes_mesh* mesh, const bool do_filter = false, mes
 	free(filter);
 }
 
+template <typename T, T* obj>
+void cb(void* arg)
+{
+	obj->test();
+}
+
 int main(int argc, char** argv)
 {
+	void(*test)(void*) = nullptr;
+	auto l = [&](void* ptr) {};
+	test = l;
+
 	if (argc > 1)
 	{
 		bool filter = false;

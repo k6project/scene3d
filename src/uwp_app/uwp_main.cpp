@@ -159,12 +159,12 @@ public:
 	}
 };*/
 
-static void NAppMain()
+static void napp_main()
 {
-	if (NAppInitialize())
+	if (napp_initialize())
 	{
 		//NAppSetFullscreen(false);
 		//NAppSetViewSize(1280, 800);
-		NAppRun();
+		napp_run();
 	}
 }
