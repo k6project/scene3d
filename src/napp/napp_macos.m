@@ -121,5 +121,18 @@ void NAppRun(void)
 {
     NAppDelegate* nappDelegate = [[NAppDelegate alloc] init];
     [NSApp setDelegate:nappDelegate];
+#if 0
     [NSApp run];
+#else
+    [NSApp finishLaunching];
+    NSEvent* ev;
+    while (true)
+    do {
+        ev = [NSApp nextEventMatchingMask: NSEventMaskAny
+                                untilDate: nil
+                                   inMode: NSDefaultRunLoopMode
+                                  dequeue: YES];
+        if (ev) [NSApp sendEvent: ev];
+    } while (ev);
+#endif
 }

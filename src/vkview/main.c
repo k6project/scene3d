@@ -1,4 +1,3 @@
-#include <gl/gl.h>
 #include <napp/napp_main.h>
 
 static void napp_main()
