@@ -114,4 +114,9 @@ void napp_run()
 	}
 }
 
+void* napp_get_window_handle()
+{
+	return g_app.window;
+}
+
 #endif

@@ -9,3 +9,5 @@
 NAPP_API void napp_set_fullscreen(bool value);
 
 NAPP_API void napp_set_window_size(int width, int height);
+ 
+NAPP_API void* napp_get_window_handle();
