@@ -1,4 +1,4 @@
-#include "napp.h"
+#include <napp/macros.h>
 
 #import <Cocoa/Cocoa.h>
 #import <AppKit/AppKit.h>
@@ -117,7 +117,7 @@ bool NAppInitialize(void)
 }
 @end
 
-void NAppRun(void)
+NAPP_API void napp_run(void)
 {
     NAppDelegate* nappDelegate = [[NAppDelegate alloc] init];
     [NSApp setDelegate:nappDelegate];

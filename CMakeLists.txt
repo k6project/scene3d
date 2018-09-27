@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.1.3)
 project(scene3d C CXX)
 
-set(LIBNAPP_SOURCES 
+set(LIBNAPP_SOURCES
+    inc/napp/macros.h
+    inc/napp/appmain.h
     src/napp/napp.h
     src/napp/napp_main.h
-    src/napp/napp_vulkan.h
-    src/napp/napp_vulkan.c
 )
 
 # MacOS

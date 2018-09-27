@@ -1,6 +1,6 @@
 #pragma once
 
-#include "macros.h" /* for NAPP_API */
+#include "macros.h"
 
 #if defined(_NAPP_WINAPI_)
 
