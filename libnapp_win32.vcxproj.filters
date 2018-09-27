@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="inc">
+      <UniqueIdentifier>{d1250d46-068d-44dc-ab89-1ce5656eb970}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{1db5b9de-fed5-44d2-81ff-465c092c41b1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\napp\appmain.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\napp\callback.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\napp\macros.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\napp\window.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\napp\common.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\napp\win32_impl.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\napp\common.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

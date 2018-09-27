@@ -9,3 +9,5 @@ shaders/*.spv
 xcode.sh
 
 /uwp_app.vcxproj.user
+/geomake.vcxproj.user
+/libnapp_win32.vcxproj.user
