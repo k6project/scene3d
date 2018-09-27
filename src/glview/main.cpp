@@ -1,3 +1,5 @@
+#include <windows.h>
+
 #include <napp/window.h>
 #include <napp/appmain.h>
 #include <napp/callback.h>
@@ -6,19 +8,16 @@ class glview
 {
 	void init();
 	void destroy();
-	int test = 1;
 public:
 	void run();
 };
 
 void glview::init()
 {
-	test = 2;
 }
 
 void glview::destroy()
 {
-	test = 0;
 }
 
 void glview::run()
