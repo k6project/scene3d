@@ -16,6 +16,8 @@ static struct win32_app_t
 	bool is_initialized;
 	bool is_fullscreen;
 	bool is_running;
+	HGLRC glrc;
+	HDC dc;
 } g_app;
 
 static LRESULT WINAPI napp_wnd_proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
@@ -23,6 +25,10 @@ static LRESULT WINAPI napp_wnd_proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	LRESULT retval = 0;
 	switch (msg)
 	{
+	case WM_CREATE:
+		g_app.window = wnd;
+		napp_invoke_cb(NAPP_STARTUP);
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		g_app.is_running = false;
@@ -87,19 +93,18 @@ void napp_run()
 {
 	LPSTR title = "";
 	RECT windowRect = g_app.view_rect;
+	napp_init_callbacks();
 	HINSTANCE inst = GetModuleHandle(NULL);
 	AdjustWindowRect(&g_app.view_rect, g_app.wnd_style, FALSE);
 	int rows = windowRect.bottom - windowRect.top;
 	int cols = windowRect.right - windowRect.left;
 	int left = ((g_app.monitor_info.rcMonitor.right - g_app.monitor_info.rcMonitor.left) - cols) >> 1;
 	int top = ((g_app.monitor_info.rcMonitor.bottom - g_app.monitor_info.rcMonitor.top) - rows) >> 1;
-	g_app.window = CreateWindow("NAPP_WND", title, g_app.wnd_style, left, top, cols, rows, NULL, NULL, inst, NULL);
+	CreateWindow("NAPP_WND", title, g_app.wnd_style, left, top, cols, rows, NULL, NULL, inst, NULL);
 	if (g_app.window)
 	{
 		MSG msg;
-		napp_init_callbacks();
 		g_app.is_running = true;
-		napp_invoke_cb(NAPP_STARTUP);
 		while (g_app.is_running)
 		{
 			napp_invoke_cb(NAPP_UPDATE_BEGIN);
@@ -117,6 +122,73 @@ void napp_run()
 void* napp_get_window_handle()
 {
 	return g_app.window;
+}
+
+// IF USING OPENGL
+
+#include <gl/glcorearb.h>
+#define GLFUNCTION(a,b) PFNGL##b##PROC gl##a## = NULL; 
+#include <gfx/glfunc.inl>
+
+#include <gl/wgl.h>
+
+void glCreateContextNAPP()
+{
+	PIXELFORMATDESCRIPTOR pfd;
+	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd.nVersion = 1;
+	pfd.dwFlags = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cColorBits = 32;
+	pfd.cDepthBits = 32;
+	pfd.iLayerType = PFD_MAIN_PLANE;
+	g_app.dc = GetDC(g_app.window);
+	HMODULE dll = GetModuleHandle("opengl32.dll");
+	int pf = ChoosePixelFormat(g_app.dc, &pfd);
+	if (dll && pf)
+	{
+		if (SetPixelFormat(g_app.dc, pf, &pfd))
+		{
+			HGLRC tmp = wglCreateContext(g_app.dc);
+			wglMakeCurrent(g_app.dc, tmp);
+			PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)(wglGetProcAddress("wglCreateContextAttribsARB"));
+			if (wglCreateContextAttribsARB)
+			{
+				int attribs[] =
+				{
+					WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+					WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+					WGL_CONTEXT_FLAGS_ARB, 0, 0
+				};
+				g_app.glrc = wglCreateContextAttribsARB(g_app.dc, 0, attribs);
+				wglMakeCurrent(NULL, NULL);
+				wglDeleteContext(tmp);
+				wglMakeCurrent(g_app.dc, g_app.glrc);
+#define GLFUNCTION(a,b) gl##a## = (PFNGL##b##PROC)(wglGetProcAddress("gl"#a));
+#define GLFUNCTION_OLD(a,b) gl##a## = (PFNGL##b##PROC)(GetProcAddress(dll, "gl"#a));
+#include <gfx/glfunc.inl>
+			}
+			else
+			{
+				g_app.glrc = tmp;
+			}
+		}
+	}
+}
+
+void glDestroyContextNAPP()
+{
+	wglMakeCurrent(NULL, NULL);
+	if (g_app.glrc)
+	{
+	    wglDeleteContext(g_app.glrc);
+	}
+}
+
+void glSwapBuffersNAPP()
+{
+	SwapBuffers(g_app.dc);
 }
 
 #endif
