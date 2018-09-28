@@ -93,10 +93,6 @@ void cb(void* arg)
 
 int main(int argc, char** argv)
 {
-	void(*test)(void*) = nullptr;
-	auto l = [&](void* ptr) {};
-	test = l;
-
 	if (argc > 1)
 	{
 		bool filter = false;
