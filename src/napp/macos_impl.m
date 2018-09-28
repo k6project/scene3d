@@ -1,4 +1,4 @@
-#include <napp/macros.h>
+#include "common.h"
 
 #import <Cocoa/Cocoa.h>
 #import <AppKit/AppKit.h>
@@ -8,34 +8,26 @@ static struct
     const char* ViewTitle;
     int ViewWidth, ViewHeight;
     bool IsFullscreen;
+    void* window;
 } NApp;
 
-NAPP_API void NAppArgv(int argc, char** argv)
+NAPP_API void napp_argv(int argc, char** argv)
 {
 }
 
-void NAppSetAppName(const char* value)
-{
-    NApp.ViewTitle = value;
-}
-
-const char* NAppGetAppName(void)
-{
-    return NApp.ViewTitle;
-}
-
-void NAppSetFullscreen(bool value)
+NAPP_API void napp_set_fullscreen(bool value)
 {
     NApp.IsFullscreen = value;
 }
 
-void NAppSetViewSize(int width, int height)
+NAPP_API void napp_set_window_size(int width, int height)
 {
     NApp.ViewWidth = width;
     NApp.ViewHeight = height;
 }
 
 @interface NAppWindowCocoa : NSWindow
+@property (assign) NSOpenGLContext* gl_context;
 @end
 
 @implementation NAppWindowCocoa
@@ -70,9 +62,10 @@ static void NAppCreateWindowCocoa(void)
     NAppWindowDelegate* delegate = [[NAppWindowDelegate alloc] init];
     [wnd setDelegate:delegate];
     [wnd makeKeyAndOrderFront:NSApp];
+    NApp.window = (__bridge void*)wnd;
 }
 
-bool NAppInitialize(void)
+bool napp_initialize(void)
 {
     if (NSApp)
     {
@@ -109,16 +102,19 @@ bool NAppInitialize(void)
 @implementation NAppDelegate
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
+    napp_invoke_cb(NAPP_SHUTDOWN);
     return NSTerminateNow;
 }
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
     NAppCreateWindowCocoa();
+    napp_invoke_cb(NAPP_STARTUP);
 }
 @end
 
 NAPP_API void napp_run(void)
 {
+    napp_init_callbacks();
     NAppDelegate* nappDelegate = [[NAppDelegate alloc] init];
     [NSApp setDelegate:nappDelegate];
 #if 0
@@ -127,12 +123,38 @@ NAPP_API void napp_run(void)
     [NSApp finishLaunching];
     NSEvent* ev;
     while (true)
-    do {
-        ev = [NSApp nextEventMatchingMask: NSEventMaskAny
-                                untilDate: nil
-                                   inMode: NSDefaultRunLoopMode
-                                  dequeue: YES];
-        if (ev) [NSApp sendEvent: ev];
-    } while (ev);
+    {
+        napp_invoke_cb(NAPP_UPDATE_BEGIN);
+        do {
+            ev = [NSApp nextEventMatchingMask: NSEventMaskAny
+                                    untilDate: nil
+                                       inMode: NSDefaultRunLoopMode
+                                      dequeue: YES];
+            if (ev) [NSApp sendEvent: ev];
+        } while (ev);
+        napp_invoke_cb(NAPP_UPDATE_END);
+    }
 #endif
+}
+
+NAPP_API void glCreateContextNAPP()
+{
+    NSOpenGLPixelFormatAttribute attrs[] =
+    {
+        NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
+        NSOpenGLPFAColorSize, 24, NSOpenGLPFAAlphaSize, 8,
+        NSOpenGLPFADoubleBuffer, NSOpenGLPFAAccelerated,
+        0
+    };
+    NSOpenGLPixelFormat *pf = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
+    NAppWindowCocoa* wnd = (__bridge NAppWindowCocoa*)NApp.window;
+    wnd.gl_context = [[NSOpenGLContext alloc] initWithFormat:pf shareContext:nil];
+    [wnd.gl_context setView:[wnd contentView]];
+    [wnd.gl_context makeCurrentContext];
+}
+
+NAPP_API void glDestroyContextNAPP()
+{
+    NAppWindowCocoa* wnd = (__bridge NAppWindowCocoa*)NApp.window;
+    [wnd.gl_context setView:nil];
 }

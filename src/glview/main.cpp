@@ -2,26 +2,36 @@
 #include <napp/appmain.h>
 #include <napp/callback.h>
 
+#ifdef _NAPP_WINAPI_
 #include <windows.h>
 #include <gl/glcorearb.h>
 #include <gl/wgl.h>
 
 #pragma comment(lib, "opengl32.lib")
+#else
+#include <OpenGL/OpenGL.h>
+#endif
 
 class glview
 {
+#ifdef _NAPP_WINAPI_
 	HDC dc = nullptr;
 	HGLRC glrc = nullptr;
-	void init();
+#endif
+    void init();
 	void destroy();
 	void render();
 public:
 	void run();
 };
 
+NAPP_API void glCreateContextNAPP();
+NAPP_API void glDestroyContextNAPP();
+
 void glview::init()
 {
-	//glCreateContextNAPP(); - init 4.1 for desktop
+    glCreateContextNAPP();//init 4.1 for desktop
+#ifdef _NAPP_WINAPI_
 	PIXELFORMATDESCRIPTOR pfd;
 	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
 	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
@@ -58,20 +68,28 @@ void glview::init()
 			}
 		}
 	}
+#endif
 }
 
 void glview::destroy()
 {
+    glDestroyContextNAPP();
+#ifdef _NAPP_WINAPI_
 	wglMakeCurrent(nullptr, nullptr);
 	if (glrc)
 	{
 		wglDeleteContext(glrc);
 	}
+#endif
 }
 
 void glview::render()
 {
+    CGLContextObj ctx = CGLGetCurrentContext();
+    CGLClearDrawable(ctx);
+#ifdef _NAPP_WINAPI_
 	SwapBuffers(dc);
+#endif
 }
 
 void glview::run()
