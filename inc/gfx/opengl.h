@@ -21,3 +21,5 @@ NAPP_API void glCreateContextNAPP();
 NAPP_API void glDestroyContextNAPP();
 
 NAPP_API void glSwapBuffersNAPP();
+
+NAPP_API GLuint glCreateShaderProgramNAPP(const char** files, GLenum* stages);

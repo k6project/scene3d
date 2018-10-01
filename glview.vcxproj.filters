@@ -4,10 +4,21 @@
     <Filter Include="src">
       <UniqueIdentifier>{1a712fc0-eb86-4d19-9979-76f1cd2a2399}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{689d2531-61e9-4613-b31f-067c1a8737bf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\glview\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="test\glview\glview.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="test\glview\glview.frag">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
