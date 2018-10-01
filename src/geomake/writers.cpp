@@ -9,9 +9,9 @@ default_writer::default_writer()
 {
 }
 
-default_writer::default_writer(FILE* fstream)
-	: stream(fstream)
+void default_writer::set_stream(FILE *fp)
 {
+    stream = (fp) ? fp : stdout;
 }
 
 void default_writer::begin_mesh(int verts, int tris, bool norm, bool tc)
@@ -142,4 +142,76 @@ void json_writer::end_mesh()
 {
 	putc('}', stream);
 	putc('\n', stream);
+}
+
+/****                           BINARY WRITER                             ****/
+
+template <typename T>
+static void write_value(FILE* stream, const T& v, int count = 1)
+{
+    fwrite(&v, sizeof(T), count, stream);
+}
+
+void binary_writer::begin_mesh(int verts, int tris, bool norm, bool tc)
+{
+    write_value(stream, verts);
+    int indices = 3 * tris;
+    write_value(stream, indices);
+    char attr_idx = 0;
+    char offs = 0;
+    char stride = 3 * sizeof(float);
+    stride += (norm) ? 3 * sizeof(float) : 0;
+    stride += (tc) ? 2 * sizeof(float) : 0;
+    struct attr_t { char idx, size, stride, offs; };
+    attr_t pos { attr_idx++, 3, stride, 0 };
+    write_value(stream, pos);
+    offs += 3 * sizeof(float);
+    {
+        char i = (norm) ? attr_idx++ : -1;
+        attr_t anorm { i, 3, stride, offs };
+        write_value(stream, anorm);
+        offs += 3 * sizeof(float);
+    }
+    {
+        char i = (tc) ? attr_idx++ : -1;
+        attr_t atc { i, 2, stride, offs };
+        write_value(stream, atc);
+        offs += 2 * sizeof(float);
+    }
+    int vdata_size = stride * verts;
+    write_value(stream, vdata_size);
+    int idata_offs = 16 * (((vdata_size - 1) / 16) + 1);
+    write_value(stream, idata_offs);
+    pad = idata_offs - vdata_size;
+    int bpis = 4 * indices;
+    write_value(stream, bpis);
+}
+
+void binary_writer::vertex_position(const hmm_vec3& val)
+{
+    write_value(stream, val);
+}
+
+void binary_writer::vertex_normal(const hmm_vec3& val)
+{
+    write_value(stream, val);
+}
+
+void binary_writer::vertex_texcoord(const hmm_vec2& val)
+{
+    write_value(stream, val);
+}
+
+void binary_writer::end_vertex(){}
+
+void binary_writer::begin_triangles(int)
+{
+    char padding[pad];
+    write_value(stream, padding[0], pad);
+}
+
+void binary_writer::triangle_indices(int a, int b, int c)
+{
+    int indices[3] = {a, b, c};
+    write_value(stream, indices);
 }

@@ -137,7 +137,7 @@ NAPP_API void napp_run(void)
 #endif
 }
 
-NAPP_API void glCreateContextNAPP()
+void glCreateContextNAPP()
 {
     NSOpenGLPixelFormatAttribute attrs[] =
     {
@@ -153,8 +153,14 @@ NAPP_API void glCreateContextNAPP()
     [wnd.gl_context makeCurrentContext];
 }
 
-NAPP_API void glDestroyContextNAPP()
+void glDestroyContextNAPP()
 {
     NAppWindowCocoa* wnd = (__bridge NAppWindowCocoa*)NApp.window;
     [wnd.gl_context setView:nil];
+}
+
+void glSwapBuffersNAPP()
+{
+    NAppWindowCocoa* wnd = (__bridge NAppWindowCocoa*)NApp.window;
+    [wnd.gl_context flushBuffer];
 }

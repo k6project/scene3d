@@ -9,7 +9,7 @@
 
 #include "writers.hpp"
 
-void present_mesh(const par_shapes_mesh* mesh, const bool do_filter = false, mesh_writer& out = default_writer())
+void present_mesh(const par_shapes_mesh* mesh, const bool do_filter, mesh_writer& out)
 {
 	hmm_vec3* vertices = reinterpret_cast<hmm_vec3*>(mesh->points);
 	hmm_vec3* normals = reinterpret_cast<hmm_vec3*>(mesh->normals);
@@ -114,7 +114,19 @@ int main(int argc, char** argv)
 			par_shapes_compute_normals(mesh);
 			filter = true;
 		}
-		present_mesh(mesh, filter, json_writer());
+        binary_writer writer;
+        FILE* fp = nullptr;
+        if (argc > 2)
+        {
+            fp = fopen(argv[2], "wb");
+            if (fp)
+                writer.set_stream(fp);
+        }
+		present_mesh(mesh, filter, writer);
+        if (fp)
+        {
+            fclose(fp);
+        }
 		par_shapes_free_mesh(mesh);
 	}
 	return 0;

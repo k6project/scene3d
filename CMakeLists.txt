@@ -15,6 +15,12 @@ set(GLVIEW_SOURCES
     src/glview/glfunc.inl
 )
 
+set(GEOMAKE_SOURCES
+    src/geomake/geomake.cpp
+    src/geomake/writers.hpp
+    src/geomake/writers.cpp
+)
+
 # MacOS
 
 if(APPLE)
@@ -29,7 +35,9 @@ set(LIBNAPP_SOURCES
 
 find_library(LIB_COCOA Cocoa)
 mark_as_advanced(LIB_COCOA)
-set(PLATFORM_LIBS ${LIB_COCOA})
+
+find_library(LIB_OPENGL OpenGL)
+mark_as_advanced(LIB_OPENGL)
 
 endif(APPLE)
 
@@ -38,10 +46,7 @@ target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO})
 target_include_directories(napp PUBLIC inc extern/inc)
 
 add_executable(glview WIN32 MACOSX_BUNDLE ${GLVIEW_SOURCES})
-target_link_libraries(glview napp ${PLATFORM_LIBS})
+target_link_libraries(glview napp ${LIB_COCOA} ${LIB_OPENGL})
 
-#add_executable(vkview WIN32 MACOSX_BUNDLE ${VKVIEW_SOURCES})
-#target_link_libraries(vkview napp ${PLATFORM_LIBS})
-
-#add_executable(the_base ${THE_BASE_SOURCES})
-#target_include_directories(the_base PRIVATE extern/inc)
+add_executable(geomake ${GEOMAKE_SOURCES})
+target_include_directories(geomake PRIVATE extern/inc)
