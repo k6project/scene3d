@@ -206,8 +206,8 @@ void binary_writer::end_vertex(){}
 
 void binary_writer::begin_triangles(int)
 {
-    char padding[pad];
-    write_value(stream, padding[0], pad);
+    static char padding[16];
+    write_value(stream, padding, pad);
 }
 
 void binary_writer::triangle_indices(int a, int b, int c)
