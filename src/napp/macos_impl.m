@@ -1,5 +1,7 @@
 #include "common.h"
 
+#include <sys/param.h>
+
 #import <Cocoa/Cocoa.h>
 #import <AppKit/AppKit.h>
 
@@ -114,6 +116,15 @@ bool napp_initialize(void)
 
 NAPP_API void napp_run(void)
 {
+    CFBundleRef bundle = CFBundleGetMainBundle();
+    if (bundle)
+    {
+        char rcpath[MAXPATHLEN];
+        CFURLRef url =  CFBundleCopyResourcesDirectoryURL(bundle);
+        CFURLGetFileSystemRepresentation(url, true, (UInt8*)rcpath, MAXPATHLEN);
+        CFRelease(url);
+        chdir(rcpath);
+    }
     napp_init_callbacks();
     NAppDelegate* nappDelegate = [[NAppDelegate alloc] init];
     [NSApp setDelegate:nappDelegate];
@@ -139,6 +150,7 @@ NAPP_API void napp_run(void)
 
 void glCreateContextNAPP()
 {
+    GLint vsync = 1;
     NSOpenGLPixelFormatAttribute attrs[] =
     {
         NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
@@ -149,6 +161,7 @@ void glCreateContextNAPP()
     NSOpenGLPixelFormat *pf = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
     NAppWindowCocoa* wnd = (__bridge NAppWindowCocoa*)NApp.window;
     wnd.gl_context = [[NSOpenGLContext alloc] initWithFormat:pf shareContext:nil];
+    [wnd.gl_context setValues:&vsync forParameter:NSOpenGLContextParameterSwapInterval];
     [wnd.gl_context setView:[wnd contentView]];
     [wnd.gl_context makeCurrentContext];
 }

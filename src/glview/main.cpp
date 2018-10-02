@@ -1,9 +1,34 @@
 #include <cstdio>
+#include <cstdlib>
 
 #include <gfx/opengl.h>
 #include <napp/window.h>
 #include <napp/appmain.h>
 #include <napp/callback.h>
+#include <napp/filesys.h>
+
+void asset_load_bmd(const char* fname)
+{
+    buffer_t rdbuff;
+    buffer_init(&rdbuff, nullptr, 0);
+    napp_fs_load_file(fname, rdbuff);
+    const struct bmd_t
+    {
+        unsigned int v_count;
+        unsigned int i_count;
+        struct
+        {
+            unsigned int idx : 8;
+            int size         : 8;
+            int stride       : 8;
+            unsigned int offs: 8;
+        } attribs[3];
+        unsigned int v_bytes;
+        unsigned int i_offset;
+        unsigned int i_bytes;
+    }& bmd_head = buffer_data_ref<bmd_t>(rdbuff);
+    buffer_free(rdbuff);
+}
 
 class glview
 {
@@ -24,6 +49,7 @@ void glview::init()
 	glClearColor(0.4f, 0.6f, 1.0f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(shader);
+    asset_load_bmd("tetr.bmd");
 }
 
 void glview::destroy()
