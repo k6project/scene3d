@@ -27,9 +27,9 @@ int buffer_resize(buffer_t buffer, int new_size)
     return buffer->size;
 }
 
-void* buffer_data(buffer_t buffer)
+void* buffer_data(buffer_t buffer, unsigned int offset)
 {
-    return buffer->ptr;
+    return (((char*)buffer->ptr) + offset);
 }
 
 void buffer_free(buffer_t buffer)
@@ -73,7 +73,6 @@ void napp_invoke_cb(unsigned int index)
 	g_callback[index](g_context);
 }
 
-//int napp_fs_load_file(const char* fname, void** rdbuff, int* max)
 int napp_fs_load_file(const char* fname, buffer_t rdbuff)
 {
     int bytes = -1;
@@ -83,18 +82,9 @@ int napp_fs_load_file(const char* fname, buffer_t rdbuff)
         fseek(fp, 0, SEEK_END);
         bytes = ftell(fp) & INT_MAX;
         fseek(fp, 0, SEEK_SET);
-        /*if (!*rdbuff || bytes > *max)
-        {
-            if (bytes > *max)
-            {
-                *max = bytes;
-            }
-            *rdbuff = malloc(*max);
-        }
-        if (*rdbuff && *max >= bytes)*/
         if (buffer_resize(rdbuff, bytes) >= bytes)
         {
-            fread(buffer_data(rdbuff), bytes, 1, fp);
+            fread(buffer_data(rdbuff, 0), bytes, 1, fp);
         }
         else
         {
@@ -108,22 +98,19 @@ int napp_fs_load_file(const char* fname, buffer_t rdbuff)
 GLuint glCreateShaderProgramNAPP(const char** files, GLenum* stages)
 {
     int count = 0;
-	GLuint result = 0;
-	//void* rdbuff = NULL;
-	//int buff_max = 4096, count;
     buffer_t rdbuff;
+	GLuint result = 0;
     buffer_init(&rdbuff, NULL, 4096);
 	result = glCreateProgram();
 	for (int i = 0; files[i]; i++)
 	{
 		GLenum stage = stages[i];
 		const char* fname = files[i];
-        //count = napp_fs_load_file(fname, &rdbuff, &buff_max);
         count = napp_fs_load_file(fname, rdbuff);
         if (count > 0)
         {
 			GLuint shader = glCreateShader(stage);
-            const char* src = buffer_data(rdbuff);
+            const char* src = buffer_data(rdbuff, 0);
 			glShaderSource(shader, 1, &src, &count);
 			glCompileShader(shader);
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &count);
@@ -145,6 +132,5 @@ GLuint glCreateShaderProgramNAPP(const char** files, GLenum* stages)
 		result = 0;
 	}
     buffer_free(rdbuff);
-	//free(rdbuff);
 	return result;
 }

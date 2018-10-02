@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClInclude Include="inc\napp\appmain.h" />
     <ClInclude Include="inc\napp\callback.h" />
+    <ClInclude Include="inc\napp\filesys.h" />
     <ClInclude Include="inc\napp\macros.h" />
     <ClInclude Include="inc\napp\window.h" />
     <ClInclude Include="src\napp\common.h" />

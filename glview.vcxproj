@@ -150,6 +150,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\glview\main.cpp" />
+    <ClCompile Include="src\glview\utils.cpp">
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ShowIncludes>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ShowIncludes>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ShowIncludes>
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ShowIncludes>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libnapp_win32.vcxproj">
@@ -159,6 +165,9 @@
   <ItemGroup>
     <None Include="test\glview\glview.frag" />
     <None Include="test\glview\glview.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\glview\utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

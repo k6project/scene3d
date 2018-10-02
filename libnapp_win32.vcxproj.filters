@@ -24,6 +24,9 @@
     <ClInclude Include="src\napp\common.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="inc\napp\filesys.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\napp\win32_impl.c">

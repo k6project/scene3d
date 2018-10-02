@@ -12,20 +12,20 @@ NAPP_API void buffer_init(buffer_t* buffer, void* memory, int size);
 
 NAPP_API int buffer_resize(buffer_t buffer, int new_size);
 
-NAPP_API void* buffer_data(buffer_t buffer);
+NAPP_API void* buffer_data(buffer_t buffer, unsigned int offset);
 
 #ifdef __cplusplus
 
 template <typename T>
-inline T* buffer_data(buffer_t buffer)
+inline T* buffer_data_ptr(buffer_t buffer, unsigned int offset = 0)
 {
-    return static_cast<T*>(buffer_data(buffer));
+    return static_cast<T*>(buffer_data(buffer, offset));
 }
 
 template <typename T>
-inline T& buffer_data_ref(buffer_t buffer)
+inline T& buffer_data_ref(buffer_t buffer, unsigned int offset = 0)
 {
-    return *static_cast<T*>(buffer_data(buffer));
+    return *static_cast<T*>(buffer_data(buffer, offset));
 }
 
 #endif

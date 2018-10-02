@@ -1,3 +1,4 @@
+#include "utils.hpp"
 #include <cstdio>
 #include <cstdlib>
 
@@ -26,12 +27,16 @@ void asset_load_bmd(const char* fname)
         unsigned int v_bytes;
         unsigned int i_offset;
         unsigned int i_bytes;
-    }& bmd_head = buffer_data_ref<bmd_t>(rdbuff);
+    } * bmd_head = buffer_data_ptr<bmd_t>(rdbuff);
+	void* vertices = buffer_data(rdbuff, sizeof(bmd_t));
+	void* indices = buffer_data(rdbuff, sizeof(bmd_t) + bmd_head->i_offset);
+	
     buffer_free(rdbuff);
 }
 
 class glview
 {
+	mesh_lib meshes;
 	GLuint shader = 0;
     void init();
 	void destroy();
@@ -43,6 +48,7 @@ public:
 void glview::init()
 {
     glCreateContextNAPP();
+	meshes.init({ "tetr.bmd", "cube.bmd", "octa.bmd", "dode.bmd", "icos.bmd" });
 	GLenum stage_type[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
 	const char* stage_fname[] = { "glview.vert", "glview.frag", nullptr };
 	shader = glCreateShaderProgramNAPP(stage_fname, stage_type);
