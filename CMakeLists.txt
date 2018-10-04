@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.1.3)
 project(scene3d C CXX)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(LIBNAPP_SOURCES
     inc/napp/macros.h
     inc/napp/appmain.h
@@ -13,6 +16,8 @@ set(LIBNAPP_SOURCES
 
 set(GLVIEW_SOURCES
     src/glview/main.cpp
+    src/glview/utils.hpp
+    src/glview/utils.cpp
 )
 
 set(GEOMAKE_SOURCES
@@ -38,9 +43,6 @@ mark_as_advanced(LIB_COCOA)
 
 find_library(LIB_OPENGL OpenGL)
 mark_as_advanced(LIB_OPENGL)
-
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 endif(APPLE)
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <string>
 #include <initializer_list>
 
 using namespace std;
@@ -8,5 +8,5 @@ using namespace std;
 class mesh_lib
 {
 public:
-	void init(initializer_list<const char*> args);
+	void init(const initializer_list<string>& args) noexcept;
 };

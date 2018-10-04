@@ -1,38 +1,9 @@
 #include "utils.hpp"
-#include <cstdio>
-#include <cstdlib>
 
 #include <gfx/opengl.h>
 #include <napp/window.h>
 #include <napp/appmain.h>
 #include <napp/callback.h>
-#include <napp/filesys.h>
-
-void asset_load_bmd(const char* fname)
-{
-    buffer_t rdbuff;
-    buffer_init(&rdbuff, nullptr, 0);
-    napp_fs_load_file(fname, rdbuff);
-    const struct bmd_t
-    {
-        unsigned int v_count;
-        unsigned int i_count;
-        struct
-        {
-            unsigned int idx : 8;
-            int size         : 8;
-            int stride       : 8;
-            unsigned int offs: 8;
-        } attribs[3];
-        unsigned int v_bytes;
-        unsigned int i_offset;
-        unsigned int i_bytes;
-    } * bmd_head = buffer_data_ptr<bmd_t>(rdbuff);
-	void* vertices = buffer_data(rdbuff, sizeof(bmd_t));
-	void* indices = buffer_data(rdbuff, sizeof(bmd_t) + bmd_head->i_offset);
-	
-    buffer_free(rdbuff);
-}
 
 class glview
 {
@@ -48,14 +19,13 @@ public:
 void glview::init()
 {
     glCreateContextNAPP();
-	meshes.init({ "tetr.bmd", "cube.bmd", "octa.bmd", "dode.bmd", "icos.bmd" });
+	meshes.init({ "tetr", "cube", "octa", "dode", "icos" });
 	GLenum stage_type[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
 	const char* stage_fname[] = { "glview.vert", "glview.frag", nullptr };
 	shader = glCreateShaderProgramNAPP(stage_fname, stage_type);
 	glClearColor(0.4f, 0.6f, 1.0f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(shader);
-    asset_load_bmd("tetr.bmd");
 }
 
 void glview::destroy()

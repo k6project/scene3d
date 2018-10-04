@@ -154,6 +154,7 @@ static void write_value(FILE* stream, const T& v, int count = 1)
 
 void binary_writer::begin_mesh(int verts, int tris, bool norm, bool tc)
 {
+#if 0
     write_value(stream, verts);
     int indices = 3 * tris;
     write_value(stream, indices);
@@ -185,11 +186,25 @@ void binary_writer::begin_mesh(int verts, int tris, bool norm, bool tc)
     pad = idata_offs - vdata_size;
     int bpis = 4 * indices;
     write_value(stream, bpis);
+#else
+    has_tc = tc;
+    has_norm = norm;
+    int indices = 3 * tris;
+    write_value(stream, verts);
+    write_value(stream, indices);
+    write_value(stream, stride * verts);
+    write_value(stream, indices * 4);
+#endif
 }
 
 void binary_writer::vertex_position(const hmm_vec3& val)
 {
+    static hmm_vec3 zero;
     write_value(stream, val);
+    if (!has_norm)
+    {
+        write_value(stream, zero);
+    }
 }
 
 void binary_writer::vertex_normal(const hmm_vec3& val)
@@ -202,12 +217,13 @@ void binary_writer::vertex_texcoord(const hmm_vec2& val)
     write_value(stream, val);
 }
 
-void binary_writer::end_vertex(){}
-
-void binary_writer::begin_triangles(int)
+void binary_writer::end_vertex()
 {
-    static char padding[16];
-    write_value(stream, padding, pad);
+    static hmm_vec2 zero;
+    if (!has_tc)
+    {
+        write_value(stream, zero);
+    }
 }
 
 void binary_writer::triangle_indices(int a, int b, int c)

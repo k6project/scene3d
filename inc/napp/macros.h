@@ -9,3 +9,5 @@
 #else
 #define NAPP_API
 #endif
+
+#define ALIGNED(n,b) ((((n-1)/b)+1)*b)

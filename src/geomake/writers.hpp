@@ -37,6 +37,9 @@ protected:
 	FILE* stream = nullptr;
 };
 
+//todo: pack attributes into 4-component float vectors
+//header: 4b-num verts, 4b-num inds, 4b-size vdata, 4b-size idata
+//mesh has only 1 attribute - array of 4-component vectors
 struct json_writer : public default_writer
 {
 	virtual void begin_mesh(int verts, int tris, bool norm, bool tc) override;
@@ -64,8 +67,8 @@ struct binary_writer : public default_writer
     virtual void vertex_normal(const hmm_vec3& val) override;
     virtual void vertex_texcoord(const hmm_vec2& val) override;
     virtual void end_vertex() override;
-    virtual void begin_triangles(int count) override;
     virtual void triangle_indices(int a, int b, int c) override;
 protected:
-    int pad = 0;
+    int stride = sizeof(float) * (3 + 3 + 2);
+    bool has_norm = false, has_tc = false;
 };
