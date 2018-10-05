@@ -13,6 +13,9 @@
 #elif defined(_NAPP_MACOS_)
 
 #include <OpenGL/gl.h>
+#define glGenVertexArrays glGenVertexArraysAPPLE
+#define glBindVertexArray glBindVertexArrayAPPLE
+#define glDeleteVertexArrays glDeleteVertexArraysAPPLE
 
 #endif
 

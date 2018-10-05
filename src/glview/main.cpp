@@ -1,44 +1,38 @@
 #include "utils.hpp"
 
-#include <gfx/opengl.h>
 #include <napp/window.h>
 #include <napp/appmain.h>
 #include <napp/callback.h>
 
 class glview
 {
-	mesh_lib meshes;
-	GLuint shader = 0;
     void init();
 	void destroy();
 	void render();
+    renderer gfx;
+    renderer::mesh_id current_mesh;
 public:
 	void run();
 };
 
 void glview::init()
 {
-    glCreateContextNAPP();
-	meshes.init({ "tetr", "cube", "octa", "dode", "icos" });
-	GLenum stage_type[] = { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
-	const char* stage_fname[] = { "glview.vert", "glview.frag", nullptr };
-	shader = glCreateShaderProgramNAPP(stage_fname, stage_type);
-	glClearColor(0.4f, 0.6f, 1.0f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glUseProgram(shader);
+    gfx.init();
+    gfx.load_material("glview", true);
+	gfx.load_meshes({ "tetr", "cube", "octa", "dode", "icos" });
+    current_mesh = gfx.get_mesh("cube");
 }
 
 void glview::destroy()
 {
-	glUseProgram(0);
-	glDeleteProgram(shader);
-    glDestroyContextNAPP();
+    gfx.destroy();
 }
 
 void glview::render()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	glSwapBuffersNAPP();
+    gfx.begin_frame();
+    gfx.draw_mesh(current_mesh);
+    gfx.end_frame();
 }
 
 void glview::run()
