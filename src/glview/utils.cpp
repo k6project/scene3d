@@ -4,6 +4,14 @@
 
 #include <napp/filesys.h>
 
+#include <cassert>
+static void on_gl_error(void)
+{
+    GLenum error = glGetError();
+    assert(error == GL_NO_ERROR);
+}
+#define GL(s) do {(s);on_gl_error();} while(0)
+
 struct bmd_t
 {
     
@@ -37,8 +45,9 @@ struct bmd_t
 void renderer::init() noexcept
 {
     glCreateContextNAPP();
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glClearColor(0.4f, 0.6f, 1.0f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    GL(glClear(GL_COLOR_BUFFER_BIT));
 }
 
 void renderer::load_material(const std::string &name, bool set_current) noexcept
@@ -123,7 +132,7 @@ renderer::mesh_id renderer::get_mesh(const string &name) noexcept
 
 void renderer::begin_frame() noexcept
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    GL(glClear(GL_COLOR_BUFFER_BIT));
 }
 
 void renderer::end_frame() noexcept
@@ -134,7 +143,7 @@ void renderer::end_frame() noexcept
 void renderer::draw_mesh(mesh_id id) noexcept
 {
     const mesh_t& mesh = meshes_[id];
-    glDrawElements(GL_TRIANGLES, mesh.count, GL_UNSIGNED_INT, mesh.offset);
+    GL(glDrawElements(GL_TRIANGLES, mesh.count, GL_UNSIGNED_INT, mesh.offset));
 }
 
 void renderer::destroy() noexcept

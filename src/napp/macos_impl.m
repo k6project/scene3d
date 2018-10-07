@@ -155,6 +155,7 @@ void glCreateContextNAPP()
     {
         NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
         NSOpenGLPFAColorSize, 24, NSOpenGLPFAAlphaSize, 8,
+        NSOpenGLPFADepthSize, 24, NSOpenGLPFAStencilSize, 8,
         NSOpenGLPFADoubleBuffer, NSOpenGLPFAAccelerated,
         0
     };
