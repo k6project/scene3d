@@ -48,7 +48,7 @@ endif(APPLE)
 
 add_library(napp ${LIBNAPP_SOURCES})
 target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO})
-target_include_directories(napp PUBLIC inc extern/inc)
+target_include_directories(napp PUBLIC inc extern/inc ${VULKAN_INC})
 
 add_executable(glview WIN32 MACOSX_BUNDLE ${GLVIEW_SOURCES})
 target_link_libraries(glview napp ${LIB_COCOA} ${LIB_OPENGL})

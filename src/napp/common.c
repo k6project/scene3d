@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <gfx/opengl.h>
+#include <gfx/vulkan.h>
 #include <napp/filesys.h>
 
 struct buffer_t_
@@ -133,4 +134,40 @@ GLuint glCreateShaderProgramNAPP(const char** files, GLenum* stages)
 	}
     buffer_free(rdbuff);
 	return result;
+}
+
+VkResult vkInitFunctionsNAPP(VkInstance instance, VkDevice device)
+{
+    static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = NULL;
+    if (instance == VK_NULL_HANDLE)
+    {
+        if (device != VK_NULL_HANDLE)
+        {
+            // init device-level
+        }
+        else
+        {
+            //load dll, get pointer to vkGetInstanceProcAddr
+            //init global-level
+        }
+    }
+    else if (device == VK_NULL_HANDLE)
+    {
+        //init instance-level
+    }
+    else
+    {
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }
+    return VK_SUCCESS;
+}
+
+VkResult vkCreateInstanceNAPP(VkInstance* instance)
+{
+    VkInstance inst = VK_NULL_HANDLE;
+    vkInitFunctionsNAPP(VK_NULL_HANDLE, VK_NULL_HANDLE);
+    //perform instance creation
+    vkInitFunctionsNAPP(inst, VK_NULL_HANDLE);
+    *instance = inst;
+    return VK_SUCCESS;
 }
