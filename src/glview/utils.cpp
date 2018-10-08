@@ -52,8 +52,8 @@ void renderer::init() noexcept
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     GL(glClearColor(0.4f, 0.6f, 1.0f, 1.f));
     GL(glClear(GL_COLOR_BUFFER_BIT));
-	GL(glDisable(GL_CULL_FACE));
-	GL(glDisable(GL_DEPTH_TEST));
+	GL(glEnable(GL_CULL_FACE));
+	GL(glEnable(GL_DEPTH_TEST));
 }
 
 void renderer::load_material(const std::string &name, bool set_current) noexcept
