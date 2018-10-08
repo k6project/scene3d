@@ -95,7 +95,7 @@ void napp_run()
 	RECT windowRect = g_app.view_rect;
 	napp_init_callbacks();
 	HINSTANCE inst = GetModuleHandle(NULL);
-	AdjustWindowRect(&g_app.view_rect, g_app.wnd_style, FALSE);
+	AdjustWindowRect(&windowRect, g_app.wnd_style, FALSE);
 	int rows = windowRect.bottom - windowRect.top;
 	int cols = windowRect.right - windowRect.left;
 	int left = ((g_app.monitor_info.rcMonitor.right - g_app.monitor_info.rcMonitor.left) - cols) >> 1;

@@ -10,7 +10,7 @@ class glview
 	void destroy();
 	void render();
     renderer gfx;
-    renderer::mesh_id current_mesh;
+	id_t current_mesh;
 public:
 	void run();
 };
@@ -19,8 +19,14 @@ void glview::init()
 {
     gfx.init();
     gfx.load_material("glview", true);
-	gfx.load_meshes({ "tetr", "cube", "octa", "dode", "icos" });
-    current_mesh = gfx.get_mesh("cube");
+	gfx.load_meshes({ 
+		"tetr", // Tetrahedron
+		"cube", // Cube
+		"octa", // Octahedron
+		"dode", // Dodecahedron
+		"icos"  // Icosahedron
+	});
+    current_mesh = gfx.get_mesh("icos");
 }
 
 void glview::destroy()

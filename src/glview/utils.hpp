@@ -9,18 +9,18 @@
 
 using namespace std;
 
+typedef unsigned int id_t;
+
 class renderer
 {
 public:
-    typedef unsigned int mesh_id;
-    typedef unsigned int material_id;
     void init() noexcept;
     void load_material(const string& name, bool set_current) noexcept;
 	void load_meshes(const initializer_list<string>& args) noexcept;
-    mesh_id get_mesh(const string& name) noexcept;
+	id_t get_mesh(const string& name) noexcept;
     void begin_frame() noexcept;
     void end_frame() noexcept;
-    void draw_mesh(mesh_id id) noexcept;
+    void draw_mesh(id_t id) noexcept;
     void destroy() noexcept;
 private:
     struct mesh_t
@@ -36,7 +36,7 @@ private:
     
     vector<mesh_t> meshes_;
     vector<material_t> materials_;
-    unordered_map<string, mesh_id> mesh_map_;
+    unordered_map<string, id_t> mesh_map_;
     
     GLuint vao_ = 0;
     union
