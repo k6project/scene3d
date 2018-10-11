@@ -20,22 +20,22 @@ struct Options* gOptions = &gOptions_;
 struct ArgItem
 {
     int key;
-    int (*parser)(const CString arg, void* val);
+    int (*parser)(const TChar* arg, void* val);
     void* val;
 };
 
 typedef struct ArgItem ArgItem;
 
-static int argParseStr(const CString arg, void* val)
+static int argParseStr(const TChar* arg, void* val)
 {
-    CString* ptr = val;
+    const TChar** ptr = val;
     if (!ptr)
         return -1;
     *ptr = arg;
     return 0;
 }
 
-static int argParseInt(const CString arg, void* val)
+static int argParseInt(const TChar* arg, void* val)
 {
     int* ptr = val;
     if (!ptr)
@@ -52,11 +52,11 @@ static ArgItem gArgMap[] =
     { 0 , NULL, NULL }
 };
 
-void argvParse(int argc, const CString* argv)
+void argvParse(int argc, const TChar** argv)
 {
     for (int i = 0; i < argc; i++)
     {
-        CString arg = argv[i];
+        const TChar* arg = argv[i];
         if (*arg == '-')
         {
             TChar key = *++arg;

@@ -12,7 +12,7 @@ void initialize(void* dataPtr)
 	context->dummy = 8;
 }
 
-int appMain(int argc, const CString* argv)
+int appMain(int argc, const TChar** argv)
 {
 	argvParse(argc, argv);
 	static TestApp appContext;

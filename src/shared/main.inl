@@ -2,7 +2,7 @@
 
 #include "main.h"
 
-int appMain(int argc, const CString* argv);
+int appMain(int argc, const TChar** argv);
 
 #ifdef _MSC_VER
 
@@ -13,7 +13,7 @@ int appMain(int argc, const CString* argv);
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	int argc = 0;
-	const CString* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	const TChar** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 	appMain(argc, argv);
 	LocalFree(argv);
 	return show;
@@ -21,7 +21,7 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 
 #else // OSX or Linux
 
-int main(int argc, const char** argv)
+int main(int argc, const TChar** argv)
 {
     return appMain(argc, argv);
 }

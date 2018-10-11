@@ -7,8 +7,6 @@ ext/
 shaders/*.spv
 /vkview.vcxproj.user
 xcode.sh
+xcode/
+/*.vcxproj.user
 
-/uwp_app.vcxproj.user
-/geomake.vcxproj.user
-/libnapp_win32.vcxproj.user
-/glview.vcxproj.user
