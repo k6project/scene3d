@@ -18,6 +18,8 @@ set(GLVIEW_SOURCES
     src/glview/main.cpp
     src/glview/utils.hpp
     src/glview/utils.cpp
+    src/glview/renderer.hpp
+    src/glview/renderer.cpp
 )
 
 set(GEOMAKE_SOURCES
@@ -26,11 +28,15 @@ set(GEOMAKE_SOURCES
     src/geomake/writers.cpp
 )
 
+set(MKMAT_SOURCES
+    src/mkmat/mkmat.c
+)
+
 # MacOS
 
 if(APPLE)
 
-set(PLATFORM_MACRO _NAPP_MACOS_ VK_USE_PLATFORM_MACOS_MVK)
+set(PLATFORM_MACRO _NAPP_MACOS_)
 set(VULKAN_INC $ENV{VULKAN_SDK}macOS/include)
 
 set(LIBNAPP_SOURCES
@@ -44,6 +50,8 @@ mark_as_advanced(LIB_COCOA)
 find_library(LIB_OPENGL OpenGL)
 mark_as_advanced(LIB_OPENGL)
 
+find_library(LIB_VULKAN vulkan)
+
 endif(APPLE)
 
 add_library(napp ${LIBNAPP_SOURCES})
@@ -51,14 +59,12 @@ target_compile_definitions(napp PUBLIC ${PLATFORM_MACRO})
 target_include_directories(napp PUBLIC inc extern/inc ${VULKAN_INC})
 
 add_executable(glview WIN32 MACOSX_BUNDLE ${GLVIEW_SOURCES})
-target_link_libraries(glview napp ${LIB_COCOA} ${LIB_OPENGL})
+target_link_libraries(glview napp ${LIB_COCOA} ${LIB_OPENGL} ${LIB_VULKAN})
+file(GLOB GLVIEW_ASSETS test/glview/*)
+set_target_properties(glview PROPERTIES RESOURCE "${GLVIEW_ASSETS}")
 
 add_executable(geomake ${GEOMAKE_SOURCES})
 target_include_directories(geomake PRIVATE extern/inc)
 
-if(APPLE)
-file(GLOB GLVIEW_ASSETS test/glview/*.*)
-set(GLVIEW_ASSETS_DIR $<TARGET_FILE_DIR:glview>/../Resources)
-add_custom_command(TARGET glview PRE_BUILD COMMAND mkdir -p ${GLVIEW_ASSETS_DIR})
-add_custom_command(TARGET glview PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GLVIEW_ASSETS} ${GLVIEW_ASSETS_DIR})
-endif(APPLE)
+add_executable(mkmat ${MKMAT_SOURCES})
+target_include_directories(mkmat PRIVATE inc)

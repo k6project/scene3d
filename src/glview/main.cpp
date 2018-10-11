@@ -10,13 +10,16 @@ class glview
 	void destroy();
 	void render();
     renderer gfx;
+    renderer_t& rndr;
 	id_t current_mesh;
 public:
+    glview() : rndr(get_renderer()) {}
 	void run();
 };
 
 void glview::init()
 {
+    rndr.load_material("glview");
     gfx.init();
     gfx.load_material("glview", true);
 	gfx.load_meshes({ 

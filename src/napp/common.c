@@ -106,6 +106,10 @@ GLuint glCreateShaderProgramNAPP(const char** files, GLenum* stages)
 	for (int i = 0; files[i]; i++)
 	{
 		GLenum stage = stages[i];
+        if (stage == GL_INVALID_ENUM)
+        {
+            continue;
+        }
 		const char* fname = files[i];
         count = napp_fs_load_file(fname, rdbuff);
         if (count > 0)

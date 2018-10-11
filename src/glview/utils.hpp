@@ -9,7 +9,7 @@
 
 using namespace std;
 
-typedef unsigned int id_t;
+#include "renderer.hpp"
 
 class renderer
 {

@@ -2,6 +2,16 @@
 
 #include <napp/macros.h>
 
+enum
+{
+    SHADER_STAGE_VERTEX,
+    SHADER_STAGE_TESS_CTRL,
+    SHADER_STAGE_TESS_EVAL,
+    SHADER_STAGE_GEOMETRY,
+    SHADER_STAGE_FRAGMENT,
+    NUM_SHADER_STAGES
+};
+
 #if defined(_NAPP_WINAPI_)
 
 #pragma comment(lib, "opengl32.lib")

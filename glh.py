@@ -27,7 +27,8 @@ print("#ifndef GLFUNCTION\n#define GLFUNCTION(a,b)\n#endif")
 for r in result:
     major = int(r["version"][0])
     minor = int(r["version"][1])
-    if major <= max_major and minor <= max_minor:
+    if major < max_major or (major == max_major and minor <= max_minor):
+        print("/* VERSION %d.%d */" % (major, minor))
         for f in r["functions"]:
             print("GLFUNCTION(%s,%s)" %(f[0], f[1]))
 print("#undef GLFUNCTION\n") 
