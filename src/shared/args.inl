@@ -2,6 +2,13 @@
 
 #include <stdlib.h>
 
+#ifdef _MSC_VER
+#include <wchar.h>
+#define ATOI(s) _wtoi(s)
+#else
+#define ATOI(s) atoi(s)
+#endif
+
 static struct Options gOptions_ =
 {
     512, // windowWidth
@@ -13,27 +20,27 @@ struct Options* gOptions = &gOptions_;
 struct ArgItem
 {
     int key;
-    int (*parser)(const char* arg, void* val);
+    int (*parser)(const CString arg, void* val);
     void* val;
 };
 
 typedef struct ArgItem ArgItem;
 
-static int argParseStr(const char* arg, void* val)
+static int argParseStr(const CString arg, void* val)
 {
-    const char** ptr = val;
+    CString* ptr = val;
     if (!ptr)
         return -1;
     *ptr = arg;
     return 0;
 }
 
-static int argParseInt(const char* arg, void* val)
+static int argParseInt(const CString arg, void* val)
 {
     int* ptr = val;
     if (!ptr)
         return -1;
-    *ptr = atoi(arg);
+    *ptr = ATOI(arg);
     return 0;
 }
 
@@ -45,14 +52,14 @@ static ArgItem gArgMap[] =
     { 0 , NULL, NULL }
 };
 
-void argvParse(int argc, const char** argv)
+void argvParse(int argc, const CString* argv)
 {
     for (int i = 0; i < argc; i++)
     {
-        const char* arg = argv[i];
+        CString arg = argv[i];
         if (*arg == '-')
         {
-            char key = *++arg;
+            TChar key = *++arg;
             if (*++arg == 0)
             {
                 for (const ArgItem* carg = gArgMap; carg->key; carg++)

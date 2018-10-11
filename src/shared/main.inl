@@ -2,11 +2,22 @@
 
 #include "main.h"
 
-int appMain(int argc, const char** argv);
+int appMain(int argc, const CString* argv);
 
-#ifdef MSC_VER
+#ifdef _MSC_VER
 
-// declare WinMain
+#include <windows.h>
+
+#include "win32.c"
+
+int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
+{
+	int argc = 0;
+	const CString* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	appMain(argc, argv);
+	LocalFree(argv);
+	return show;
+}
 
 #else // OSX or Linux
 
