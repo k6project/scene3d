@@ -13,18 +13,28 @@ static struct Options gOptions_ =
 {
     512, // windowWidth
     512, // windowHeight
+    0,   // isFullscreen
     NULL // inputFile
 };
-struct Options* gOptions = &gOptions_;
+
+const struct Options* gOptions = &gOptions_;
 
 struct ArgItem
 {
     int key;
+    int values;
     int (*parser)(const TChar* arg, void* val);
     void* val;
 };
 
 typedef struct ArgItem ArgItem;
+
+static int argParseBool(const TChar* arg, void* val)
+{
+    int* ptr = val;
+    *ptr = 1;
+    return 0;
+}
 
 static int argParseStr(const TChar* arg, void* val)
 {
@@ -46,10 +56,11 @@ static int argParseInt(const TChar* arg, void* val)
 
 static ArgItem gArgMap[] =
 {
-    {'w', &argParseInt, &gOptions_.windowWidth},
-    {'h', &argParseInt, &gOptions_.windowHeight},
-    {'i', &argParseStr, &gOptions_.inputFile},
-    { 0 , NULL, NULL }
+    {'w', 1, &argParseInt, &gOptions_.windowWidth},
+    {'h', 1, &argParseInt, &gOptions_.windowHeight},
+    {'i', 1, &argParseStr, &gOptions_.inputFile},
+    {'f', 0, &argParseBool, &gOptions_.isFullscreen},
+    { 0 , 0, NULL, NULL }
 };
 
 void argvParse(int argc, const TChar** argv)
@@ -66,7 +77,12 @@ void argvParse(int argc, const TChar** argv)
                 {
                     if (carg->key == key)
                     {
-                        arg = argv[++i];
+                        arg = NULL;
+                        if (carg->values)
+                        {
+                            i += carg->values;
+                            arg = argv[i];
+                        }
                         carg->parser(arg, carg->val);
                         break;
                     }

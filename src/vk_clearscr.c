@@ -1,29 +1,39 @@
 #include "shared/args.h"
+#include "shared/vk_api.h"
 #include "shared/main.inl"
 
-typedef struct
-{
-	int dummy;
-} TestApp;
+static void* gVkLib = NULL;
+static bool gInitOk = false;
 
-void initialize(void* dataPtr)
+static void initialize(void* dataPtr)
 {
-	TestApp* context = (TestApp*)dataPtr;
-	context->dummy = 8;
+    RETURN_IF_NOT(appLoadLibrary(VK_LIBRARY, &gVkLib));
+    //RETURN_IF_NOT(vkCreateInstanceAPP() == VK_SUCCESS);
+    gInitOk = true;
+}
+
+static void renderFrame()
+{
+}
+
+static void finalize(void* dataPtr)
+{
+    appUnloadLibrary(gVkLib);
 }
 
 int appMain(int argc, const TChar** argv)
 {
 	argvParse(argc, argv);
-	static TestApp appContext;
 	static AppCallbacks cbMap =
 	{
-		.beforeStart = &initialize
+		.beforeStart = &initialize,
+        .beforeStop = &finalize
 	};
-	appInitialize(&cbMap, &appContext);
+	appInitialize(&cbMap, NULL);
 	while (appShouldKeepRunning())
-	{
+    {
 		appPollEvents();
-	}
+        renderFrame();
+    }
 	return 0;
 }

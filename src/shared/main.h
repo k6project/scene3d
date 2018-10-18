@@ -11,6 +11,7 @@ extern "C"
 typedef struct AppCallbacks
 {
     void (*beforeStart)(void*);
+    void (*beforeStop)(void*);
 } AppCallbacks;
 
 void appInitialize(AppCallbacks* callbacks, void* state);

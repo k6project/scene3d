@@ -11,11 +11,12 @@ struct Options
 {
     int windowWidth;
     int windowHeight;
+    int isFullscreen;
     const TChar* inputFile;
 };
 
 typedef struct Options Options;
 
-extern Options* gOptions;
+extern const Options* gOptions;
 
 void argvParse(int argc, const TChar** argv);
