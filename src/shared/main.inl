@@ -2,11 +2,9 @@
 
 #include "main.h"
 
-#define RETURN_IF_NOT(c) if(!(c)) return;
+#include "vk_api.c"
 
-extern bool appLoadLibrary(const TChar* name, void** handle);
-void* appGetLibraryProc(void* handle, const char* name);
-extern void appUnloadLibrary(void* handle);
+#define RETURN_IF_NOT(c) if(!(c)) return;
 
 static VkResult vkCreateInstanceAPP()
 {
@@ -26,9 +24,9 @@ int appMain(int argc, const TChar** argv);
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	int argc = 0;
-	const TChar** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	const TChar** argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	appMain(argc, argv);
-	LocalFree(argv);
+	LocalFree((HLOCAL)argv);
 	return show;
 }
 

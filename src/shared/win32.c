@@ -1,6 +1,8 @@
 #include "main.h"
 #include "args.inl"
 
+#include <shlwapi.h>
+
 static struct
 {
 	HWND window;
@@ -26,8 +28,8 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	switch (msg)
 	{
 	case WM_CREATE:
-		gState.window = wnd;
 		gState.keepRunning = true;
+		gState.window = wnd;
 		INVOKE(beforeStart);
 		break;
 	case WM_DESTROY:
@@ -35,6 +37,7 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 		gState.keepRunning = false;
 		break;
 	case WM_CLOSE:
+		INVOKE(beforeStop);
 		DestroyWindow(wnd);
 		break;
 	default:
@@ -53,6 +56,18 @@ void appInitialize(AppCallbacks* callbacks, void* state)
 {
 	gState.appState = state;
 	gState.callbacks = callbacks;
+
+	const TChar* cmdLine = GetCommandLine();
+	const TChar* fileName = PathFindFileNameW(cmdLine);
+	const TChar* delimPos = StrChr(fileName, '.');
+	if (fileName && delimPos && delimPos > fileName)
+	{ 
+		ptrdiff_t len = delimPos - fileName;
+		if (len > APP_NAME_LEN)
+			len = APP_NAME_LEN;
+		memcpy(gOptions_.appName, fileName, len * sizeof(TChar));
+		gOptions_.appName[APP_NAME_LEN] = 0;
+	}
 	WNDCLASS wndClass;
 	ZeroMemory(&wndClass, sizeof(wndClass));
 	wndClass.style = CS_OWNDC;
@@ -63,18 +78,24 @@ void appInitialize(AppCallbacks* callbacks, void* state)
 	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndClass.lpszClassName = L"APP_WND";
 	RegisterClass(&wndClass);
-	/*HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
-	MONITORINFO monitorInfo;
-	GetMonitorInfo(monitor, &monitorInfo);*/
-	RECT windowRect;
-	SetRect(&windowRect, 0, 0, gOptions->windowWidth, gOptions->windowHeight);
-	DWORD wStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
-	AdjustWindowRect(&windowRect, wStyle, FALSE);
+	HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
+	MONITORINFO monitorInfo = { .cbSize = sizeof(MONITORINFO) };
+	GetMonitorInfo(monitor, &monitorInfo);
+	RECT windowRect = monitorInfo.rcMonitor;
+	DWORD wStyle = WS_VISIBLE;
+	if (!gOptions->isFullscreen)
+	{
+		SetRect(&windowRect, 0, 0, gOptions_.windowWidth, gOptions->windowHeight);
+		wStyle |= WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+		AdjustWindowRect(&windowRect, wStyle, FALSE);
+	}
+	else
+		wStyle |= WS_POPUP;
 	int rows = windowRect.bottom - windowRect.top;
 	int cols = windowRect.right - windowRect.left;
-	int left = 0;// ((monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) - cols) >> 1;
-	int top = 0;// ((monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) - rows) >> 1;
-	CreateWindow(L"APP_WND", L"", wStyle, left, top, cols, rows, NULL, NULL, GetModuleHandle(NULL), NULL);
+	int left = ((monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) - cols) >> 1;
+	int top = ((monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) - rows) >> 1;
+	CreateWindow(L"APP_WND", gOptions_.windowTitle, wStyle, left, top, cols, rows, NULL, NULL, GetModuleHandle(NULL), NULL);
 }
 
 void appPollEvents(void)
@@ -85,4 +106,29 @@ void appPollEvents(void)
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+}
+
+bool appLoadLibrary(const TChar* name, void** handle)
+{
+	HMODULE ptr = LoadLibrary(name);
+	*handle = (ptr != INVALID_HANDLE_VALUE) ? (void*)ptr : NULL;
+	return true;
+}
+
+void* appGetLibraryProc(void* handle, const char* name)
+{
+	if (handle)
+		return GetProcAddress(handle, name);
+	return NULL;
+}
+
+void appUnloadLibrary(void* handle)
+{
+	if (handle)
+		FreeLibrary((HMODULE)handle);
+}
+
+void appTCharToUTF8(char* dest, const TChar* src, int max)
+{
+	WideCharToMultiByte(CP_UTF8, WC_NO_BEST_FIT_CHARS, src, -1, dest, max, NULL, NULL);
 }

@@ -11,10 +11,10 @@
 
 static struct Options gOptions_ =
 {
-    512, // windowWidth
-    512, // windowHeight
-    0,   // isFullscreen
-    NULL // inputFile
+    .windowWidth  = 512,
+    .windowHeight = 512,
+	.isFullscreen = 0,
+    .windowTitle = gOptions_.appName
 };
 
 const struct Options* gOptions = &gOptions_;
@@ -58,7 +58,8 @@ static ArgItem gArgMap[] =
 {
     {'w', 1, &argParseInt, &gOptions_.windowWidth},
     {'h', 1, &argParseInt, &gOptions_.windowHeight},
-    {'i', 1, &argParseStr, &gOptions_.inputFile},
+    {'i', 1, &argParseStr, (void*)&gOptions_.inputFile},
+	{'t', 1, &argParseStr, (void*)&gOptions_.windowTitle },
     {'f', 0, &argParseBool, &gOptions_.isFullscreen},
     { 0 , 0, NULL, NULL }
 };
@@ -90,4 +91,16 @@ void argvParse(int argc, const TChar** argv)
             }
         }
     }
+}
+
+void vkUseExtensionsAPP(const char* names[], unsigned int count)
+{
+	gOptions_.extensions = names;
+	gOptions_.numExtensions = count;
+}
+
+void vkUseLayersAPP(const char* names[], unsigned int count)
+{
+	gOptions_.layers = names;
+	gOptions_.numLayers = count;
 }
