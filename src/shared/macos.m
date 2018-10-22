@@ -3,9 +3,12 @@
 #import <QuartzCore/QuartzCore.h>
 
 #include <dlfcn.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include "main.h"
 #include "args.inl"
+#include "vk_api.h"
 
 static void* gState = NULL;
 static AppCallbacks* gCallbacks = NULL;
@@ -59,6 +62,7 @@ static AppCallbacks* gCallbacks = NULL;
 }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
+    appPrintf("====  LOG END  ====\n\n");
     return NSTerminateNow;
 }
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
@@ -87,6 +91,7 @@ static AppCallbacks* gCallbacks = NULL;
     [window setContentView:view];
     [window setDelegate:windowDelegate];
     [window makeKeyAndOrderFront:NSApp];
+    appPrintf("\n==== LOG BEGIN ====\n");
     INVOKE(gCallbacks->beforeStart);
 }
 @end
@@ -103,6 +108,7 @@ void appInitialize(AppCallbacks* callbacks, void* state)
     if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
         appName = [info objectForKey:@"CFBundleExecutable"];
     assert(appName && [appName isKindOfClass:[NSString class]] && ![appName isEqualToString:@""]);
+    memcpy(gOptions_.appName, [appName UTF8String], APP_NAME_LEN);
     NSMenu* menuBar = [[NSMenu alloc] init];
     [nsApp setMainMenu:menuBar];
     NSMenuItem* appItem = [menuBar addItemWithTitle:appName
@@ -154,4 +160,27 @@ void appUnloadLibrary(void* handle)
 {
     if (handle)
         dlclose(handle);
+}
+
+void appTCharToUTF8(char* dest, const TChar* src, int max)
+{
+    strncpy(dest, src, max);
+}
+
+void appPrintf(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+}
+
+bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+{
+    VkMacOSSurfaceCreateInfoMVK createInfo;
+    VK_INIT(createInfo, VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK);
+    createInfo.pView = (__bridge void*)[[NSApp keyWindow] contentView];
+    VERIFY(vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
+    appPrintf("Created MacOS view-based surface\n");
+    return true;
 }

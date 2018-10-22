@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "args.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -27,6 +29,8 @@ void* appGetLibraryProc(void* handle, const char* name);
 void appUnloadLibrary(void* handle);
 
 void appTCharToUTF8(char* dest, const TChar* src, int max);
+    
+void appPrintf(const char* fmt, ...);
 
 #ifdef __cplusplus
 }

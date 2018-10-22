@@ -6,11 +6,6 @@
 
 #define RETURN_IF_NOT(c) if(!(c)) return;
 
-static VkResult vkCreateInstanceAPP()
-{
-    return VK_ERROR_INITIALIZATION_FAILED;
-}
-
 int appMain(int argc, const TChar** argv);
 
 #ifdef _MSC_VER
@@ -25,18 +20,19 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	int argc = 0;
 	const TChar** argv = CommandLineToArgvW(GetCommandLine(), &argc);
-	appMain(argc, argv);
+    appMain(argc, argv);
 	LocalFree((HLOCAL)argv);
 	return show;
 }
 
 #else // OSX
 
-#define VK_LIBRARY "@rpath/vulkan.framework/vulkan"
+#define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 
 int main(int argc, const TChar** argv)
 {
-    return appMain(argc, argv);
+    int retval = appMain(argc, argv);
+    return retval;
 }
 
 #endif
