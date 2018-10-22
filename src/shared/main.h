@@ -30,7 +30,7 @@ void appUnloadLibrary(void* handle);
 
 void appTCharToUTF8(char* dest, const TChar* src, int max);
     
-void appPrintf(const char* fmt, ...);
+void appPrintf(const TChar* fmt, ...);
 
 #ifdef __cplusplus
 }

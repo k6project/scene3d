@@ -4,26 +4,78 @@
 static void* gVkLib = NULL;
 static bool gInitOk = false;
 
-//static const char* gLayers[] = { "TEST_Layer_name" };
-//static const unsigned int gNumLayers = sizeof(gLayers) / sizeof(const char*);
-//static const char* gExtensions[] = { "TEST_Extension_name" };
-//static const unsigned int gNumExtensions = sizeof(gExtensions) / sizeof(const char*);
-
 static VkInstance gInstance = VK_NULL_HANDLE;
 static VkSurfaceKHR gSurface = VK_NULL_HANDLE;
 static VkPhysicalDevice gAdapter = VK_NULL_HANDLE;
+static VkQueueFamilyProperties* gQueueFamilyProps = NULL;
+static VkSurfaceCapabilitiesKHR gSurfaceCaps;
+static unsigned int gNumQueueFamilies = 0;
+static unsigned int gSwapChainSize = 0;
 static VkDevice gDevice = VK_NULL_HANDLE;
+static VkQueue gCmdQueue = VK_NULL_HANDLE;
+
+static bool initVulkanApi()
+{
+	TEST_RV(appLoadLibrary(VK_LIBRARY, &gVkLib), false, "ERROR: Failed to load library");
+	QTEST_RV(vkCreateAndInitInstanceAPP(gVkLib, NULL, &gInstance), false);
+	QTEST_RV(vkCreateSurfaceAPP(gInstance, NULL, &gSurface), false);
+	TEST_RV(vkGetAdapterAPP(gInstance, gSurface, &gAdapter), false, "ERROR: No compatible graphics adapter found");
+	return true;
+}
+
+static bool createLogicalDevice()
+{
+	TEST_RV(vkGetQueueFamiliesAPP(gAdapter, &gNumQueueFamilies, &gQueueFamilyProps), false, "ERROR: Failed to enum queue families");
+	unsigned int familyIndex = gNumQueueFamilies;
+	for (unsigned int i = 0; i < gNumQueueFamilies; i++)
+	{
+		VkBool32 canPresent = VK_FALSE;
+		vkGetPhysicalDeviceSurfaceSupportKHR(gAdapter, i, gSurface, &canPresent);
+		if (gQueueFamilyProps[i].queueCount && canPresent
+			&& (gQueueFamilyProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
+		{
+			familyIndex = i;
+			break;
+		}
+	}
+
+	float queuePriority = 1.f;
+	VkDeviceQueueCreateInfo queueCreateInfo;
+	VK_INIT(queueCreateInfo, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+	queueCreateInfo.queueCount = 1;
+	queueCreateInfo.queueFamilyIndex = familyIndex;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+	VkDeviceCreateInfo createInfo;
+	VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+	return false;
+}
+
+static bool createSwapChain()
+{
+	gSwapChainSize = VK_SWAPCHAIN_SIZE;
+	TEST_RV(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gAdapter, gSurface, &gSurfaceCaps) == VK_SUCCESS, false, "ERROR: Failed to get surface capabilities");
+	if (gSurfaceCaps.minImageCount > gSwapChainSize)
+		gSwapChainSize = gSurfaceCaps.minImageCount;
+	else if (gSurfaceCaps.maxImageCount < gSwapChainSize)
+		gSwapChainSize = gSurfaceCaps.maxImageCount;
+	VkSwapchainCreateInfoKHR createInfo;
+	VK_INIT(createInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+	createInfo.surface = gSurface;
+	createInfo.minImageCount = gSwapChainSize;
+	return true;
+}
 
 static void initialize(void* dataPtr)
 {
     if (!gInitOk)
     {
-        //vkUseLayersAPP(gLayers, gNumLayers);
-        //vkUseExtensionsAPP(gExtensions, gNumExtensions);
-        VERIFY_VOID(appLoadLibrary(VK_LIBRARY, &gVkLib), "ERROR: Failed to load library");
-        VERIFY_VOID_NO_MSG(vkCreateAndInitInstanceAPP(gVkLib, NULL, &gInstance));
-        VERIFY_VOID_NO_MSG(vkCreateSurfaceAPP(gInstance, NULL, &gSurface));
-        VERIFY_VOID(vkGetAdapterAPP(gInstance, gSurface, &gAdapter), "ERROR: No compatible graphics adapter found");
+		QTEST_R(initVulkanApi());
+		QTEST_R(createLogicalDevice());
+		QTEST_R(createSwapChain());
+		//queues
+		//command buffers
         gInitOk = true;
     }
 }
@@ -38,6 +90,7 @@ static void finalize(void* dataPtr)
         vkDestroySurfaceKHR(gInstance, gSurface, NULL);
     if (gInstance)
         vkDestroyInstance(gInstance, NULL);
+	free(gQueueFamilyProps);
     appUnloadLibrary(gVkLib);
 }
 

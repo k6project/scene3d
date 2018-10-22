@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html><head><title>HTML5 Canvas Example</title><meta charset="utf-8"/></head>
+<body style="margin:0">
+<canvas id="_" style="display:block;position:absolute;top:0;left:0;border:none;margin:0" />
+<script id="vert" type="x-shader/x-vertex">#version 300 es
+void main(void) 
+{
+    gl_Position = vec4(1.0);
+}
+</script>
+<script id="frag" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 color0;
+void main(void) 
+{
+    color0 = vec4(0.5, 1.0, 1.0, 1.0);
+}
+</script>
+<script type="text/javascript">
+var isOk = true, shader;
+var canvas, gl, vs, fs;
+function drawFrame()
+{
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    window.setTimeout(drawFrame, 16);
+}
+canvas = document.getElementById("_");
+if (!canvas) window.alert("No canvas object!!!");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+gl = canvas.getContext("webgl2");
+if (!gl) window.alert("No WebGL2 context!!!");
+gl.viewportWidth = canvas.width;
+gl.viewportHeight = canvas.height;
+gl.clearColor(0, 0.7, 1, 1);
+vs = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vs, document.getElementById("vert").textContent);
+gl.compileShader(vs);
+if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) 
+{
+    window.alert(gl.getShaderInfoLog(vs));
+    isOk = false;
+}
+fs = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fs, document.getElementById("frag").textContent);
+gl.compileShader(fs);
+if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) 
+{
+    window.alert(gl.getShaderInfoLog(fs));
+    isOk = false;
+}
+shader = gl.createProgram();
+gl.attachShader(shader, vs);
+gl.attachShader(shader, fs);
+gl.linkProgram(shader);
+if (!gl.getProgramParameter(shader, gl.LINK_STATUS))
+{
+    window.alert(gl.getProgramInfoLog(shader));
+    isOk = false;
+}
+if (isOk) drawFrame();
+</script> 
+</body></html>

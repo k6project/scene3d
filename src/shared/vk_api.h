@@ -1,7 +1,15 @@
 #pragma once
 
+#include "global.h"
+
 #include <stdbool.h>
 
+#ifdef _MSC_VER
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+
+#define VK_SWAPCHAIN_SIZE 3
+#define VK_MAX_QUEUE_FAMILIES 8
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
@@ -15,17 +23,13 @@ extern "C"
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
 
-#define VK_INIT(v,t) do{memset(&v,0,sizeof(v));v.sType=t;}while(0)
-#define VERIFY(c,r,m) do{if(!(c)){appPrintf(m"\n");return r;}}while(0)
-#define VERIFY_VOID(c,m) do{if(!(c)){appPrintf(m"\n");return;}}while(0)
-#define VERIFY_NO_MSG(c,r,m) do{if(!(c)){return r;}}while(0)
-#define VERIFY_VOID_NO_MSG(c) do{if(!(c)){return;}}while(0)
-
 bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, VkInstance* inst);
 
 bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
     
 bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* adapter);
+
+bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter, unsigned int* count, VkQueueFamilyProperties** props);
     
 #ifdef __cplusplus
 }

@@ -1,7 +1,9 @@
 #include "main.h"
 #include "args.inl"
+#include "vk_api.h"
 
 #include <shlwapi.h>
+#include <stdarg.h>
 
 static struct
 {
@@ -131,4 +133,24 @@ void appUnloadLibrary(void* handle)
 void appTCharToUTF8(char* dest, const TChar* src, int max)
 {
 	WideCharToMultiByte(CP_UTF8, WC_NO_BEST_FIT_CHARS, src, -1, dest, max, NULL, NULL);
+}
+
+void appPrintf(const TChar* fmt, ...)
+{
+	va_list args;
+	TChar buff[256];
+	va_start(args, fmt);
+	vswprintf_s(buff, 255, fmt, args);
+	OutputDebugString(buff);
+	va_end(args);
+}
+
+bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+{
+	VkWin32SurfaceCreateInfoKHR createInfo;
+	VK_INIT(createInfo, VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
+	createInfo.hinstance = GetModuleHandle(NULL);
+	createInfo.hwnd = gState.window;
+	TEST_RV(vkCreateWin32SurfaceKHR(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
+	return true;
 }

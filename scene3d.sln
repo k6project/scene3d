@@ -29,10 +29,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared Code", "Shared Code"
 	ProjectSection(SolutionItems) = preProject
 		src\shared\args.h = src\shared\args.h
 		src\shared\args.inl = src\shared\args.inl
+		src\shared\global.h = src\shared\global.h
 		src\shared\main.h = src\shared\main.h
 		src\shared\main.inl = src\shared\main.inl
 		src\shared\vk_api.c = src\shared\vk_api.c
 		src\shared\vk_api.h = src\shared\vk_api.h
+		src\shared\vk_api.inl = src\shared\vk_api.inl
 		src\shared\win32.c = src\shared\win32.c
 	EndProjectSection
 EndProject

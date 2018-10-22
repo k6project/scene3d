@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef _MSC_VER
-#include <wchar.h>
-typedef wchar_t TChar;
-#else
-typedef char TChar;
-#endif
+#include "global.h"
 
 #define APP_NAME_LEN 64
 #define APP_NAME_MAX (APP_NAME_LEN+1)

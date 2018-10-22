@@ -4,8 +4,6 @@
 
 #include "vk_api.c"
 
-#define RETURN_IF_NOT(c) if(!(c)) return;
-
 int appMain(int argc, const TChar** argv);
 
 #ifdef _MSC_VER
