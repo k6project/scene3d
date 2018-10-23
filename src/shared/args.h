@@ -15,8 +15,8 @@ struct Options
 	TChar appName[APP_NAME_MAX];
 	const char** extensions;
 	const char** layers;
-	unsigned int numExtensions;
-	unsigned int numLayers;
+	uint32_t numExtensions;
+	uint32_t numLayers;
 };
 
 typedef struct Options Options;
@@ -25,6 +25,6 @@ extern const Options* gOptions;
 
 void argvParse(int argc, const TChar** argv);
 
-void vkUseExtensionsAPP(const char* names[], unsigned int count);
+void vkUseExtensionsAPP(const char* names[], uint32_t count);
 
-void vkUseLayersAPP(const char* names[], unsigned int count);
+void vkUseLayersAPP(const char* names[], uint32_t count);

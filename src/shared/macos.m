@@ -180,7 +180,7 @@ bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkS
     VkMacOSSurfaceCreateInfoMVK createInfo;
     VK_INIT(createInfo, VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK);
     createInfo.pView = (__bridge void*)[[NSApp keyWindow] contentView];
-    VERIFY(vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
+    TEST_RV(vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
     appPrintf("Created MacOS view-based surface\n");
     return true;
 }

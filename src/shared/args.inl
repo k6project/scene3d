@@ -93,13 +93,13 @@ void argvParse(int argc, const TChar** argv)
     }
 }
 
-void vkUseExtensionsAPP(const char* names[], unsigned int count)
+void vkUseExtensionsAPP(const char* names[], uint32_t count)
 {
 	gOptions_.extensions = names;
 	gOptions_.numExtensions = count;
 }
 
-void vkUseLayersAPP(const char* names[], unsigned int count)
+void vkUseLayersAPP(const char* names[], uint32_t count)
 {
 	gOptions_.layers = names;
 	gOptions_.numLayers = count;

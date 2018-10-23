@@ -16,7 +16,7 @@ static const char* VK_REQUIRED_LAYERS[] =
 	"VK_LAYER_LUNARG_standard_validation"
 };
 
-static const unsigned int VK_NUM_REQUIRED_LAYERS = sizeof(VK_REQUIRED_LAYERS) / sizeof(const char*);
+static const uint32_t VK_NUM_REQUIRED_LAYERS = sizeof(VK_REQUIRED_LAYERS) / sizeof(const char*);
 
 static const char* VK_REQUIRED_EXTENSIONS[] =
 {
@@ -31,7 +31,11 @@ static const char* VK_REQUIRED_EXTENSIONS[] =
 #endif
 };
 
-static const unsigned int VK_NUM_REQUIRED_EXTENSIONS = sizeof(VK_REQUIRED_EXTENSIONS) / sizeof(const char*);
+static const uint32_t VK_NUM_REQUIRED_EXTENSIONS = sizeof(VK_REQUIRED_EXTENSIONS) / sizeof(const char*);
+
+static const char* VK_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
+
+static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEVICE_EXTENSIONS) / sizeof(const char*);
 
 bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, VkInstance* inst)
 {
@@ -48,7 +52,7 @@ bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, V
 	appTCharToUTF8(appName, gOptions->appName, APP_NAME_MAX);
 	VK_INIT(appInfo, VK_STRUCTURE_TYPE_APPLICATION_INFO);
 	appInfo.pApplicationName = appName;
-	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+	appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 70);
 	VkInstanceCreateInfo createInfo;
 	VK_INIT(createInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
 	createInfo.pApplicationInfo = &appInfo;
@@ -56,7 +60,7 @@ bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, V
     createInfo.enabledLayerCount = VK_NUM_REQUIRED_LAYERS + gOptions->numLayers;
 	if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
 	{
-		char** layers = (char**)malloc(createInfo.enabledLayerCount * sizeof(const char*));
+		char** layers = (char**)malloc(createInfo.enabledLayerCount * sizeof(const char*)); // stack
 		memcpy(layers, VK_REQUIRED_LAYERS, VK_NUM_REQUIRED_LAYERS * sizeof(const char*));
 		memcpy(layers + VK_NUM_REQUIRED_LAYERS, gOptions->layers, gOptions->numLayers * sizeof(const char*));
 		createInfo.ppEnabledLayerNames = (const char**)layers;
@@ -65,14 +69,14 @@ bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, V
 		createInfo.ppEnabledLayerNames = VK_REQUIRED_LAYERS;
 #ifndef _MSC_VER
     appPrintf(STR("Instance debug layers:\n"));
-    for (unsigned int i = 0; i < createInfo.enabledLayerCount; i++)
+    for (uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
         appPrintf(STR("  %s\n"), createInfo.ppEnabledLayerNames[i]);
 #endif
     
 	createInfo.enabledExtensionCount = VK_NUM_REQUIRED_EXTENSIONS + gOptions->numExtensions;
 	if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
 	{
-		char** ext = (char**)malloc(createInfo.enabledExtensionCount * sizeof(const char*));
+		char** ext = (char**)malloc(createInfo.enabledExtensionCount * sizeof(const char*)); // stack
 		memcpy(ext, VK_REQUIRED_EXTENSIONS, VK_NUM_REQUIRED_EXTENSIONS * sizeof(const char*));
 		memcpy(ext + VK_NUM_REQUIRED_EXTENSIONS, gOptions->extensions, gOptions->numExtensions * sizeof(const char*));
 		createInfo.ppEnabledExtensionNames = (const char**)ext;
@@ -81,7 +85,7 @@ bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, V
 		createInfo.ppEnabledExtensionNames = VK_REQUIRED_EXTENSIONS;
 #ifndef _MSC_VER
     appPrintf(STR("Instance extensions:\n"));
-    for (unsigned int i = 0; i < createInfo.enabledExtensionCount; i++)
+    for (uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
         appPrintf(STR("  %s\n"), createInfo.ppEnabledExtensionNames[i]);
 #endif
 
@@ -107,15 +111,15 @@ bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, V
 bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* adapter)
 {
     *adapter = VK_NULL_HANDLE;
-    unsigned int num = 0, idx = 0xff;
+    uint32_t num = 0, idx = 0xff;
     if (vkEnumeratePhysicalDevices(inst, &num, NULL) == VK_SUCCESS && num)
     {
-        VkPhysicalDevice* adapters = malloc(sizeof(VkPhysicalDevice) * num);
+        VkPhysicalDevice* adapters = malloc(sizeof(VkPhysicalDevice) * num); // stack
         if (vkEnumeratePhysicalDevices(inst, &num, adapters) == VK_SUCCESS)
         {
-            for (unsigned int i = 0; i < num; i++)
+            for (uint32_t i = 0; i < num; i++)
             {
-                unsigned int numFamilies = 0;
+                uint32_t numFamilies = 0;
                 VkPhysicalDeviceProperties props;
                 vkGetPhysicalDeviceProperties(adapters[i], &props);
                 vkGetPhysicalDeviceQueueFamilyProperties(adapters[i], &numFamilies, 0);
@@ -125,7 +129,7 @@ bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* ad
                 if (*adapter == VK_NULL_HANDLE && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
                 {
                     VkBool32 canPresent = VK_FALSE;
-                    for (unsigned int j = 0; j < numFamilies; j++)
+                    for (uint32_t j = 0; j < numFamilies; j++)
                     {
                         vkGetPhysicalDeviceSurfaceSupportKHR(adapters[i], j, surface, &canPresent);
                         if (canPresent == VK_TRUE)
@@ -148,14 +152,50 @@ bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* ad
     return false;
 }
 
-bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter, unsigned int* count, VkQueueFamilyProperties** props)
+bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter, uint32_t* count, VkQueueFamilyProperties** props)
 {
 	vkGetPhysicalDeviceQueueFamilyProperties(adapter, count, NULL);
 	if (*count)
 	{
-		*props = malloc((*count) * sizeof(VkQueueFamilyProperties));
+		*props = malloc((*count) * sizeof(VkQueueFamilyProperties)); //forward or default
 		vkGetPhysicalDeviceQueueFamilyProperties(adapter, count, *props);
 		return true;
 	}
 	return false;
+}
+
+bool vkCreateAndInitDeviceAPP(VkPhysicalDevice adapter,
+                              uint32_t numFamilies,
+                              const uint32_t* queueFamilies,
+                              const uint32_t* queueCounts,
+                              const float* queuePriorities,
+                              const VkAllocationCallbacks* alloc,
+                              VkQueue* deviceQueues,
+                              VkDevice* device)
+{
+    uint32_t numQueues = 0;
+    VkDeviceQueueCreateInfo* queueInfo;
+    queueInfo = malloc(numFamilies * sizeof(VkDeviceQueueCreateInfo)); // stack
+    for (uint32_t i = 0; i < numFamilies; i++)
+    {
+        VK_INIT(queueInfo[i], VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+        queueInfo[i].queueFamilyIndex = queueFamilies[i];
+        queueInfo[i].queueCount = queueCounts[i];
+        if (queuePriorities)
+            queueInfo[i].pQueuePriorities = &queuePriorities[numQueues];
+        numQueues += queueCounts[i];
+    }
+    VkDeviceCreateInfo createInfo;
+    VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+    createInfo.pQueueCreateInfos = queueInfo;
+    createInfo.queueCreateInfoCount = numFamilies;
+    createInfo.enabledExtensionCount = VK_NUM_REQUIRED_DEVICE_EXTENSIONS;
+    createInfo.ppEnabledExtensionNames = VK_REQUIRED_DEVICE_EXTENSIONS;
+    TEST_RV(vkCreateDevice(adapter, &createInfo, alloc, device) == VK_SUCCESS, false, "ERROR: Failed to create device");
+#define VULKAN_API_DEVICE(proc) \
+    vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( *device, "vk" #proc ); \
+    TEST_RV(vk ## proc, false, "ERROR: Failed to get pointer to vk" #proc );
+#include "vk_api.inl"
+    appPrintf(STR("Loaded device-specific function pointers\n"));
+    return true;
 }

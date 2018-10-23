@@ -9,8 +9,8 @@ static VkSurfaceKHR gSurface = VK_NULL_HANDLE;
 static VkPhysicalDevice gAdapter = VK_NULL_HANDLE;
 static VkQueueFamilyProperties* gQueueFamilyProps = NULL;
 static VkSurfaceCapabilitiesKHR gSurfaceCaps;
-static unsigned int gNumQueueFamilies = 0;
-static unsigned int gSwapChainSize = 0;
+static uint32_t gNumQueueFamilies = 0;
+static uint32_t gSwapChainSize = 0;
 static VkDevice gDevice = VK_NULL_HANDLE;
 static VkQueue gCmdQueue = VK_NULL_HANDLE;
 
@@ -26,8 +26,9 @@ static bool initVulkanApi()
 static bool createLogicalDevice()
 {
 	TEST_RV(vkGetQueueFamiliesAPP(gAdapter, &gNumQueueFamilies, &gQueueFamilyProps), false, "ERROR: Failed to enum queue families");
-	unsigned int familyIndex = gNumQueueFamilies;
-	for (unsigned int i = 0; i < gNumQueueFamilies; i++)
+    float priority = 1.f;
+	uint32_t familyIndex = gNumQueueFamilies, queueCount = 1;
+	for (uint32_t i = 0; i < gNumQueueFamilies; i++)
 	{
 		VkBool32 canPresent = VK_FALSE;
 		vkGetPhysicalDeviceSurfaceSupportKHR(gAdapter, i, gSurface, &canPresent);
@@ -38,18 +39,8 @@ static bool createLogicalDevice()
 			break;
 		}
 	}
-
-	float queuePriority = 1.f;
-	VkDeviceQueueCreateInfo queueCreateInfo;
-	VK_INIT(queueCreateInfo, VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.queueFamilyIndex = familyIndex;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	VkDeviceCreateInfo createInfo;
-	VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
-	createInfo.queueCreateInfoCount = 1;
-	return false;
+    QTEST_RV(vkCreateAndInitDeviceAPP(gAdapter, 1, &familyIndex, &queueCount, &priority, NULL, NULL, &gDevice), false);
+	return true;
 }
 
 static bool createSwapChain()
@@ -73,7 +64,7 @@ static void initialize(void* dataPtr)
     {
 		QTEST_R(initVulkanApi());
 		QTEST_R(createLogicalDevice());
-		QTEST_R(createSwapChain());
+		//QTEST_R(createSwapChain());
 		//queues
 		//command buffers
         gInitOk = true;
@@ -86,6 +77,8 @@ static void renderFrame()
 
 static void finalize(void* dataPtr)
 {
+    if (gDevice)
+        vkDestroyDevice(gDevice, NULL);
     if (gSurface)
         vkDestroySurfaceKHR(gInstance, gSurface, NULL);
     if (gInstance)

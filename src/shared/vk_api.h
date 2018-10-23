@@ -17,19 +17,36 @@
 extern "C"
 {
 #endif
-
+    
 #define VULKAN_API_GOBAL(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_INSTANCE(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
 
-bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, VkInstance* inst);
+bool vkCreateAndInitInstanceAPP(void* dll, const
+                                VkAllocationCallbacks* alloc,
+                                VkInstance* inst);
 
-bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
+bool vkCreateSurfaceAPP(VkInstance inst,
+                        const VkAllocationCallbacks* alloc,
+                        VkSurfaceKHR* surface);
     
-bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* adapter);
+bool vkGetAdapterAPP(VkInstance inst,
+                     VkSurfaceKHR surface,
+                     VkPhysicalDevice* adapter);
 
-bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter, unsigned int* count, VkQueueFamilyProperties** props);
+bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter,
+                           uint32_t* count,
+                           VkQueueFamilyProperties** props);
+    
+bool vkCreateAndInitDeviceAPP(VkPhysicalDevice adapter,
+                              uint32_t numFamilies,
+                              const uint32_t* queueFamilies,
+                              const uint32_t* queueCounts,
+                              const float* queuePriorities,
+                              const VkAllocationCallbacks* alloc,
+                              VkQueue* deviceQueues,
+                              VkDevice* device);
     
 #ifdef __cplusplus
 }
