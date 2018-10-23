@@ -157,7 +157,7 @@ bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter, uint32_t* count, VkQueueFam
 	vkGetPhysicalDeviceQueueFamilyProperties(adapter, count, NULL);
 	if (*count)
 	{
-		*props = malloc((*count) * sizeof(VkQueueFamilyProperties)); //forward or default
+		//*props = malloc((*count) * sizeof(VkQueueFamilyProperties)); //forward or default
 		vkGetPhysicalDeviceQueueFamilyProperties(adapter, count, *props);
 		return true;
 	}
@@ -173,17 +173,17 @@ bool vkCreateAndInitDeviceAPP(VkPhysicalDevice adapter,
                               VkQueue* deviceQueues,
                               VkDevice* device)
 {
-    uint32_t numQueues = 0;
+    uint32_t queueOffset = 0;
     VkDeviceQueueCreateInfo* queueInfo;
+	static float defPriorities[] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
     queueInfo = malloc(numFamilies * sizeof(VkDeviceQueueCreateInfo)); // stack
     for (uint32_t i = 0; i < numFamilies; i++)
     {
         VK_INIT(queueInfo[i], VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
         queueInfo[i].queueFamilyIndex = queueFamilies[i];
         queueInfo[i].queueCount = queueCounts[i];
-        if (queuePriorities)
-            queueInfo[i].pQueuePriorities = &queuePriorities[numQueues];
-        numQueues += queueCounts[i];
+        queueInfo[i].pQueuePriorities = (queuePriorities) ? &queuePriorities[queueOffset] : defPriorities;
+        queueOffset += queueCounts[i];
     }
     VkDeviceCreateInfo createInfo;
     VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
@@ -197,5 +197,25 @@ bool vkCreateAndInitDeviceAPP(VkPhysicalDevice adapter,
     TEST_RV(vk ## proc, false, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
     appPrintf(STR("Loaded device-specific function pointers\n"));
+	for (uint32_t i = 0, offs = 0; i < numFamilies; i++)
+	{
+		for (uint32_t j = 0; j < queueCounts[i]; j++, offs++)
+		{
+			vkGetDeviceQueue(*device, queueFamilies[i], j, &deviceQueues[offs]);
+		}
+	}
     return true;
+}
+
+bool vkInitEnvironmentAPP(VkEnvironment* vkEnv, const VkAllocationCallbacks* alloc)
+{
+	TEST_RV(appLoadLibrary(VK_LIBRARY, &vkEnv->library), false, "ERROR: Failed to load library");
+	QTEST_RV(vkCreateAndInitInstanceAPP(vkEnv->library, alloc, &vkEnv->instance), false);
+	QTEST_RV(vkCreateSurfaceAPP(vkEnv->instance, alloc, &vkEnv->surface), false);
+	TEST_RV(vkGetAdapterAPP(vkEnv->instance, vkEnv->surface, &vkEnv->adapter), false, "ERROR: No compatible graphics adapter found");
+	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, NULL);
+	TEST_RV((vkEnv->numQueueFamilies>0)&&(vkEnv->numQueueFamilies<=VK_MAX_QUEUE_FAMILIES), false, "ERROR: Invalid numbed of queue families");
+	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, vkEnv->queueFamilies);
+	TEST_RV(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->surfaceCaps) == VK_SUCCESS, false, "ERROR: Failed to get surface capabilities");
+	return true;
 }

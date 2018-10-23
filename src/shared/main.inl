@@ -12,8 +12,6 @@ int appMain(int argc, const TChar** argv);
 
 #include "win32.c"
 
-#define VK_LIBRARY L"vulkan-1.dll"
-
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	int argc = 0;
@@ -24,8 +22,6 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 }
 
 #else // OSX
-
-#define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 
 int main(int argc, const TChar** argv)
 {
