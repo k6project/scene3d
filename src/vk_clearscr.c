@@ -1,56 +1,19 @@
 #include "shared/vk_api.h"
 #include "shared/main.inl"
 
-static void* gVkLib = NULL;
-static bool gInitOk = false;
-static VkEnvironment gVkEnv;
+static VkEnvironment gVkEnv = NULL;
 static VkDevice gDevice = VK_NULL_HANDLE;
-static VkQueue gCmdQueue = VK_NULL_HANDLE;
-
-static bool createLogicalDevice()
-{
-	uint32_t familyIndex = gVkEnv.numQueueFamilies, queueCount = 1;
-	for (uint32_t i = 0; i < gVkEnv.numQueueFamilies; i++)
-	{
-		VkBool32 canPresent = VK_FALSE;
-		vkGetPhysicalDeviceSurfaceSupportKHR(gVkEnv.adapter, i, gVkEnv.surface, &canPresent);
-		if (gVkEnv.queueFamilies[i].queueCount && canPresent
-			&& (gVkEnv.queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT))
-		{
-			familyIndex = i;
-			break;
-		}
-	}
-    QTEST_RV(vkCreateAndInitDeviceAPP(gVkEnv.adapter, 1, &familyIndex, &queueCount, NULL, NULL, &gCmdQueue, &gDevice), false);
-	return true;
-}
-
-static bool createSwapChain()
-{
-	/*gSwapChainSize = VK_SWAPCHAIN_SIZE;
-	TEST_RV(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gAdapter, gSurface, &gSurfaceCaps) == VK_SUCCESS, false, "ERROR: Failed to get surface capabilities");
-	if (gSurfaceCaps.minImageCount > gSwapChainSize)
-		gSwapChainSize = gSurfaceCaps.minImageCount;
-	else if (gSurfaceCaps.maxImageCount < gSwapChainSize)
-		gSwapChainSize = gSurfaceCaps.maxImageCount;
-	VkSwapchainCreateInfoKHR createInfo;
-	VK_INIT(createInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
-	createInfo.surface = gSurface;
-	createInfo.minImageCount = gSwapChainSize;*/
-	return true;
-}
+static VkQueue gGfxQueue = VK_NULL_HANDLE;
+static VkQueue gCmpQueue = VK_NULL_HANDLE;
+static VkSwapchainKHR gSwapChain = VK_NULL_HANDLE;
 
 static void initialize(void* dataPtr)
 {
-    if (!gInitOk)
-    {
-		QTEST_R(vkInitEnvironmentAPP(&gVkEnv, NULL));
-		QTEST_R(createLogicalDevice());
-		//QTEST_R(createSwapChain());
-		//queues
-		//command buffers
-        gInitOk = true;
-    }
+    VkQueue* queues[] = { &gGfxQueue, &gCmpQueue };
+    QTEST_R(vkInitEnvironmentAPP(&gVkEnv, NULL));
+    QTEST_R(vkRequestQueueAPP(gVkEnv, VK_QUEUE_GRAPHICS_BIT, true));
+    QTEST_R(vkRequestQueueAPP(gVkEnv, VK_QUEUE_COMPUTE_BIT, false));
+    QTEST_R(vkCreateDeviceAndSwapchainAPP(gVkEnv, NULL, &gDevice, &gSwapChain, queues));
 }
 
 static void renderFrame()
@@ -65,13 +28,7 @@ static void finalize(void* dataPtr)
 		//destroy all device-dependent objects
 		vkDestroyDevice(gDevice, NULL);
 	}
-	if (gVkEnv.instance)
-	{
-		if (gVkEnv.surface)
-			vkDestroySurfaceKHR(gVkEnv.instance, gVkEnv.surface, NULL);
-		vkDestroyInstance(gVkEnv.instance, NULL);
-	}
-    appUnloadLibrary(gVkEnv.library);
+    vkDestroyEnvironmentAPP(gVkEnv, NULL);
 }
 
 int appMain(int argc, const TChar** argv)

@@ -8,10 +8,12 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #define VK_LIBRARY L"vulkan-1.dll"
 #else
+#define VK_USE_PLATFORM_MACOS_MVK
 #define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 #endif
 
 #define VK_SWAPCHAIN_SIZE 3
+#define VK_MAX_QUEUES 8
 #define VK_MAX_QUEUE_FAMILIES 8
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
@@ -20,51 +22,34 @@
 extern "C"
 {
 #endif
+    
+struct VkEnvironment;
 
-struct VkEnvironment
-{
-	void* library;
-	VkInstance instance;
-	VkSurfaceKHR surface;
-	VkPhysicalDevice adapter;
-	uint32_t numQueueFamilies;
-	VkQueueFamilyProperties queueFamilies[VK_MAX_QUEUE_FAMILIES];
-	VkSurfaceCapabilitiesKHR surfaceCaps;
-};
-
-typedef struct VkEnvironment VkEnvironment;
+typedef struct VkEnvironment* VkEnvironment;
     
 #define VULKAN_API_GOBAL(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_INSTANCE(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
-
-bool vkCreateAndInitInstanceAPP(void* dll, const
-                                VkAllocationCallbacks* alloc,
-                                VkInstance* inst);
-
-bool vkCreateSurfaceAPP(VkInstance inst,
-                        const VkAllocationCallbacks* alloc,
-                        VkSurfaceKHR* surface);
     
-bool vkGetAdapterAPP(VkInstance inst,
-                     VkSurfaceKHR surface,
-                     VkPhysicalDevice* adapter);
+/* Load library, create instance, choose adapter */
+bool vkInitEnvironmentAPP(VkEnvironment* vkEnvPtr,
+                          const VkAllocationCallbacks* alloc);
 
-bool vkGetQueueFamiliesAPP(VkPhysicalDevice adapter,
-                           uint32_t* count,
-                           VkQueueFamilyProperties** props);
+/* Request device queue to be created */
+bool vkRequestQueueAPP(VkEnvironment vkEnv,
+                       VkQueueFlags flags,
+                       bool present);
     
-bool vkInitEnvironmentAPP(VkEnvironment* vkEnv, const VkAllocationCallbacks* alloc);
+/* Create device, get queues, create swapchain */
+bool vkCreateDeviceAndSwapchainAPP(VkEnvironment vkEnv,
+                                   const VkAllocationCallbacks* alloc,
+                                   VkDevice* device,
+                                   VkSwapchainKHR* swapchain,
+                                   VkQueue** queues);
 
-bool vkCreateAndInitDeviceAPP(VkPhysicalDevice adapter,
-                              uint32_t numFamilies,
-                              const uint32_t* queueFamilies,
-                              const uint32_t* queueCounts,
-                              const float* queuePriorities,
-                              const VkAllocationCallbacks* alloc,
-                              VkQueue* deviceQueues,
-                              VkDevice* device);
+void vkDestroyEnvironmentAPP(VkEnvironment vkEnv,
+                             const VkAllocationCallbacks* alloc);
     
 #ifdef __cplusplus
 }
