@@ -9,12 +9,19 @@
 #define VK_MAX_QUEUE_FAMILIES 8
 #define VK_MAX_SURFACE_FORMATS 8
 
+typedef struct
+{
+    uint32_t family;
+    uint32_t index;
+    VkQueue* outPtr;
+} VkQueueReq;
+
 //public
-VkAllocationCallbacks* gVkAlloc = NULL;
+const VkAllocationCallbacks* gVkAlloc = NULL;
 VkDevice gVkDev = VK_NULL_HANDLE;
 VkSwapchainKHR gVkSwapchain = VK_NULL_HANDLE;
+VkSurfaceFormatKHR gSurfaceFormat = {0, 0};
 
-//private: instance, library handle
 #define VK_MIN_BUFFER 65536u
 static char* gVkMemBuffer = NULL;
 static size_t gVkMemBufferSize = 0;
@@ -23,6 +30,18 @@ static void* gVkDllHandle = NULL;
 static VkInstance gVkInst = VK_NULL_HANDLE;
 static VkSurfaceKHR gVkSurf = VK_NULL_HANDLE;
 static VkPhysicalDevice gVkPhDev = VK_NULL_HANDLE;
+static uint32_t gNumQueueFamilies = 0;
+static uint32_t gNumQueueRequests = 0;
+static uint32_t gNumUsedFamilies = 0;
+static uint32_t* gQueueCount = NULL;
+static VkQueueFamilyProperties* gQueueFamProps = NULL;
+static uint32_t gNumSurfFormats = 0;
+static uint32_t gNumPresentModes = 0;
+static VkSurfaceFormatKHR* gSurfFormats = NULL;
+static VkPresentModeKHR* gPresentModes = NULL;
+static VkSurfaceCapabilitiesKHR gSurfCaps;
+static VkQueueReq* gOutQueues = NULL;
+static uint32_t gNumBuffers = 0;
 
 static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 #define VULKAN_API_GOBAL(proc) PFN_vk ## proc vk ## proc = NULL;
@@ -32,7 +51,7 @@ static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 
 #define STACK_MARK(v) size_t _##v##_ = gVkMemBufferCurr
 #define STACK_FREE(v) gVkMemBufferCurr = _##v##_
-static void* tmpBuffAlloc(size_t size)
+static void* stackAlloc(size_t size)
 {
     size = ALIGN16(size);
     ASSERT(gVkMemBufferSize - gVkMemBufferCurr >= size, "ERROR: Internal stack out of memory");
@@ -61,13 +80,7 @@ static const char* VK_REQUIRED_EXTENSIONS[] =
 #endif
 };
 
-struct VkQueueReq
-{
-    uint32_t family : 16;
-    uint32_t index  : 16;
-};
-
-struct VkEnvironment
+/*struct VkEnvironment
 {
     void* library;
     VkInstance instance;
@@ -85,7 +98,7 @@ struct VkEnvironment
     VkSurfaceFormatKHR* surfaceFormat;
     VkSurfaceFormatKHR surfaceFormats[VK_MAX_SURFACE_FORMATS];
     VkDebugReportCallbackEXT debugCallback;
-};
+};*/
 
 static const uint32_t VK_NUM_REQUIRED_EXTENSIONS = sizeof(VK_REQUIRED_EXTENSIONS) / sizeof(const char*);
 
@@ -110,14 +123,14 @@ static void vkCreateAndInitInstanceAPP()
 	appTCharToUTF8(appName, gOptions->appName, APP_NAME_MAX);
 	VK_INIT(appInfo, VK_STRUCTURE_TYPE_APPLICATION_INFO);
 	appInfo.pApplicationName = appName;
-	appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 70);
+	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 65);
 	VkInstanceCreateInfo createInfo;
 	VK_INIT(createInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
 	createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledLayerCount = VK_NUM_REQUIRED_LAYERS + gOptions->numLayers;
 	if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
 	{
-		char** layers = tmpBuffAlloc(createInfo.enabledLayerCount * sizeof(const char*));
+		char** layers = stackAlloc(createInfo.enabledLayerCount * sizeof(const char*));
 		memcpy(layers, VK_REQUIRED_LAYERS, VK_NUM_REQUIRED_LAYERS * sizeof(const char*));
 		memcpy(layers + VK_NUM_REQUIRED_LAYERS, gOptions->layers, gOptions->numLayers * sizeof(const char*));
 		createInfo.ppEnabledLayerNames = (const char**)layers;
@@ -132,7 +145,7 @@ static void vkCreateAndInitInstanceAPP()
 	createInfo.enabledExtensionCount = VK_NUM_REQUIRED_EXTENSIONS + gOptions->numExtensions;
 	if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
 	{
-		char** ext = tmpBuffAlloc(createInfo.enabledExtensionCount * sizeof(const char*));
+		char** ext = stackAlloc(createInfo.enabledExtensionCount * sizeof(const char*));
 		memcpy(ext, VK_REQUIRED_EXTENSIONS, VK_NUM_REQUIRED_EXTENSIONS * sizeof(const char*));
 		memcpy(ext + VK_NUM_REQUIRED_EXTENSIONS, gOptions->extensions, gOptions->numExtensions * sizeof(const char*));
 		createInfo.ppEnabledExtensionNames = (const char**)ext;
@@ -164,7 +177,7 @@ static void vkGetGraphicsAdapterAPP()
     uint32_t num = 0, idx = 0xff, fallback = 0xff;
     if (vkEnumeratePhysicalDevices(gVkInst, &num, NULL) == VK_SUCCESS && num)
     {
-        VkPhysicalDevice* adapters = tmpBuffAlloc(sizeof(VkPhysicalDevice) * num);
+        VkPhysicalDevice* adapters = stackAlloc(sizeof(VkPhysicalDevice) * num);
         if (vkEnumeratePhysicalDevices(gVkInst, &num, adapters) == VK_SUCCESS)
         {
             for (uint32_t i = 0; i < num; i++)
@@ -172,7 +185,7 @@ static void vkGetGraphicsAdapterAPP()
                 uint32_t numFamilies = 0;
                 VkPhysicalDeviceProperties props;
                 vkGetPhysicalDeviceProperties(adapters[i], &props);
-                vkGetPhysicalDeviceQueueFamilyProperties(adapters[i], &numFamilies, 0);
+                vkGetPhysicalDeviceQueueFamilyProperties(adapters[i], &numFamilies, NULL);
 #ifndef _MSC_VER
                 appPrintf(STR("%u: %s (%u queue fam.)\n"), i, props.deviceName, numFamilies);
 #endif
@@ -201,170 +214,172 @@ static void vkGetGraphicsAdapterAPP()
     ASSERT(gVkPhDev, "ERROR: Failed to choose graphics adapter");
     appPrintf(STR("Unsing adapter %u\n"), idx);
     STACK_FREE(frame);
+    vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, NULL);
+    gQueueCount = stackAlloc(gNumQueueFamilies * sizeof(uint32_t));
+    memset(gQueueCount, 0, (gNumQueueFamilies * sizeof(uint32_t)));
+    gQueueFamProps = stackAlloc(gNumQueueFamilies * sizeof(VkQueueFamilyProperties));
+    vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, gQueueFamProps);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(gVkPhDev, gVkSurf, &gNumSurfFormats, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(gVkPhDev, gVkSurf, &gNumPresentModes, NULL);
+    gSurfFormats = stackAlloc(gNumSurfFormats * sizeof(VkSurfaceFormatKHR));
+    gPresentModes = stackAlloc(gNumPresentModes * sizeof(VkPresentModeKHR));
+    vkGetPhysicalDeviceSurfaceFormatsKHR(gVkPhDev, gVkSurf, &gNumSurfFormats, gSurfFormats);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(gVkPhDev, gVkSurf, &gNumPresentModes, gPresentModes);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gVkPhDev, gVkSurf, &gSurfCaps);
 }
 
-static uint32_t vkGetSwapchainSizeAPP(VkEnvironment vkEnv)
+static uint32_t vkGetSwapchainSizeAPP()
 {
-    if (vkEnv->surfaceCaps.minImageCount > VK_SWAPCHAIN_SIZE)
-        return vkEnv->surfaceCaps.minImageCount;
-    if (vkEnv->surfaceCaps.maxImageCount < VK_SWAPCHAIN_SIZE)
-        return vkEnv->surfaceCaps.maxImageCount;
+    if (gSurfCaps.minImageCount > VK_SWAPCHAIN_SIZE)
+        return gSurfCaps.minImageCount;
+    if (gSurfCaps.maxImageCount < VK_SWAPCHAIN_SIZE)
+        return gSurfCaps.maxImageCount;
     return VK_SWAPCHAIN_SIZE;
 }
 
-static VkPresentModeKHR vkGetSwapchainPresentMode(VkEnvironment vkEnv)
+static VkPresentModeKHR vkGetSwapchainPresentMode()
 {
-    for (uint32_t i = 0; i < vkEnv->numPresentModes; i++)
-        if (vkEnv->presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+    for (uint32_t i = 0; i < gNumPresentModes; i++)
+        if (gPresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
             return VK_PRESENT_MODE_MAILBOX_KHR;
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkSurfaceFormatKHR* vkGetSwapchainSurfaceFormat(VkEnvironment vkEnv)
+static VkSurfaceFormatKHR* vkGetSwapchainSurfaceFormat()
 {
     static VkSurfaceFormatKHR defaultVal =
     {
         VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
     };
-    for (uint32_t i = 0; i < vkEnv->numSurfaceFormats; i++)
+    for (uint32_t i = 0; i < gNumSurfFormats; i++)
     {
-        if (vkEnv->surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB)
+        if (gSurfFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB)
         {
-            vkEnv->surfaceFormat = &vkEnv->surfaceFormats[i];
-            return &vkEnv->surfaceFormats[i];
+            return &gSurfFormats[i];
         }
     }
-    vkEnv->surfaceFormat = &defaultVal;
     return &defaultVal;
 }
 
-bool vkRequestQueueAPP(VkEnvironment vkEnv, VkQueueFlags flags, bool present)
+static void vkRequestQueueAPP(VkQueueFlags flags, bool present, uint32_t* outFamily)
 {
-    uint32_t family = vkEnv->numQueueFamilies;
-    if (vkEnv->numQueuesRequested < VK_MAX_QUEUES)
+    uint32_t family = gNumQueueFamilies;
+    for (uint32_t i = 0; i < gNumQueueFamilies; i++)
     {
-        for (uint32_t i = 0; i < vkEnv->numQueueFamilies; i++)
+        if ((gQueueFamProps[i].queueFlags & flags) == flags && gQueueCount[i] < gQueueFamProps[i].queueCount)
         {
-            if ((vkEnv->queueFamilies[i].queueFlags & flags) == flags
-                && vkEnv->queueCount[i] < vkEnv->queueFamilies[i].queueCount)
+            if (present)
             {
-                if (present)
-                {
-                    VkBool32 canPresent = VK_FALSE;
-                    vkGetPhysicalDeviceSurfaceSupportKHR(vkEnv->adapter, i, vkEnv->surface, &canPresent);
-                    if (canPresent == VK_FALSE)
-                        continue;
-                }
-                family = i;
-                if (vkEnv->queueCount[family] == 0)
-                    break;
+                VkBool32 canPresent = VK_FALSE;
+                vkGetPhysicalDeviceSurfaceSupportKHR(gVkPhDev, i, gVkSurf, &canPresent);
+                if (canPresent == VK_FALSE)
+                    continue;
             }
+            family = i;
+            if (gQueueCount[i] == 0)
+                break;
         }
     }
-    else
-    {
-        appPrintf("ERROR: Too many device queue requests\n");
-    }
-    if (family < vkEnv->numQueueFamilies)
-    {
-        vkEnv->queueRequests[vkEnv->numQueuesRequested].family = family;
-        vkEnv->queueRequests[vkEnv->numQueuesRequested].index = vkEnv->queueCount[family]++;
-        ++vkEnv->numQueuesRequested;
-        return true;
-    }
-    return false;
+    ASSERT(family < gNumQueueFamilies, "ERROR: Failed to allocate device queue");   
+    *outFamily = family;
+    ++gQueueCount[family];
 }
 
-bool vkInitEnvironmentAPP(VkEnvironment* vkEnvPtr, const VkAllocationCallbacks* alloc)
+void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request)
 {
-    /*VkEnvironment vkEnv = calloc(1, sizeof(struct VkEnvironment));
-	TEST_RV(vkEnv != NULL, false, "ERROR: Failed to allocate memory for global state");
-    TEST_RV(appLoadLibrary(VK_LIBRARY, &vkEnv->library), false, "ERROR: Failed to load library");
-	QTEST_RV(vkCreateAndInitInstanceAPP(vkEnv->library, alloc, &vkEnv->instance, &vkEnv->debugCallback), false);
-	QTEST_RV(vkCreateSurfaceAPP(vkEnv->instance, alloc, &vkEnv->surface), false);
-	TEST_RV(vkGetAdapterAPP(vkEnv->instance, vkEnv->surface, &vkEnv->adapter), false, "ERROR: No compatible graphics adapter found");
-	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, NULL);
-	TEST_RV((vkEnv->numQueueFamilies)&&(vkEnv->numQueueFamilies<=VK_MAX_QUEUE_FAMILIES), false, "ERROR: Invalid number of queue families");
-	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, vkEnv->queueFamilies);
-	TEST_RV(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->surfaceCaps) == VK_SUCCESS, false, "ERROR: Failed to get surface capabilities");
-    vkGetPhysicalDeviceSurfacePresentModesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numPresentModes, NULL);
-    TEST_RV(vkEnv->numPresentModes, false, "ERROR: invalid number of supported present modes");
-    vkGetPhysicalDeviceSurfacePresentModesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numPresentModes, vkEnv->presentModes);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numSurfaceFormats, NULL);
-    TEST_RV((vkEnv->numSurfaceFormats)&&(vkEnv->numSurfaceFormats < VK_MAX_SURFACE_FORMATS), false, "ERROR: invalid number of surface formats");
-    vkGetPhysicalDeviceSurfaceFormatsKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numSurfaceFormats, vkEnv->surfaceFormats);
-    *vkEnvPtr = vkEnv;*/
-	return true;
+    ASSERT(count, "ERROR: At least one GPU queue must be requested");
+    gNumQueueRequests = count;
+    gOutQueues = stackAlloc(count * sizeof(VkQueueReq));
+    for (uint32_t i = 0; i < count; i++)
+    {
+        vkRequestQueueAPP(request[i].flags, request[i].present, request[i].outFamily);
+        gOutQueues[i].family = *request[i].outFamily;
+        gOutQueues[i].index = gQueueCount[*request[i].outFamily] - 1;
+        gOutQueues[i].outPtr = request[i].outQueue;
+        if (gOutQueues[i].index == 0)
+            ++gNumUsedFamilies;
+    }
 }
 
-bool vkCreateDeviceAndSwapchainAPP(VkEnvironment vkEnv, const VkAllocationCallbacks* alloc, VkDevice* device, VkSwapchainKHR* swapchain, VkQueue** queues)
+void vkCreateDeviceAndSwapchainAPP()
 {
-    uint32_t familiesToCreate = 0;
-    float priorities[] = {1.f, 1.f, 1.f, 1.f};
-    VkDeviceQueueCreateInfo queueInfo[VK_MAX_QUEUE_FAMILIES];
-    for (uint32_t i = 0; i < vkEnv->numQueueFamilies; i++)
+    STACK_MARK(frame);
+    ASSERT(gNumQueueRequests, "ERROR: At least one GPU queue must be requested");
+    float* priorities = stackAlloc(gNumQueueRequests * sizeof(float));
+    VkDeviceQueueCreateInfo* queueInfo = stackAlloc(gNumUsedFamilies * sizeof(VkDeviceQueueCreateInfo));
+    for (uint32_t i = 0, j = 0; i < gNumQueueFamilies; i++)
     {
-        if (vkEnv->queueCount[i] > 0)
+        if (gQueueCount[i] > 0)
         {
-            VK_INIT(queueInfo[familiesToCreate], VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
-            queueInfo[familiesToCreate].queueFamilyIndex = i;
-            queueInfo[familiesToCreate].queueCount = vkEnv->queueCount[i];
-            queueInfo[familiesToCreate].pQueuePriorities = priorities; // TODO: implement priorities
-            ++familiesToCreate;
+            VK_INIT(queueInfo[j], VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+            queueInfo[j].queueFamilyIndex = i;
+            queueInfo[j].queueCount = gQueueCount[i];
+            queueInfo[j].pQueuePriorities = priorities;
+            for (uint32_t k = 0; k < gQueueCount[i]; k++)
+            {
+                *priorities = 1.f;
+                priorities += 1;
+            }
+            ++j;
         }
     }
     VkDeviceCreateInfo createInfo;
     VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
     createInfo.pQueueCreateInfos = queueInfo;
-    createInfo.queueCreateInfoCount = familiesToCreate;
+    createInfo.queueCreateInfoCount = gNumUsedFamilies;
     createInfo.enabledExtensionCount = VK_NUM_REQUIRED_DEVICE_EXTENSIONS;
     createInfo.ppEnabledExtensionNames = VK_REQUIRED_DEVICE_EXTENSIONS;
-    TEST_RV(vkCreateDevice(vkEnv->adapter, &createInfo, alloc, device) == VK_SUCCESS, false, "ERROR: Failed to create device");
+    VK_ASSERT(vkCreateDevice(gVkPhDev, &createInfo, gVkAlloc, &gVkDev), "ERROR: Failed to create device");
 #define VULKAN_API_DEVICE(proc) \
-    vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( *device, "vk" #proc ); \
-    TEST_RV(vk ## proc, false, "ERROR: Failed to get pointer to vk" #proc );
+    vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( gVkDev, "vk" #proc ); \
+    ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
     appPrintf(STR("Loaded device-specific function pointers\n"));
-    for (uint32_t i = 0; i < vkEnv->numQueuesRequested; i++)
+    for (uint32_t i = 0; i < gNumQueueRequests; i++)
     {
-        uint32_t family = vkEnv->queueRequests[i].family;
-        uint32_t index = vkEnv->queueRequests[i].index;
-        VkQueue* queue = queues[i];
-        vkGetDeviceQueue(*device, family, index, queue);
+        uint32_t family = gOutQueues[i].family;
+        uint32_t index = gOutQueues[i].index;
+        VkQueue* queue = gOutQueues[i].outPtr;
+        vkGetDeviceQueue(gVkDev, family, index, queue);
     }
     VkSwapchainCreateInfoKHR swapchainInfo;
-    VkSurfaceFormatKHR* surfaceFmt = vkGetSwapchainSurfaceFormat(vkEnv);
+    gSurfaceFormat = *vkGetSwapchainSurfaceFormat();
     VK_INIT(swapchainInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
     swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchainInfo.imageArrayLayers = 1;
     swapchainInfo.clipped = VK_TRUE;
-    swapchainInfo.preTransform = vkEnv->surfaceCaps.currentTransform;
-    swapchainInfo.minImageCount = vkGetSwapchainSizeAPP(vkEnv);
-    swapchainInfo.presentMode = vkGetSwapchainPresentMode(vkEnv);
-    swapchainInfo.imageFormat = surfaceFmt->format;
-    swapchainInfo.imageColorSpace = surfaceFmt->colorSpace;
-    swapchainInfo.surface = vkEnv->surface;
-    swapchainInfo.imageExtent = vkEnv->surfaceCaps.currentExtent;
-    TEST_RV(vkCreateSwapchainKHR(*device, &swapchainInfo, alloc, swapchain) == VK_SUCCESS, false, "ERROR: Failed to create swapchain");
-    return true;
+    swapchainInfo.preTransform = gSurfCaps.currentTransform;
+    swapchainInfo.minImageCount = vkGetSwapchainSizeAPP();
+    swapchainInfo.presentMode = vkGetSwapchainPresentMode();
+    swapchainInfo.imageFormat = gSurfaceFormat.format;
+    swapchainInfo.imageColorSpace = gSurfaceFormat.colorSpace;
+    swapchainInfo.surface = gVkSurf;
+    swapchainInfo.imageExtent = gSurfCaps.currentExtent;
+    VK_ASSERT(vkCreateSwapchainKHR(gVkDev, &swapchainInfo, gVkAlloc, &gVkSwapchain), "ERROR: Failed to create swapchain");
+    gNumBuffers = swapchainInfo.minImageCount;
+    STACK_FREE(frame);
 }
 
-void vkDestroyEnvironmentAPP(VkEnvironment vkEnv, const VkAllocationCallbacks* alloc)
+void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out)
 {
-    if (vkEnv->instance)
-    {
-        if (vkEnv->surface)
-            vkDestroySurfaceKHR(vkEnv->instance, vkEnv->surface, alloc);
-        vkDestroyInstance(vkEnv->instance, alloc);
-    }
-    appUnloadLibrary(vkEnv->library);
-    free(vkEnv);
+    if (info->commandBufferCount == 0)
+        info->commandBufferCount = gNumBuffers;
+    VkCommandBuffer* res = stackAlloc(info->commandBufferCount * sizeof(VkCommandBuffer));
+    VK_ASSERT(vkAllocateCommandBuffers(gVkDev, info, res), "ERROR: Failed to allocate command buffers");
+    *out = res;
 }
 
-void vkInitialize(size_t maxMem)
+void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr)
 {
+    count = (count) ? count : gNumBuffers;
+    vkFreeCommandBuffers(gVkDev, pool, count, ptr);
+}
+
+void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)
+{
+    gVkAlloc = alloc;
     maxMem = (maxMem) ? ALIGN16(maxMem) : VK_MIN_BUFFER;
     gVkMemBufferSize = (maxMem < VK_MIN_BUFFER) ? VK_MIN_BUFFER : maxMem;
     gVkMemBuffer = (char*)malloc(gVkMemBufferSize);
@@ -375,8 +390,10 @@ void vkInitialize(size_t maxMem)
     vkGetGraphicsAdapterAPP();
 }
 
-void vkFinalize(void)
+void vkFinalizeAPP(void)
 {
+    vkDeviceWaitIdle(gVkDev);
+    vkDestroySwapchainKHR(gVkDev, gVkSwapchain, gVkAlloc);
     vkDestroySurfaceKHR(gVkInst, gVkSurf, gVkAlloc);
     vkDestroyInstance(gVkInst, gVkAlloc);
     appUnloadLibrary(gVkDllHandle);

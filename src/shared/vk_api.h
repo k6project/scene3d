@@ -16,47 +16,52 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
-#define VK_ASSERT(c) \
-    ASSERT(c == VK_SUCCESS)
+#define VK_ASSERT(c, m) \
+    ASSERT(c == VK_SUCCESS, m)
+
+#define VK_QUEUE_GCT \
+    (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-    
-struct VkEnvironment;
-
-typedef struct VkEnvironment* VkEnvironment;
-
-extern VkDevice gVkDev;
-    
+ 
 #define VULKAN_API_GOBAL(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_INSTANCE(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
     
-void vkInitialize(size_t maxMem);
-void vkFinalize(void);
-    
-/* Load library, create instance, choose adapter */
-bool vkInitEnvironmentAPP(VkEnvironment* vkEnvPtr,
-                          const VkAllocationCallbacks* alloc);
+typedef struct
+{
+    VkQueueFlags flags;
+    bool present; 
+    uint32_t* outFamily;
+    VkQueue* outQueue;
+} VkQueueRequest;
 
-/* Request device queue to be created */
-bool vkRequestQueueAPP(VkEnvironment vkEnv,
-                       VkQueueFlags flags,
-                       bool present);
-    
-/* Create device, get queues, create swapchain */
-bool vkCreateDeviceAndSwapchainAPP(VkEnvironment vkEnv,
-                                   const VkAllocationCallbacks* alloc,
-                                   VkDevice* device,
-                                   VkSwapchainKHR* swapchain,
-                                   VkQueue** queues);
+extern const VkAllocationCallbacks* gVkAlloc;
+extern VkDevice gVkDev;
+extern VkSwapchainKHR gVkSwapchain;
+extern VkSurfaceFormatKHR gSurfaceFormat;
 
-void vkDestroyEnvironmentAPP(VkEnvironment vkEnv,
-                             const VkAllocationCallbacks* alloc);
-    
+void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc);
+void vkFinalizeAPP(void); 
+void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request);
+void vkCreateDeviceAndSwapchainAPP();
+void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out);
+void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr);
+
+#define VK_CMDPOOL_CREATE_INFO(n,qf) \
+    VkCommandPoolCreateInfo n = { \
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, \
+        .pNext = NULL , .flags = 0, .queueFamilyIndex = qf }
+   
+#define VK_CMDBUFF_CREATE_INFO(n,cp,l,num) \
+    VkCommandBufferAllocateInfo n = { \
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, \
+        .pNext = NULL, .commandPool = cp ,.level = l , .commandBufferCount = num }
+
 #ifdef __cplusplus
 }
 #endif

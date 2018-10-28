@@ -1,20 +1,33 @@
 #include "shared/vk_api.h"
 #include "shared/main.inl"
 
+static uint32_t gQueueFamily = 0;
+static VkQueue gCmdQueue = VK_NULL_HANDLE;
+static VkCommandPool gCmdPool = VK_NULL_HANDLE;
+static VkCommandBuffer* gCmdBuff = NULL;
+
 static void initialize(void* dataPtr)
 {
-    vkInitialize(0);
-    /*
-    VkQueue* queues[] = { &gGfxQueue, &gCmpQueue };
-    QTEST_R(vkInitEnvironmentAPP(&gVkEnv, NULL));
-    QTEST_R(vkRequestQueueAPP(gVkEnv, VK_QUEUE_GRAPHICS_BIT, true));
-    QTEST_R(vkRequestQueueAPP(gVkEnv, VK_QUEUE_COMPUTE_BIT, false));
-    QTEST_R(vkCreateDeviceAndSwapchainAPP(gVkEnv, NULL, &gDevice, &gSwapChain, queues));
-     */
+    vkInitializeAPP(0, NULL);
+    vkRequestQueuesAPP(1, (VkQueueRequest[]) { { VK_QUEUE_GCT, true, &gQueueFamily, &gCmdQueue } });
+    vkCreateDeviceAndSwapchainAPP();
+    VK_CMDPOOL_CREATE_INFO(poolInfo, gQueueFamily);
+    VK_ASSERT(vkCreateCommandPool(gVkDev, &poolInfo, gVkAlloc, &gCmdPool), "ERROR: Failed to create command pool");
+    VK_CMDBUFF_CREATE_INFO(cmdBuffInfo, gCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0);
+    vkCreateCommandBufferAPP(&cmdBuffInfo, &gCmdBuff);
 }
 
 static void renderFrame()
 {
+    uint32_t imageIdx = 0;
+    //acquire image
+    VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
+    //reset command buffer
+    //record commands onto cmdBuff
+    //end command 
+    //submit
+    //present
+
     /*VkImageMemoryBarrier clearBarrier =
     {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -42,15 +55,10 @@ static void renderFrame()
 
 static void finalize(void* dataPtr)
 {
-	/*if (gDevice)
-	{
-		vkDeviceWaitIdle(gDevice);
-        //destroy all device-dependent objects
-        vkDestroySwapchainKHR(gDevice, gSwapChain, NULL);
-		vkDestroyDevice(gDevice, NULL);
-	}
-    vkDestroyEnvironmentAPP(gVkEnv, NULL);*/
-    vkFinalize();
+    vkDeviceWaitIdle(gVkDev);
+    vkDestroyCommandBufferAPP(gCmdPool, 0, gCmdBuff);
+    vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
+    vkFinalizeAPP();
 }
 
 int appMain(int argc, const TChar** argv)
