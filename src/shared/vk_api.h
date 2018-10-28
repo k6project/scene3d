@@ -13,10 +13,11 @@
 #endif
 
 #define VK_SWAPCHAIN_SIZE 3
-#define VK_MAX_QUEUES 8
-#define VK_MAX_QUEUE_FAMILIES 8
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
+
+#define VK_ASSERT(c) \
+    ASSERT(c == VK_SUCCESS)
 
 #ifdef __cplusplus
 extern "C"
@@ -26,11 +27,16 @@ extern "C"
 struct VkEnvironment;
 
 typedef struct VkEnvironment* VkEnvironment;
+
+extern VkDevice gVkDev;
     
 #define VULKAN_API_GOBAL(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_INSTANCE(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
+    
+void vkInitialize(size_t maxMem);
+void vkFinalize(void);
     
 /* Load library, create instance, choose adapter */
 bool vkInitEnvironmentAPP(VkEnvironment* vkEnvPtr,

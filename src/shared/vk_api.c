@@ -5,11 +5,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define VK_MAX_QUEUES 8
+#define VK_MAX_QUEUE_FAMILIES 8
+#define VK_MAX_SURFACE_FORMATS 8
+
+//public
+VkAllocationCallbacks* gVkAlloc = NULL;
+VkDevice gVkDev = VK_NULL_HANDLE;
+VkSwapchainKHR gVkSwapchain = VK_NULL_HANDLE;
+
+//private: instance, library handle
+#define VK_MIN_BUFFER 65536u
+static char* gVkMemBuffer = NULL;
+static size_t gVkMemBufferSize = 0;
+static size_t gVkMemBufferCurr = 0;
+static void* gVkDllHandle = NULL;
+static VkInstance gVkInst = VK_NULL_HANDLE;
+static VkSurfaceKHR gVkSurf = VK_NULL_HANDLE;
+static VkPhysicalDevice gVkPhDev = VK_NULL_HANDLE;
+
 static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 #define VULKAN_API_GOBAL(proc) PFN_vk ## proc vk ## proc = NULL;
 #define VULKAN_API_INSTANCE(proc) PFN_vk ## proc vk ## proc = NULL;
 #define VULKAN_API_DEVICE(proc) PFN_vk ## proc vk ## proc = NULL;
 #include "vk_api.inl"
+
+#define STACK_MARK(v) size_t _##v##_ = gVkMemBufferCurr
+#define STACK_FREE(v) gVkMemBufferCurr = _##v##_
+static void* tmpBuffAlloc(size_t size)
+{
+    size = ALIGN16(size);
+    ASSERT(gVkMemBufferSize - gVkMemBufferCurr >= size, "ERROR: Internal stack out of memory");
+    void* retVal = gVkMemBuffer + gVkMemBufferCurr;
+    gVkMemBufferCurr += size;
+    return retVal;
+}
 
 static const char* VK_REQUIRED_LAYERS[] =
 {
@@ -51,6 +81,10 @@ struct VkEnvironment
     VkSurfaceCapabilitiesKHR surfaceCaps;
     uint32_t numPresentModes;
     VkPresentModeKHR presentModes[VK_PRESENT_MODE_RANGE_SIZE_KHR];
+    uint32_t numSurfaceFormats;
+    VkSurfaceFormatKHR* surfaceFormat;
+    VkSurfaceFormatKHR surfaceFormats[VK_MAX_SURFACE_FORMATS];
+    VkDebugReportCallbackEXT debugCallback;
 };
 
 static const uint32_t VK_NUM_REQUIRED_EXTENSIONS = sizeof(VK_REQUIRED_EXTENSIONS) / sizeof(const char*);
@@ -61,16 +95,16 @@ static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEV
 
 extern bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
 
-static bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* alloc, VkInstance* inst)
+static void vkCreateAndInitInstanceAPP()
 {
-    vkGetInstanceProcAddr = appGetLibraryProc(dll, "vkGetInstanceProcAddr");
-    TEST_RV(vkGetInstanceProcAddr, false, "ERROR: Failed to get pointer to vkGetInstanceProcAddr");
+    STACK_MARK(frame);
+    vkGetInstanceProcAddr = appGetLibraryProc(gVkDllHandle, "vkGetInstanceProcAddr");
+    ASSERT(vkGetInstanceProcAddr, "ERROR: Failed to get pointer to vkGetInstanceProcAddr");
 #define VULKAN_API_GOBAL(proc) \
     vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( NULL, "vk" #proc ); \
-    TEST_RV(vk ## proc, false, "ERROR: Failed to get pointer to vk" #proc );
+    ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
     appPrintf(STR("Loaded global function pointers\n"));
-    
 	VkApplicationInfo appInfo;
 	static char appName[APP_NAME_MAX];
 	appTCharToUTF8(appName, gOptions->appName, APP_NAME_MAX);
@@ -80,11 +114,10 @@ static bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* a
 	VkInstanceCreateInfo createInfo;
 	VK_INIT(createInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
 	createInfo.pApplicationInfo = &appInfo;
-	
     createInfo.enabledLayerCount = VK_NUM_REQUIRED_LAYERS + gOptions->numLayers;
 	if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
 	{
-		char** layers = (char**)malloc(createInfo.enabledLayerCount * sizeof(const char*)); // stack
+		char** layers = tmpBuffAlloc(createInfo.enabledLayerCount * sizeof(const char*));
 		memcpy(layers, VK_REQUIRED_LAYERS, VK_NUM_REQUIRED_LAYERS * sizeof(const char*));
 		memcpy(layers + VK_NUM_REQUIRED_LAYERS, gOptions->layers, gOptions->numLayers * sizeof(const char*));
 		createInfo.ppEnabledLayerNames = (const char**)layers;
@@ -96,11 +129,10 @@ static bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* a
     for (uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
         appPrintf(STR("  %s\n"), createInfo.ppEnabledLayerNames[i]);
 #endif
-    
 	createInfo.enabledExtensionCount = VK_NUM_REQUIRED_EXTENSIONS + gOptions->numExtensions;
 	if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
 	{
-		char** ext = (char**)malloc(createInfo.enabledExtensionCount * sizeof(const char*)); // stack
+		char** ext = tmpBuffAlloc(createInfo.enabledExtensionCount * sizeof(const char*));
 		memcpy(ext, VK_REQUIRED_EXTENSIONS, VK_NUM_REQUIRED_EXTENSIONS * sizeof(const char*));
 		memcpy(ext + VK_NUM_REQUIRED_EXTENSIONS, gOptions->extensions, gOptions->numExtensions * sizeof(const char*));
 		createInfo.ppEnabledExtensionNames = (const char**)ext;
@@ -112,34 +144,28 @@ static bool vkCreateAndInitInstanceAPP(void* dll, const VkAllocationCallbacks* a
     for (uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
         appPrintf(STR("  %s\n"), createInfo.ppEnabledExtensionNames[i]);
 #endif
-
-    VkResult result = vkCreateInstance(&createInfo, alloc, inst);
-	if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
-		free((void*)createInfo.ppEnabledExtensionNames);
-	if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
-		free((void*)createInfo.ppEnabledLayerNames);
-    
+    VkResult result = vkCreateInstance(&createInfo, gVkAlloc, &gVkInst);
     if (result == VK_SUCCESS)
     {
 #define VULKAN_API_INSTANCE(proc) \
-        vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( *inst, "vk" #proc ); \
-        TEST_RV(vk ## proc, false, "ERROR: Failed to get pointer to vk" #proc );
+        vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( gVkInst, "vk" #proc ); \
+        ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
         appPrintf(STR("Loaded instance-specific function pointers\n"));
     }
     else
-        appPrintf(STR("ERROR: Failed to create Vulkan instance (%d)\n"), result);
-	return true;
+        ASSERT(false, "ERROR: Failed to create Vulkan instance");
+    STACK_FREE(frame);
 }
 
-static bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDevice* adapter)
+static void vkGetGraphicsAdapterAPP()
 {
-    *adapter = VK_NULL_HANDLE;
-    uint32_t num = 0, idx = 0xff;
-    if (vkEnumeratePhysicalDevices(inst, &num, NULL) == VK_SUCCESS && num)
+    STACK_MARK(frame);
+    uint32_t num = 0, idx = 0xff, fallback = 0xff;
+    if (vkEnumeratePhysicalDevices(gVkInst, &num, NULL) == VK_SUCCESS && num)
     {
-        VkPhysicalDevice* adapters = malloc(sizeof(VkPhysicalDevice) * num); // stack
-        if (vkEnumeratePhysicalDevices(inst, &num, adapters) == VK_SUCCESS)
+        VkPhysicalDevice* adapters = tmpBuffAlloc(sizeof(VkPhysicalDevice) * num);
+        if (vkEnumeratePhysicalDevices(gVkInst, &num, adapters) == VK_SUCCESS)
         {
             for (uint32_t i = 0; i < num; i++)
             {
@@ -150,30 +176,31 @@ static bool vkGetAdapterAPP(VkInstance inst, VkSurfaceKHR surface, VkPhysicalDev
 #ifndef _MSC_VER
                 appPrintf(STR("%u: %s (%u queue fam.)\n"), i, props.deviceName, numFamilies);
 #endif
-                if (*adapter == VK_NULL_HANDLE && props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+                VkBool32 canPresent = VK_FALSE;
+                for (uint32_t j = 0; j < numFamilies; j++)
                 {
-                    VkBool32 canPresent = VK_FALSE;
-                    for (uint32_t j = 0; j < numFamilies; j++)
+                    vkGetPhysicalDeviceSurfaceSupportKHR(adapters[i], j, gVkSurf, &canPresent);
+                    if (canPresent == VK_TRUE)
                     {
-                        vkGetPhysicalDeviceSurfaceSupportKHR(adapters[i], j, surface, &canPresent);
-                        if (canPresent == VK_TRUE)
+                        if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
                         {
-                            *adapter = adapters[i];
                             idx = i;
                             break;
                         }
+                        else if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU && fallback == 0xFF)
+                            fallback = i;
                     }
                 }
             }
+            if (idx == 0xff)
+                if (fallback != 0xff)
+                    idx = fallback;
+            gVkPhDev = (idx == 0xff) ? VK_NULL_HANDLE : adapters[idx];
         }
-        free(adapters);
     }
-    if (*adapter != VK_NULL_HANDLE)
-    {
-        appPrintf(STR("Unsing adapter %u\n"), idx);
-        return true;
-    }
-    return false;
+    ASSERT(gVkPhDev, "ERROR: Failed to choose graphics adapter");
+    appPrintf(STR("Unsing adapter %u\n"), idx);
+    STACK_FREE(frame);
 }
 
 static uint32_t vkGetSwapchainSizeAPP(VkEnvironment vkEnv)
@@ -191,6 +218,24 @@ static VkPresentModeKHR vkGetSwapchainPresentMode(VkEnvironment vkEnv)
         if (vkEnv->presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
             return VK_PRESENT_MODE_MAILBOX_KHR;
     return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+static VkSurfaceFormatKHR* vkGetSwapchainSurfaceFormat(VkEnvironment vkEnv)
+{
+    static VkSurfaceFormatKHR defaultVal =
+    {
+        VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+    };
+    for (uint32_t i = 0; i < vkEnv->numSurfaceFormats; i++)
+    {
+        if (vkEnv->surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB)
+        {
+            vkEnv->surfaceFormat = &vkEnv->surfaceFormats[i];
+            return &vkEnv->surfaceFormats[i];
+        }
+    }
+    vkEnv->surfaceFormat = &defaultVal;
+    return &defaultVal;
 }
 
 bool vkRequestQueueAPP(VkEnvironment vkEnv, VkQueueFlags flags, bool present)
@@ -232,19 +277,23 @@ bool vkRequestQueueAPP(VkEnvironment vkEnv, VkQueueFlags flags, bool present)
 
 bool vkInitEnvironmentAPP(VkEnvironment* vkEnvPtr, const VkAllocationCallbacks* alloc)
 {
-    VkEnvironment vkEnv = calloc(1, sizeof(struct VkEnvironment));
+    /*VkEnvironment vkEnv = calloc(1, sizeof(struct VkEnvironment));
 	TEST_RV(vkEnv != NULL, false, "ERROR: Failed to allocate memory for global state");
     TEST_RV(appLoadLibrary(VK_LIBRARY, &vkEnv->library), false, "ERROR: Failed to load library");
-	QTEST_RV(vkCreateAndInitInstanceAPP(vkEnv->library, alloc, &vkEnv->instance), false);
+	QTEST_RV(vkCreateAndInitInstanceAPP(vkEnv->library, alloc, &vkEnv->instance, &vkEnv->debugCallback), false);
 	QTEST_RV(vkCreateSurfaceAPP(vkEnv->instance, alloc, &vkEnv->surface), false);
 	TEST_RV(vkGetAdapterAPP(vkEnv->instance, vkEnv->surface, &vkEnv->adapter), false, "ERROR: No compatible graphics adapter found");
 	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, NULL);
-	TEST_RV((vkEnv->numQueueFamilies>0)&&(vkEnv->numQueueFamilies<=VK_MAX_QUEUE_FAMILIES), false, "ERROR: Invalid numbed of queue families");
+	TEST_RV((vkEnv->numQueueFamilies)&&(vkEnv->numQueueFamilies<=VK_MAX_QUEUE_FAMILIES), false, "ERROR: Invalid number of queue families");
 	vkGetPhysicalDeviceQueueFamilyProperties(vkEnv->adapter, &vkEnv->numQueueFamilies, vkEnv->queueFamilies);
 	TEST_RV(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->surfaceCaps) == VK_SUCCESS, false, "ERROR: Failed to get surface capabilities");
     vkGetPhysicalDeviceSurfacePresentModesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numPresentModes, NULL);
+    TEST_RV(vkEnv->numPresentModes, false, "ERROR: invalid number of supported present modes");
     vkGetPhysicalDeviceSurfacePresentModesKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numPresentModes, vkEnv->presentModes);
-    *vkEnvPtr = vkEnv;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numSurfaceFormats, NULL);
+    TEST_RV((vkEnv->numSurfaceFormats)&&(vkEnv->numSurfaceFormats < VK_MAX_SURFACE_FORMATS), false, "ERROR: invalid number of surface formats");
+    vkGetPhysicalDeviceSurfaceFormatsKHR(vkEnv->adapter, vkEnv->surface, &vkEnv->numSurfaceFormats, vkEnv->surfaceFormats);
+    *vkEnvPtr = vkEnv;*/
 	return true;
 }
 
@@ -284,10 +333,21 @@ bool vkCreateDeviceAndSwapchainAPP(VkEnvironment vkEnv, const VkAllocationCallba
         vkGetDeviceQueue(*device, family, index, queue);
     }
     VkSwapchainCreateInfoKHR swapchainInfo;
-    //VkPresentModeKHR;
+    VkSurfaceFormatKHR* surfaceFmt = vkGetSwapchainSurfaceFormat(vkEnv);
     VK_INIT(swapchainInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+    swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainInfo.imageArrayLayers = 1;
+    swapchainInfo.clipped = VK_TRUE;
+    swapchainInfo.preTransform = vkEnv->surfaceCaps.currentTransform;
     swapchainInfo.minImageCount = vkGetSwapchainSizeAPP(vkEnv);
     swapchainInfo.presentMode = vkGetSwapchainPresentMode(vkEnv);
+    swapchainInfo.imageFormat = surfaceFmt->format;
+    swapchainInfo.imageColorSpace = surfaceFmt->colorSpace;
+    swapchainInfo.surface = vkEnv->surface;
+    swapchainInfo.imageExtent = vkEnv->surfaceCaps.currentExtent;
+    TEST_RV(vkCreateSwapchainKHR(*device, &swapchainInfo, alloc, swapchain) == VK_SUCCESS, false, "ERROR: Failed to create swapchain");
     return true;
 }
 
@@ -301,4 +361,24 @@ void vkDestroyEnvironmentAPP(VkEnvironment vkEnv, const VkAllocationCallbacks* a
     }
     appUnloadLibrary(vkEnv->library);
     free(vkEnv);
+}
+
+void vkInitialize(size_t maxMem)
+{
+    maxMem = (maxMem) ? ALIGN16(maxMem) : VK_MIN_BUFFER;
+    gVkMemBufferSize = (maxMem < VK_MIN_BUFFER) ? VK_MIN_BUFFER : maxMem;
+    gVkMemBuffer = (char*)malloc(gVkMemBufferSize);
+    ASSERT(gVkMemBuffer, "ERROR: Failed to allocate internal memory");
+    ASSERT(appLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: Failed to load library");
+    vkCreateAndInitInstanceAPP();
+    ASSERT_Q(vkCreateSurfaceAPP(gVkInst, gVkAlloc, &gVkSurf));
+    vkGetGraphicsAdapterAPP();
+}
+
+void vkFinalize(void)
+{
+    vkDestroySurfaceKHR(gVkInst, gVkSurf, gVkAlloc);
+    vkDestroyInstance(gVkInst, gVkAlloc);
+    appUnloadLibrary(gVkDllHandle);
+    free(gVkMemBuffer);
 }
