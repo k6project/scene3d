@@ -51,6 +51,12 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 
 bool appShouldKeepRunning(void)
 {
+	MSG msg;
+	while (PeekMessage(&msg, gState.window, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 	return gState.keepRunning;
 }
 
@@ -102,12 +108,6 @@ void appInitialize(AppCallbacks* callbacks, void* state)
 
 void appPollEvents(void)
 {
-	MSG msg;
-	while (PeekMessage(&msg, gState.window, 0, 0, PM_REMOVE))
-	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
 }
 
 bool appLoadLibrary(const TChar* name, void** handle)

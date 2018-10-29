@@ -26,7 +26,9 @@ static void renderFrame()
 {
     uint32_t imageIdx = 0;
     vkAcquireNextImageAPP(gFrmBegin[gFrameIdx], &imageIdx);
-    VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
+	//VkImage displayImg = gDisplayImage[imageIdx];
+    //VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
+	//VK_ASSERT_Q(vkResetCommandBuffer(cmdBuff, 0));
     //reset command buffer
     //record commands onto cmdBuff
     //end command 
@@ -54,6 +56,14 @@ static void renderFrame()
         }
     };*/
     
+	VkPresentInfoKHR presentInfo = 
+	{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, .pNext = NULL,
+		.waitSemaphoreCount = 1, .pWaitSemaphores = &gFrmBegin[gFrameIdx],
+		.swapchainCount = 1, .pSwapchains = &gVkSwapchain, .pImageIndices = &imageIdx, 
+		.pResults = NULL
+	};
+	vkQueuePresentKHR(gCmdQueue, &presentInfo);
     gFrameIdx = vkNextFrameAPP(gFrameIdx);
 }
 

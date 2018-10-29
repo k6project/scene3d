@@ -21,6 +21,7 @@ const VkAllocationCallbacks* gVkAlloc = NULL;
 VkDevice gVkDev = VK_NULL_HANDLE;
 VkSwapchainKHR gVkSwapchain = VK_NULL_HANDLE;
 VkSurfaceFormatKHR gSurfaceFormat = {0, 0};
+VkImage* gDisplayImage = NULL;
 
 #define VK_MIN_BUFFER 65536u
 static char* gVkMemBuffer = NULL;
@@ -42,6 +43,8 @@ static VkPresentModeKHR* gPresentModes = NULL;
 static VkSurfaceCapabilitiesKHR gSurfCaps;
 static VkQueueReq* gOutQueues = NULL;
 static uint32_t gNumBuffers = 0;
+static uint32_t gPhDevMask = 0;
+static VkDebugReportCallbackEXT gDebug = VK_NULL_HANDLE;
 
 static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 #define VULKAN_API_GOBAL(proc) PFN_vk ## proc vk ## proc = NULL;
@@ -87,6 +90,18 @@ static const char* VK_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
 static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEVICE_EXTENSIONS) / sizeof(const char*);
 
 extern bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
+
+static VkBool32 vkDebugAPP(VkDebugReportFlagsEXT flags,
+						   VkDebugReportObjectTypeEXT objectType,
+						   uint64_t object,
+	                       size_t location,
+	                       int32_t messageCode,
+	                       const char* pLayerPrefix,
+	                       const char* pMessage,
+	                       void* pUserData)
+{
+	return VK_FALSE;
+}
 
 static void vkCreateAndInitInstanceAPP()
 {
@@ -145,6 +160,13 @@ static void vkCreateAndInitInstanceAPP()
         ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
         appPrintf(STR("Loaded instance-specific function pointers\n"));
+		VkDebugReportCallbackCreateInfoEXT debugInfo =
+		{
+			.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+			.pNext = NULL, .flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT,
+            .pfnCallback = &vkDebugAPP, .pUserData = NULL
+		};
+		VK_ASSERT_Q(vkCreateDebugReportCallbackEXT(gVkInst, &debugInfo, gVkAlloc, &gDebug));
     }
     else
         ASSERT(false, "ERROR: Failed to create Vulkan instance");
@@ -194,6 +216,7 @@ static void vkGetGraphicsAdapterAPP()
     ASSERT(gVkPhDev, "ERROR: Failed to choose graphics adapter");
     appPrintf(STR("Unsing adapter %u\n"), idx);
     STACK_FREE(frame);
+	gPhDevMask = 1 << idx;
     vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, NULL);
     gQueueCount = stackAlloc(gNumQueueFamilies * sizeof(uint32_t));
     memset(gQueueCount, 0, (gNumQueueFamilies * sizeof(uint32_t)));
@@ -338,7 +361,9 @@ void vkCreateDeviceAndSwapchainAPP()
     swapchainInfo.surface = gVkSurf;
     swapchainInfo.imageExtent = gSurfCaps.currentExtent;
     VK_ASSERT(vkCreateSwapchainKHR(gVkDev, &swapchainInfo, gVkAlloc, &gVkSwapchain), "ERROR: Failed to create swapchain");
-    gNumBuffers = swapchainInfo.minImageCount;
+	VK_ASSERT(vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, NULL), "ERROR: Failed to get swapchain images");
+	gDisplayImage = stackAlloc(gNumBuffers * sizeof(VkImage));
+	vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, gDisplayImage);
     STACK_FREE(frame);
 }
 
@@ -387,9 +412,10 @@ void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
     {
         .sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
         .pNext = NULL, .swapchain = gVkSwapchain, .timeout = UINT64_MAX,
-        .semaphore = sem, .fence = VK_NULL_HANDLE, .deviceMask = 0
+        .semaphore = sem, .fence = VK_NULL_HANDLE, .deviceMask = gPhDevMask
     };
-    VK_ASSERT(vkAcquireNextImage2KHR(gVkDev, &info, image), "ERROR: Failed to acquire image");
+	VkResult result = vkAcquireNextImage2KHR(gVkDev, &info, image);
+    VK_ASSERT(result, "ERROR: Failed to acquire image (%d)", result);
 }
 
 uint32_t vkNextFrameAPP(uint32_t current)
@@ -415,6 +441,7 @@ void vkFinalizeAPP(void)
     vkDeviceWaitIdle(gVkDev);
     vkDestroySwapchainKHR(gVkDev, gVkSwapchain, gVkAlloc);
     vkDestroySurfaceKHR(gVkInst, gVkSurf, gVkAlloc);
+	vkDestroyDebugReportCallbackEXT(gVkInst, gDebug, gVkAlloc);
     vkDestroyInstance(gVkInst, gVkAlloc);
     appUnloadLibrary(gVkDllHandle);
     free(gVkMemBuffer);

@@ -19,8 +19,8 @@
 #define VK_ASSERT_Q(c) \
     ASSERT_Q(c == VK_SUCCESS)
 
-#define VK_ASSERT(c, m) \
-    ASSERT(c == VK_SUCCESS, m)
+#define VK_ASSERT(c, m, ...) \
+    ASSERT(c == VK_SUCCESS, m, __VA_ARGS__)
 
 #define VK_QUEUE_GCT \
     (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)
@@ -47,6 +47,7 @@ extern const VkAllocationCallbacks* gVkAlloc;
 extern VkDevice gVkDev;
 extern VkSwapchainKHR gVkSwapchain;
 extern VkSurfaceFormatKHR gSurfaceFormat;
+extern VkImage* gDisplayImage;
 
 void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc);
 void vkFinalizeAPP(void); 

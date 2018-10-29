@@ -19,7 +19,7 @@ typedef char TChar;
 #define ALIGN16(n) ((((n-1)>>4)+1)<<4)
 
 #define ASSERT_Q(c) if(!(c)){debugBreak();}
-#define ASSERT(c,m) if(!(c)){appPrintf(STR(m)STR("\n"));debugBreak();}
+#define ASSERT(c,m,...) if(!(c)){appPrintf(STR(m)STR("\n"),__VA_ARGS__);debugBreak();}
 
 #define VK_INIT(v,t) do{memset(&v,0,sizeof(v));v.sType=t;}while(0)
 #define TEST_RV(c,r,m) do{if(!(c)){appPrintf(STR(m)STR("\n"));return r;}}while(0)
