@@ -16,7 +16,6 @@ typedef struct
     VkQueue* outPtr;
 } VkQueueReq;
 
-//public
 const VkAllocationCallbacks* gVkAlloc = NULL;
 VkDevice gVkDev = VK_NULL_HANDLE;
 VkSwapchainKHR gVkSwapchain = VK_NULL_HANDLE;
@@ -91,6 +90,7 @@ static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEV
 
 extern bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
 
+#ifdef _DEBUG
 static VkBool32 vkDebugAPP(VkDebugReportFlagsEXT flags,
 						   VkDebugReportObjectTypeEXT objectType,
 						   uint64_t object,
@@ -102,6 +102,7 @@ static VkBool32 vkDebugAPP(VkDebugReportFlagsEXT flags,
 {
 	return VK_FALSE;
 }
+#endif
 
 static void vkCreateAndInitInstanceAPP()
 {
@@ -160,6 +161,7 @@ static void vkCreateAndInitInstanceAPP()
         ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
 #include "vk_api.inl"
         appPrintf(STR("Loaded instance-specific function pointers\n"));
+#ifdef _DEBUG
 		VkDebugReportCallbackCreateInfoEXT debugInfo =
 		{
 			.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
@@ -167,6 +169,7 @@ static void vkCreateAndInitInstanceAPP()
             .pfnCallback = &vkDebugAPP, .pUserData = NULL
 		};
 		VK_ASSERT_Q(vkCreateDebugReportCallbackEXT(gVkInst, &debugInfo, gVkAlloc, &gDebug));
+#endif
     }
     else
         ASSERT(false, "ERROR: Failed to create Vulkan instance");
@@ -362,9 +365,9 @@ void vkCreateDeviceAndSwapchainAPP()
     swapchainInfo.imageExtent = gSurfCaps.currentExtent;
     VK_ASSERT(vkCreateSwapchainKHR(gVkDev, &swapchainInfo, gVkAlloc, &gVkSwapchain), "ERROR: Failed to create swapchain");
 	VK_ASSERT(vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, NULL), "ERROR: Failed to get swapchain images");
+	STACK_FREE(frame);
 	gDisplayImage = stackAlloc(gNumBuffers * sizeof(VkImage));
 	vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, gDisplayImage);
-    STACK_FREE(frame);
 }
 
 void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out)
@@ -389,7 +392,7 @@ void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
     {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = NULL, .flags = 0
     };
-    VkSemaphore* semaphores = stackAlloc(count);
+    VkSemaphore* semaphores = stackAlloc(count * sizeof(VkSemaphore));
     for (uint32_t i = 0; i < count; i++)
     {
         VK_ASSERT(vkCreateSemaphore(gVkDev, &createInfo, gVkAlloc, &semaphores[i]), "ERROR: Failed to create semaphore");
@@ -397,17 +400,42 @@ void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
     *out = semaphores;
 }
 
-void vkDestroySemaphoreAPP(VkSemaphore* in, uint32_t count)
+void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count)
 {
     count = (count) ? count : gNumBuffers;
     for (uint32_t i = 0; i < count; i++)
     {
-        vkDestroySemaphore(gVkDev, in[i], gVkAlloc);
+        vkDestroySemaphore(gVkDev, sem[i], gVkAlloc);
     }
+}
+
+void vkCreateFenceAPP(VkFence** out, uint32_t count)
+{
+	count = (count) ? count : gNumBuffers;
+	VkFenceCreateInfo createInfo =
+	{
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .pNext = NULL, .flags = VK_FENCE_CREATE_SIGNALED_BIT
+	};
+	VkFence* fences = stackAlloc(count * sizeof(VkFence));
+	for (uint32_t i = 0; i < count; i++)
+	{
+		VK_ASSERT(vkCreateFence(gVkDev, &createInfo, gVkAlloc, &fences[i]), "ERROR: Failed to create fence");
+	}
+	*out = fences;
+}
+
+void vkDestroyFenceAPP(VkFence* fen, uint32_t count)
+{
+	count = (count) ? count : gNumBuffers;
+	for (uint32_t i = 0; i < count; i++)
+	{
+		vkDestroyFence(gVkDev, fen[i], gVkAlloc);
+	}
 }
 
 void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
 {
+#if 0
     VkAcquireNextImageInfoKHR info =
     {
         .sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
@@ -415,6 +443,9 @@ void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
         .semaphore = sem, .fence = VK_NULL_HANDLE, .deviceMask = gPhDevMask
     };
 	VkResult result = vkAcquireNextImage2KHR(gVkDev, &info, image);
+#else
+	VkResult result = vkAcquireNextImageKHR(gVkDev, gVkSwapchain, UINT64_MAX, sem, VK_NULL_HANDLE, image);
+#endif
     VK_ASSERT(result, "ERROR: Failed to acquire image (%d)", result);
 }
 
@@ -441,7 +472,9 @@ void vkFinalizeAPP(void)
     vkDeviceWaitIdle(gVkDev);
     vkDestroySwapchainKHR(gVkDev, gVkSwapchain, gVkAlloc);
     vkDestroySurfaceKHR(gVkInst, gVkSurf, gVkAlloc);
+#ifdef _DEBUG
 	vkDestroyDebugReportCallbackEXT(gVkInst, gDebug, gVkAlloc);
+#endif
     vkDestroyInstance(gVkInst, gVkAlloc);
     appUnloadLibrary(gVkDllHandle);
     free(gVkMemBuffer);

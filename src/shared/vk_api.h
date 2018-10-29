@@ -56,14 +56,17 @@ void vkCreateDeviceAndSwapchainAPP(void);
 void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out);
 void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr);
 void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count);
-void vkDestroySemaphoreAPP(VkSemaphore* in, uint32_t count);
+void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count);
+void vkCreateFenceAPP(VkFence** out, uint32_t count);
+void vkDestroyFenceAPP(VkFence* fen, uint32_t count);
+
 void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image);
 uint32_t vkNextFrameAPP(uint32_t current);
 
 #define VK_CMDPOOL_CREATE_INFO(n,qf) \
     VkCommandPoolCreateInfo n = { \
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, \
-        .pNext = NULL , .flags = 0, .queueFamilyIndex = qf }
+        .pNext = NULL , .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = qf }
    
 #define VK_CMDBUFF_CREATE_INFO(n,cp,l,num) \
     VkCommandBufferAllocateInfo n = { \
