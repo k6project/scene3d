@@ -16,6 +16,9 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+#define VK_ASSERT_Q(c) \
+    ASSERT_Q(c == VK_SUCCESS)
+
 #define VK_ASSERT(c, m) \
     ASSERT(c == VK_SUCCESS, m)
 
@@ -48,9 +51,13 @@ extern VkSurfaceFormatKHR gSurfaceFormat;
 void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc);
 void vkFinalizeAPP(void); 
 void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request);
-void vkCreateDeviceAndSwapchainAPP();
+void vkCreateDeviceAndSwapchainAPP(void);
 void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out);
 void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr);
+void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count);
+void vkDestroySemaphoreAPP(VkSemaphore* in, uint32_t count);
+void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image);
+uint32_t vkNextFrameAPP(uint32_t current);
 
 #define VK_CMDPOOL_CREATE_INFO(n,qf) \
     VkCommandPoolCreateInfo n = { \

@@ -80,26 +80,6 @@ static const char* VK_REQUIRED_EXTENSIONS[] =
 #endif
 };
 
-/*struct VkEnvironment
-{
-    void* library;
-    VkInstance instance;
-    VkSurfaceKHR surface;
-    VkPhysicalDevice adapter;
-    uint32_t numQueueFamilies;
-    uint32_t numQueuesRequested;
-    struct VkQueueReq queueRequests[VK_MAX_QUEUES];
-    uint8_t queueCount[VK_MAX_QUEUE_FAMILIES];
-    VkQueueFamilyProperties queueFamilies[VK_MAX_QUEUE_FAMILIES];
-    VkSurfaceCapabilitiesKHR surfaceCaps;
-    uint32_t numPresentModes;
-    VkPresentModeKHR presentModes[VK_PRESENT_MODE_RANGE_SIZE_KHR];
-    uint32_t numSurfaceFormats;
-    VkSurfaceFormatKHR* surfaceFormat;
-    VkSurfaceFormatKHR surfaceFormats[VK_MAX_SURFACE_FORMATS];
-    VkDebugReportCallbackEXT debugCallback;
-};*/
-
 static const uint32_t VK_NUM_REQUIRED_EXTENSIONS = sizeof(VK_REQUIRED_EXTENSIONS) / sizeof(const char*);
 
 static const char* VK_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
@@ -123,7 +103,7 @@ static void vkCreateAndInitInstanceAPP()
 	appTCharToUTF8(appName, gOptions->appName, APP_NAME_MAX);
 	VK_INIT(appInfo, VK_STRUCTURE_TYPE_APPLICATION_INFO);
 	appInfo.pApplicationName = appName;
-	appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 65);
+	appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 	VkInstanceCreateInfo createInfo;
 	VK_INIT(createInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
 	createInfo.pApplicationInfo = &appInfo;
@@ -375,6 +355,46 @@ void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuff
 {
     count = (count) ? count : gNumBuffers;
     vkFreeCommandBuffers(gVkDev, pool, count, ptr);
+}
+
+void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
+{
+    count = (count) ? count : gNumBuffers;
+    VkSemaphoreCreateInfo createInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = NULL, .flags = 0
+    };
+    VkSemaphore* semaphores = stackAlloc(count);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        VK_ASSERT(vkCreateSemaphore(gVkDev, &createInfo, gVkAlloc, &semaphores[i]), "ERROR: Failed to create semaphore");
+    }
+    *out = semaphores;
+}
+
+void vkDestroySemaphoreAPP(VkSemaphore* in, uint32_t count)
+{
+    count = (count) ? count : gNumBuffers;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        vkDestroySemaphore(gVkDev, in[i], gVkAlloc);
+    }
+}
+
+void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
+{
+    VkAcquireNextImageInfoKHR info =
+    {
+        .sType = VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,
+        .pNext = NULL, .swapchain = gVkSwapchain, .timeout = UINT64_MAX,
+        .semaphore = sem, .fence = VK_NULL_HANDLE, .deviceMask = 0
+    };
+    VK_ASSERT(vkAcquireNextImage2KHR(gVkDev, &info, image), "ERROR: Failed to acquire image");
+}
+
+uint32_t vkNextFrameAPP(uint32_t current)
+{
+    return ((current + 1) % gNumBuffers);
 }
 
 void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)

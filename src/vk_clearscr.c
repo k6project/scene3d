@@ -1,10 +1,13 @@
 #include "shared/vk_api.h"
 #include "shared/main.inl"
 
+static uint32_t gFrameIdx = 0;
 static uint32_t gQueueFamily = 0;
 static VkQueue gCmdQueue = VK_NULL_HANDLE;
 static VkCommandPool gCmdPool = VK_NULL_HANDLE;
 static VkCommandBuffer* gCmdBuff = NULL;
+static VkSemaphore* gFrmBegin = NULL;
+static VkSemaphore* gFrmEnd = NULL;
 
 static void initialize(void* dataPtr)
 {
@@ -15,12 +18,14 @@ static void initialize(void* dataPtr)
     VK_ASSERT(vkCreateCommandPool(gVkDev, &poolInfo, gVkAlloc, &gCmdPool), "ERROR: Failed to create command pool");
     VK_CMDBUFF_CREATE_INFO(cmdBuffInfo, gCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0);
     vkCreateCommandBufferAPP(&cmdBuffInfo, &gCmdBuff);
+    vkCreateSemaphoreAPP(&gFrmBegin, 0);
+    vkCreateSemaphoreAPP(&gFrmEnd, 0);
 }
 
 static void renderFrame()
 {
     uint32_t imageIdx = 0;
-    //acquire image
+    vkAcquireNextImageAPP(gFrmBegin[gFrameIdx], &imageIdx);
     VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
     //reset command buffer
     //record commands onto cmdBuff
@@ -49,13 +54,14 @@ static void renderFrame()
         }
     };*/
     
-    //
-    
+    gFrameIdx = vkNextFrameAPP(gFrameIdx);
 }
 
 static void finalize(void* dataPtr)
 {
     vkDeviceWaitIdle(gVkDev);
+    vkDestroySemaphoreAPP(gFrmEnd, 0);
+    vkDestroySemaphoreAPP(gFrmBegin, 0);
     vkDestroyCommandBufferAPP(gCmdPool, 0, gCmdBuff);
     vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
     vkFinalizeAPP();
