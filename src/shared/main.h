@@ -1,8 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdbool.h>
-
+#include "global.h"
 #include "args.h"
 
 #ifdef __cplusplus

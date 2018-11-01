@@ -42,6 +42,12 @@ typedef struct
     uint32_t* outFamily;
     VkQueue* outQueue;
 } VkQueueRequest;
+    
+typedef struct
+{
+    uint32_t queueFamily;
+    VkCommandBuffer commandBuffer;
+} VkCmdBufferInfo;
 
 extern const VkAllocationCallbacks* gVkAlloc;
 extern VkDevice gVkDev;
@@ -59,9 +65,16 @@ void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count);
 void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count);
 void vkCreateFenceAPP(VkFence** out, uint32_t count);
 void vkDestroyFenceAPP(VkFence* fen, uint32_t count);
-
+void vkCmdClearColorImageAPP(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color);
 void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image);
+void vkCmdPreparePresentAPP(VkCmdBufferInfo info, VkImage img);
 uint32_t vkNextFrameAPP(uint32_t current);
+    
+#define vkBeginCommandBufferOneOffAPP(cb) \
+    do { VkCommandBufferBeginInfo beginInfo = { \
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .pNext = NULL, \
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, .pInheritanceInfo = NULL \
+    };  VK_ASSERT_Q(vkBeginCommandBuffer(cb, &beginInfo)); } while(0)
 
 #define VK_CMDPOOL_CREATE_INFO(n,qf) \
     VkCommandPoolCreateInfo n = { \
@@ -72,6 +85,22 @@ uint32_t vkNextFrameAPP(uint32_t current);
     VkCommandBufferAllocateInfo n = { \
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, \
         .pNext = NULL, .commandPool = cp ,.level = l , .commandBufferCount = num }
+    
+#define VK_SUBMIT_INFO(n, cb, ws, ss) \
+    VkPipelineStageFlags _##n##_wFlags_ = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;\
+    VkSubmitInfo n = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .pNext = NULL, \
+        .waitSemaphoreCount = (ws) ? 1 : 0, .pWaitSemaphores = (ws) ? &ws : NULL, \
+        .pWaitDstStageMask = &_##n##_wFlags_, .commandBufferCount = 1, .pCommandBuffers = &cb,\
+        .signalSemaphoreCount = (ss) ? 1 : 0, .pSignalSemaphores = (ss) ? &ss : NULL\
+    }
+    
+#define VK_PRESENT_INFO_KHR(n, i, ws) \
+    VkPresentInfoKHR n = { .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, .pNext = NULL, \
+        .waitSemaphoreCount = (ws) ? 1 : 0, .pWaitSemaphores = (ws) ? &ws : NULL, \
+        .swapchainCount = 1, .pSwapchains = &gVkSwapchain, .pImageIndices = &i, .pResults = NULL \
+    }
+    
+#define VK_CLEAR_COLOR(r, g, b, a) ((VkClearColorValue*) (Color) { r, g, b, a })
 
 #ifdef __cplusplus
 }

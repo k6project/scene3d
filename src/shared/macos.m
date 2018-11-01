@@ -126,11 +126,6 @@ void appInitialize(AppCallbacks* callbacks, void* state)
 
 bool appShouldKeepRunning(void)
 {
-    return true;
-}
-
-void appPollEvents(void)
-{
     NSEvent* ev = nil;
     do {
         ev = [NSApp nextEventMatchingMask: NSEventMaskAny
@@ -140,6 +135,11 @@ void appPollEvents(void)
         if (ev)
             [NSApp sendEvent: ev];
     } while (ev);
+    return true;
+}
+
+void appPollEvents(void)
+{
 }
 
 bool appLoadLibrary(const char* name, void** handle)
@@ -177,10 +177,16 @@ void appPrintf(const char* fmt, ...)
 
 bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
-    VkMacOSSurfaceCreateInfoMVK createInfo;
-    VK_INIT(createInfo, VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK);
-    createInfo.pView = (__bridge void*)[[NSApp keyWindow] contentView];
-    TEST_RV(vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
-    appPrintf("Created MacOS view-based surface\n");
+    VkMacOSSurfaceCreateInfoMVK createInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK, .pNext = NULL,
+        .flags = 0, .pView = (__bridge void*)[[NSApp keyWindow] contentView]
+    };
+    if (vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) != VK_SUCCESS)
+    {
+        appPrintf(STR("ERROR: Failed to create surface"));
+        return false;
+    }
+    appPrintf(STR("Created MacOS view-based surface\n"));
     return true;
 }

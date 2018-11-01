@@ -56,7 +56,7 @@ static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 static void* stackAlloc(size_t size)
 {
     size = ALIGN16(size);
-    ASSERT(gVkMemBufferSize - gVkMemBufferCurr >= size, "ERROR: Internal stack out of memory");
+    ASSERT(gVkMemBufferSize - gVkMemBufferCurr >= size, "ERROR: %s", STR("Internal stack out of memory"));
     void* retVal = gVkMemBuffer + gVkMemBufferCurr;
     gVkMemBufferCurr += size;
     return retVal;
@@ -108,20 +108,22 @@ static void vkCreateAndInitInstanceAPP()
 {
     STACK_MARK(frame);
     vkGetInstanceProcAddr = appGetLibraryProc(gVkDllHandle, "vkGetInstanceProcAddr");
-    ASSERT(vkGetInstanceProcAddr, "ERROR: Failed to get pointer to vkGetInstanceProcAddr");
+    ASSERT(vkGetInstanceProcAddr, "ERROR: Failed to get pointer to %s", STR("vkGetInstanceProcAddr"));
 #define VULKAN_API_GOBAL(proc) \
     vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( NULL, "vk" #proc ); \
-    ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
+    ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", STR("vk") STR(#proc) );
 #include "vk_api.inl"
     appPrintf(STR("Loaded global function pointers\n"));
 	VkApplicationInfo appInfo;
 	static char appName[APP_NAME_MAX];
 	appTCharToUTF8(appName, gOptions->appName, APP_NAME_MAX);
-	VK_INIT(appInfo, VK_STRUCTURE_TYPE_APPLICATION_INFO);
+    memset(&appInfo, 0, sizeof(appInfo));
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = appName;
 	appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 	VkInstanceCreateInfo createInfo;
-	VK_INIT(createInfo, VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
+	memset(&createInfo, 0, sizeof(createInfo));
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledLayerCount = VK_NUM_REQUIRED_LAYERS + gOptions->numLayers;
 	if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
@@ -158,7 +160,7 @@ static void vkCreateAndInitInstanceAPP()
     {
 #define VULKAN_API_INSTANCE(proc) \
         vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( gVkInst, "vk" #proc ); \
-        ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
+        ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", STR("vk") STR(#proc) );
 #include "vk_api.inl"
         appPrintf(STR("Loaded instance-specific function pointers\n"));
 #ifdef _DEBUG
@@ -172,7 +174,7 @@ static void vkCreateAndInitInstanceAPP()
 #endif
     }
     else
-        ASSERT(false, "ERROR: Failed to create Vulkan instance");
+        ASSERT(false, "ERROR: %s", STR("Failed to create Vulkan instance"));
     STACK_FREE(frame);
 }
 
@@ -216,7 +218,7 @@ static void vkGetGraphicsAdapterAPP()
             gVkPhDev = (idx == 0xff) ? VK_NULL_HANDLE : adapters[idx];
         }
     }
-    ASSERT(gVkPhDev, "ERROR: Failed to choose graphics adapter");
+    ASSERT(gVkPhDev, "ERROR: %s", STR("Failed to choose graphics adapter"));
     appPrintf(STR("Unsing adapter %u\n"), idx);
     STACK_FREE(frame);
 	gPhDevMask = 1 << idx;
@@ -286,14 +288,14 @@ static void vkRequestQueueAPP(VkQueueFlags flags, bool present, uint32_t* outFam
                 break;
         }
     }
-    ASSERT(family < gNumQueueFamilies, "ERROR: Failed to allocate device queue");   
+    ASSERT(family < gNumQueueFamilies, "ERROR: %s", STR("Failed to allocate device queue"));
     *outFamily = family;
     ++gQueueCount[family];
 }
 
 void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request)
 {
-    ASSERT(count, "ERROR: At least one GPU queue must be requested");
+    ASSERT(count, "ERROR: %s", STR("At least one GPU queue must be requested"));
     gNumQueueRequests = count;
     gOutQueues = stackAlloc(count * sizeof(VkQueueReq));
     for (uint32_t i = 0; i < count; i++)
@@ -310,14 +312,15 @@ void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request)
 void vkCreateDeviceAndSwapchainAPP()
 {
     STACK_MARK(frame);
-    ASSERT(gNumQueueRequests, "ERROR: At least one GPU queue must be requested");
+    ASSERT(gNumQueueRequests, "ERROR: %s", STR("At least one GPU queue must be requested"));
     float* priorities = stackAlloc(gNumQueueRequests * sizeof(float));
     VkDeviceQueueCreateInfo* queueInfo = stackAlloc(gNumUsedFamilies * sizeof(VkDeviceQueueCreateInfo));
     for (uint32_t i = 0, j = 0; i < gNumQueueFamilies; i++)
     {
         if (gQueueCount[i] > 0)
         {
-            VK_INIT(queueInfo[j], VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO);
+            memset(&queueInfo[j], 0, sizeof(queueInfo[j]));
+            queueInfo[j].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueInfo[j].queueFamilyIndex = i;
             queueInfo[j].queueCount = gQueueCount[i];
             queueInfo[j].pQueuePriorities = priorities;
@@ -330,15 +333,16 @@ void vkCreateDeviceAndSwapchainAPP()
         }
     }
     VkDeviceCreateInfo createInfo;
-    VK_INIT(createInfo, VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
+    memset(&createInfo, 0, sizeof(createInfo));
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.pQueueCreateInfos = queueInfo;
     createInfo.queueCreateInfoCount = gNumUsedFamilies;
     createInfo.enabledExtensionCount = VK_NUM_REQUIRED_DEVICE_EXTENSIONS;
     createInfo.ppEnabledExtensionNames = VK_REQUIRED_DEVICE_EXTENSIONS;
-    VK_ASSERT(vkCreateDevice(gVkPhDev, &createInfo, gVkAlloc, &gVkDev), "ERROR: Failed to create device");
+    VK_ASSERT(vkCreateDevice(gVkPhDev, &createInfo, gVkAlloc, &gVkDev), "ERROR: %s", STR("Failed to create device"));
 #define VULKAN_API_DEVICE(proc) \
     vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( gVkDev, "vk" #proc ); \
-    ASSERT(vk ## proc, "ERROR: Failed to get pointer to vk" #proc );
+    ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", STR("vk") STR(#proc) );
 #include "vk_api.inl"
     appPrintf(STR("Loaded device-specific function pointers\n"));
     for (uint32_t i = 0; i < gNumQueueRequests; i++)
@@ -350,7 +354,8 @@ void vkCreateDeviceAndSwapchainAPP()
     }
     VkSwapchainCreateInfoKHR swapchainInfo;
     gSurfaceFormat = *vkGetSwapchainSurfaceFormat();
-    VK_INIT(swapchainInfo, VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+    memset(&swapchainInfo, 0, sizeof(swapchainInfo));
+    swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -363,8 +368,8 @@ void vkCreateDeviceAndSwapchainAPP()
     swapchainInfo.imageColorSpace = gSurfaceFormat.colorSpace;
     swapchainInfo.surface = gVkSurf;
     swapchainInfo.imageExtent = gSurfCaps.currentExtent;
-    VK_ASSERT(vkCreateSwapchainKHR(gVkDev, &swapchainInfo, gVkAlloc, &gVkSwapchain), "ERROR: Failed to create swapchain");
-	VK_ASSERT(vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, NULL), "ERROR: Failed to get swapchain images");
+    VK_ASSERT(vkCreateSwapchainKHR(gVkDev, &swapchainInfo, gVkAlloc, &gVkSwapchain), "ERROR: %s", STR("Failed to create swapchain"));
+	VK_ASSERT(vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, NULL), "ERROR: %s", STR("Failed to get swapchain images"));
 	STACK_FREE(frame);
 	gDisplayImage = stackAlloc(gNumBuffers * sizeof(VkImage));
 	vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, gDisplayImage);
@@ -375,7 +380,7 @@ void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer
     if (info->commandBufferCount == 0)
         info->commandBufferCount = gNumBuffers;
     VkCommandBuffer* res = stackAlloc(info->commandBufferCount * sizeof(VkCommandBuffer));
-    VK_ASSERT(vkAllocateCommandBuffers(gVkDev, info, res), "ERROR: Failed to allocate command buffers");
+    VK_ASSERT(vkAllocateCommandBuffers(gVkDev, info, res), "ERROR: %s", STR("Failed to allocate command buffers"));
     *out = res;
 }
 
@@ -395,7 +400,7 @@ void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
     VkSemaphore* semaphores = stackAlloc(count * sizeof(VkSemaphore));
     for (uint32_t i = 0; i < count; i++)
     {
-        VK_ASSERT(vkCreateSemaphore(gVkDev, &createInfo, gVkAlloc, &semaphores[i]), "ERROR: Failed to create semaphore");
+        VK_ASSERT(vkCreateSemaphore(gVkDev, &createInfo, gVkAlloc, &semaphores[i]), "ERROR: %s", STR("Failed to create semaphore"));
     }
     *out = semaphores;
 }
@@ -419,7 +424,7 @@ void vkCreateFenceAPP(VkFence** out, uint32_t count)
 	VkFence* fences = stackAlloc(count * sizeof(VkFence));
 	for (uint32_t i = 0; i < count; i++)
 	{
-		VK_ASSERT(vkCreateFence(gVkDev, &createInfo, gVkAlloc, &fences[i]), "ERROR: Failed to create fence");
+		VK_ASSERT(vkCreateFence(gVkDev, &createInfo, gVkAlloc, &fences[i]), "ERROR: %s", STR("Failed to create fence"));
 	}
 	*out = fences;
 }
@@ -460,8 +465,8 @@ void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)
     maxMem = (maxMem) ? ALIGN16(maxMem) : VK_MIN_BUFFER;
     gVkMemBufferSize = (maxMem < VK_MIN_BUFFER) ? VK_MIN_BUFFER : maxMem;
     gVkMemBuffer = (char*)malloc(gVkMemBufferSize);
-    ASSERT(gVkMemBuffer, "ERROR: Failed to allocate internal memory");
-    ASSERT(appLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: Failed to load library");
+    ASSERT(gVkMemBuffer, "ERROR: %s", STR("Failed to allocate internal memory"));
+    ASSERT(appLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: %s", STR("Failed to load library"));
     vkCreateAndInitInstanceAPP();
     ASSERT_Q(vkCreateSurfaceAPP(gVkInst, gVkAlloc, &gVkSurf));
     vkGetGraphicsAdapterAPP();
@@ -471,6 +476,7 @@ void vkFinalizeAPP(void)
 {
     vkDeviceWaitIdle(gVkDev);
     vkDestroySwapchainKHR(gVkDev, gVkSwapchain, gVkAlloc);
+    vkDestroyDevice(gVkDev, gVkAlloc);
     vkDestroySurfaceKHR(gVkInst, gVkSurf, gVkAlloc);
 #ifdef _DEBUG
 	vkDestroyDebugReportCallbackEXT(gVkInst, gDebug, gVkAlloc);
@@ -478,4 +484,59 @@ void vkFinalizeAPP(void)
     vkDestroyInstance(gVkInst, gVkAlloc);
     appUnloadLibrary(gVkDllHandle);
     free(gVkMemBuffer);
+}
+
+void vkCmdClearColorImageAPP(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color)
+{
+    VkCommandBuffer cmdBuff = info.commandBuffer;
+    uint32_t queueFamily = info.queueFamily;
+    VkImageMemoryBarrier clearBarrier =
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .pNext = NULL,
+        .srcAccessMask = 0,
+        .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .srcQueueFamilyIndex = queueFamily,
+        .dstQueueFamilyIndex = queueFamily,
+        .image = img,
+        .subresourceRange =
+        {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+    vkCmdPipelineBarrier(cmdBuff, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &clearBarrier);
+    vkCmdClearColorImage(cmdBuff, img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, color, 1, &clearBarrier.subresourceRange);
+}
+
+void vkCmdPreparePresentAPP(VkCmdBufferInfo info, VkImage img)
+{
+    VkCommandBuffer cmdBuff = info.commandBuffer;
+    uint32_t queueFamily = info.queueFamily;
+    VkImageMemoryBarrier presentBarrier =
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .pNext = NULL,
+        .srcAccessMask = 0,
+        .dstAccessMask = 0,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        .srcQueueFamilyIndex = queueFamily,
+        .dstQueueFamilyIndex = queueFamily,
+        .image = img,
+        .subresourceRange =
+        {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+    vkCmdPipelineBarrier(cmdBuff, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &presentBarrier);
 }
