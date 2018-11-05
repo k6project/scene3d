@@ -464,7 +464,7 @@ void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)
     gVkAlloc = alloc;
     maxMem = (maxMem) ? ALIGN16(maxMem) : VK_MIN_BUFFER;
     gVkMemBufferSize = (maxMem < VK_MIN_BUFFER) ? VK_MIN_BUFFER : maxMem;
-    gVkMemBuffer = (char*)malloc(gVkMemBufferSize);
+    gVkMemBuffer = malloc(gVkMemBufferSize);
     ASSERT(gVkMemBuffer, "ERROR: %s", STR("Failed to allocate internal memory"));
     ASSERT(appLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: %s", STR("Failed to load library"));
     vkCreateAndInitInstanceAPP();

@@ -22,4 +22,16 @@ typedef char TChar;
 #define ASSERT_Q(c) if(!(c)){debugBreak();}
 #define ASSERT(c,m,...) if(!(c)){appPrintf(STR(m)STR("\n"),__VA_ARGS__);debugBreak();}
 
+typedef uint8_t* MemStack[2];
+
+#define memStackBeginFrame(n, s) const uint8_t* const n##_stck_frm_ = s[0]
+#define memStackEndFrame(n, s) s[0] = n##_stck_frm_
+void* memStackInit(MemStack stack, void* mem, size_t size);
+void* memStackAllocate(MemStack stack, size_t bytes);
+
+typedef struct MemAlloc* MemAlloc;
+MemAlloc memAllocCreate(size_t forwd, size_t stack);
+void memAllocRelease(MemAlloc mem);
+
+
 typedef float Color[4];
