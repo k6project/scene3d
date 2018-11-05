@@ -13,13 +13,13 @@ static VkFence* gDrawFence = NULL;
 
 typedef struct
 {
-    MemAlloc memory;
+    /*MemAlloc*/void* memory;
 } AppState;
 
 static void initialize(void* dataPtr)
 {
     AppState* app = dataPtr;
-    MemAlloc memory = memAllocCreate(0, 0);
+    //MemAlloc memory = memAllocCreate(0, 0);
     vkInitializeAPP(0, NULL);
     vkRequestQueuesAPP(1, (VkQueueRequest[]) { { VK_QUEUE_GRAPHICS_BIT, true, &gQueueFamily, &gCmdQueue } });
     vkCreateDeviceAndSwapchainAPP();
@@ -31,7 +31,7 @@ static void initialize(void* dataPtr)
     vkCreateSemaphoreAPP(&gFrmEnd, 0);
 	vkCreateFenceAPP(&gDrawFence, 0);
 	gFence = gDrawFence[0];
-    app->memory = memory;
+    //app->memory = memory;
 }
 
 static void renderFrame()
@@ -68,8 +68,8 @@ static void finalize(void* dataPtr)
     vkDestroyCommandBufferAPP(gCmdPool, 0, gCmdBuff);
     vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
     vkFinalizeAPP();
-    memAllocRelease(app->memory);
-    app->memory = NULL;
+    //memAllocRelease(app->memory);
+    //app->memory = NULL;
 }
 
 int appMain(int argc, const TChar** argv)

@@ -1,5 +1,7 @@
 #pragma once
 
+#ifndef NO_VULKAN
+
 #include "global.h"
 
 #include <stdbool.h>
@@ -104,4 +106,6 @@ uint32_t vkNextFrameAPP(uint32_t current);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

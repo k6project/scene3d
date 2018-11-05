@@ -13,7 +13,7 @@ static struct
 	void* appState;
 } gState =
 {
-	INVALID_HANDLE_VALUE,
+	NULL,
 	false,
 	NULL,
 	NULL
@@ -87,7 +87,8 @@ void appInitialize(AppCallbacks* callbacks, void* state)
 	wndClass.lpszClassName = L"APP_WND";
 	RegisterClass(&wndClass);
 	HMONITOR monitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
-	MONITORINFO monitorInfo = { .cbSize = sizeof(MONITORINFO) };
+	MONITORINFO monitorInfo;
+	monitorInfo.cbSize = sizeof(MONITORINFO);
 	GetMonitorInfo(monitor, &monitorInfo);
 	RECT windowRect = monitorInfo.rcMonitor;
 	DWORD wStyle = WS_VISIBLE;
@@ -120,7 +121,11 @@ bool appLoadLibrary(const TChar* name, void** handle)
 void* appGetLibraryProc(void* handle, const char* name)
 {
 	if (handle)
+#ifdef __cplusplus
+		return GetProcAddress(static_cast<HMODULE>(handle), name);
+#else
 		return GetProcAddress(handle, name);
+#endif
 	return NULL;
 }
 
@@ -145,12 +150,15 @@ void appPrintf(const TChar* fmt, ...)
 	va_end(args);
 }
 
+#ifndef NO_VULKAN
 bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
 	VkWin32SurfaceCreateInfoKHR createInfo;
-	VK_INIT(createInfo, VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR);
+	memset(&createInfo, 0, sizeof(createInfo));
+	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 	createInfo.hinstance = GetModuleHandle(NULL);
 	createInfo.hwnd = gState.window;
-	TEST_RV(vkCreateWin32SurfaceKHR(inst, &createInfo, alloc, surface) == VK_SUCCESS, false, "ERROR: Failed to create surface");
+	VK_ASSERT(vkCreateWin32SurfaceKHR(inst, &createInfo, alloc, surface), "ERROR: Failed to create surface");
 	return true;
 }
+#endif

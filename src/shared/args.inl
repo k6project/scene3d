@@ -9,12 +9,20 @@
 #define ATOI(s) atoi(s)
 #endif
 
+#ifdef __cplusplus
+#define STRUCT_INIT(n,v) v
+#define TPTR(n,t) (static_cast<t*>(n))
+#else
+#define STRUCT_INIT(n,v) .##n## = v
+#define TPTR(n,t) (n)
+#endif
+
 static struct Options gOptions_ =
 {
-    .windowWidth  = 512,
-    .windowHeight = 512,
-	.isFullscreen = 0,
-    .windowTitle = gOptions_.appName
+    STRUCT_INIT(windowWidth, 512),
+	STRUCT_INIT(windowHeight,512),
+	STRUCT_INIT(isFullscreen, 0),
+	STRUCT_INIT(windowTitle, gOptions_.appName)
 };
 
 const struct Options* gOptions = &gOptions_;
@@ -31,14 +39,14 @@ typedef struct ArgItem ArgItem;
 
 static int argParseBool(const TChar* arg, void* val)
 {
-    int* ptr = val;
+    int* ptr = TPTR(val, int);
     *ptr = 1;
     return 0;
 }
 
 static int argParseStr(const TChar* arg, void* val)
 {
-    const TChar** ptr = val;
+    const TChar** ptr = TPTR(val, const TChar*);
     if (!ptr)
         return -1;
     *ptr = arg;
@@ -47,7 +55,7 @@ static int argParseStr(const TChar* arg, void* val)
 
 static int argParseInt(const TChar* arg, void* val)
 {
-    int* ptr = val;
+    int* ptr = TPTR(val, int);
     if (!ptr)
         return -1;
     *ptr = ATOI(arg);

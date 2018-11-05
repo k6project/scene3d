@@ -1,5 +1,7 @@
 #include "vk_api.h"
 
+#ifndef NO_VULKAN
+
 #include "args.h"
 
 #include <stdlib.h>
@@ -540,3 +542,5 @@ void vkCmdPreparePresentAPP(VkCmdBufferInfo info, VkImage img)
     };
     vkCmdPipelineBarrier(cmdBuff, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &presentBarrier);
 }
+
+#endif

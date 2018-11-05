@@ -2,7 +2,9 @@
 
 #include "main.h"
 
+#ifndef NO_VULKAN
 #include "vk_api.c"
+#endif
 
 int appMain(int argc, const TChar** argv);
 
@@ -15,7 +17,7 @@ int appMain(int argc, const TChar** argv);
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	int argc = 0;
-	const TChar** argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	const TChar** argv = (const TChar**)CommandLineToArgvW(GetCommandLine(), &argc);
     appMain(argc, argv);
 	LocalFree((HLOCAL)argv);
 	return show;
@@ -30,7 +32,7 @@ int main(int argc, const TChar** argv)
 }
 
 #endif
-
+/*
 #define MEM_FORWD_MIN 65536
 #define MEM_STACK_MIN 65536
 
@@ -60,7 +62,7 @@ MemAlloc memAllocCreate(size_t forwd, size_t stack)
 void memAllocRelease(MemAlloc mem)
 {
     free(mem);
-}
+}*/
 
 #undef MEM_FORWD_MIN
 #undef MEM_STACK_MIN
