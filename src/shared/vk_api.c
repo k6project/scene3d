@@ -16,7 +16,7 @@ typedef struct
     uint32_t family;
     uint32_t index;
     VkQueue* outPtr;
-} VkQueueReq;
+} VkxQueueReqImpl;
 
 const VkAllocationCallbacks* gVkAlloc = NULL;
 VkDevice gVkDev = VK_NULL_HANDLE;
@@ -42,7 +42,7 @@ static uint32_t gNumPresentModes = 0;
 static VkSurfaceFormatKHR* gSurfFormats = NULL;
 static VkPresentModeKHR* gPresentModes = NULL;
 static VkSurfaceCapabilitiesKHR gSurfCaps;
-static VkQueueReq* gOutQueues = NULL;
+static VkxQueueReqImpl* gOutQueues = NULL;
 static uint32_t gNumBuffers = 0;
 static uint32_t gPhDevMask = 0;
 static VkDebugReportCallbackEXT gDebug = VK_NULL_HANDLE;
@@ -295,11 +295,11 @@ static void vkRequestQueueAPP(VkQueueFlags flags, bool present, uint32_t* outFam
     ++gQueueCount[family];
 }
 
-void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request)
+void vkxRequestQueues(uint32_t count, VkxQueueReq* request)
 {
     ASSERT(count, "ERROR: %s", STR("At least one GPU queue must be requested"));
     gNumQueueRequests = count;
-    gOutQueues = stackAlloc(count * sizeof(VkQueueReq));
+    gOutQueues = stackAlloc(count * sizeof(VkxQueueReqImpl));
     for (uint32_t i = 0; i < count; i++)
     {
         vkRequestQueueAPP(request[i].flags, request[i].present, request[i].outFamily);
@@ -311,7 +311,7 @@ void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request)
     }
 }
 
-void vkCreateDeviceAndSwapchainAPP()
+void vkxCreateDeviceAndSwapchain()
 {
     STACK_MARK(frame);
     ASSERT(gNumQueueRequests, "ERROR: %s", STR("At least one GPU queue must be requested"));
@@ -377,22 +377,37 @@ void vkCreateDeviceAndSwapchainAPP()
 	vkGetSwapchainImagesKHR(gVkDev, gVkSwapchain, &gNumBuffers, gDisplayImage);
 }
 
-void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out)
+void vkxCreateCommandPool(uint32_t queueFamily, VkCommandPool* pool)
 {
-    if (info->commandBufferCount == 0)
-        info->commandBufferCount = gNumBuffers;
-    VkCommandBuffer* res = stackAlloc(info->commandBufferCount * sizeof(VkCommandBuffer));
-    VK_ASSERT(vkAllocateCommandBuffers(gVkDev, info, res), "ERROR: %s", STR("Failed to allocate command buffers"));
-    *out = res;
+    VkCommandPoolCreateInfo createInfo =
+    {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = NULL ,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = queueFamily
+    };
+    VK_ASSERT(vkCreateCommandPool(gVkDev, &createInfo, gVkAlloc, pool), "ERROR: %s", STR("Failed to create command pool"));
 }
 
-void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr)
+void vkxCreateCommandBuffer(VkCommandPool pool, VkCommandBufferLevel level, uint32_t count, VkCommandBuffer** cbuff)
+{
+    VkCommandBufferAllocateInfo info =
+    {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, .pNext = NULL,
+        .commandPool = pool ,.level = level , .commandBufferCount = count
+    };
+    if (info.commandBufferCount == 0)
+        info.commandBufferCount = gNumBuffers;
+    VkCommandBuffer* res = stackAlloc(info.commandBufferCount * sizeof(VkCommandBuffer));
+    VK_ASSERT(vkAllocateCommandBuffers(gVkDev, &info, res), "ERROR: %s", STR("Failed to allocate command buffers"));
+    *cbuff = res;
+}
+
+void vkxDestroyCommandBuffer(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr)
 {
     count = (count) ? count : gNumBuffers;
     vkFreeCommandBuffers(gVkDev, pool, count, ptr);
 }
 
-void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
+void vkxCreateSemaphore(VkSemaphore** out, uint32_t count)
 {
     count = (count) ? count : gNumBuffers;
     VkSemaphoreCreateInfo createInfo =
@@ -407,7 +422,7 @@ void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count)
     *out = semaphores;
 }
 
-void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count)
+void vkxDestroySemaphore(VkSemaphore* sem, uint32_t count)
 {
     count = (count) ? count : gNumBuffers;
     for (uint32_t i = 0; i < count; i++)
@@ -416,7 +431,7 @@ void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count)
     }
 }
 
-void vkCreateFenceAPP(VkFence** out, uint32_t count)
+void vkxCreateFence(VkFence** out, uint32_t count)
 {
 	count = (count) ? count : gNumBuffers;
 	VkFenceCreateInfo createInfo =
@@ -431,7 +446,7 @@ void vkCreateFenceAPP(VkFence** out, uint32_t count)
 	*out = fences;
 }
 
-void vkDestroyFenceAPP(VkFence* fen, uint32_t count)
+void vkxDestroyFence(VkFence* fen, uint32_t count)
 {
 	count = (count) ? count : gNumBuffers;
 	for (uint32_t i = 0; i < count; i++)
@@ -440,7 +455,7 @@ void vkDestroyFenceAPP(VkFence* fen, uint32_t count)
 	}
 }
 
-void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
+void vkxAcquireNextImage(VkSemaphore sem, uint32_t* image)
 {
 #if 0
     VkAcquireNextImageInfoKHR info =
@@ -456,12 +471,12 @@ void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image)
     VK_ASSERT(result, "ERROR: Failed to acquire image (%d)", result);
 }
 
-uint32_t vkNextFrameAPP(uint32_t current)
+uint32_t vkxNextFrame(uint32_t current)
 {
     return ((current + 1) % gNumBuffers);
 }
 
-void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)
+void vkxInitialize(size_t maxMem, const VkAllocationCallbacks* alloc)
 {
     gVkAlloc = alloc;
     maxMem = (maxMem) ? ALIGN16(maxMem) : VK_MIN_BUFFER;
@@ -474,7 +489,7 @@ void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc)
     vkGetGraphicsAdapterAPP();
 }
 
-void vkFinalizeAPP(void)
+void vkxFinalize(void)
 {
     vkDeviceWaitIdle(gVkDev);
     vkDestroySwapchainKHR(gVkDev, gVkSwapchain, gVkAlloc);
@@ -488,7 +503,7 @@ void vkFinalizeAPP(void)
     free(gVkMemBuffer);
 }
 
-void vkCmdClearColorImageAPP(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color)
+void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color)
 {
     VkCommandBuffer cmdBuff = info.commandBuffer;
     uint32_t queueFamily = info.queueFamily;
@@ -516,7 +531,7 @@ void vkCmdClearColorImageAPP(VkCmdBufferInfo info, VkImage img, VkClearColorValu
     vkCmdClearColorImage(cmdBuff, img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, color, 1, &clearBarrier.subresourceRange);
 }
 
-void vkCmdPreparePresentAPP(VkCmdBufferInfo info, VkImage img)
+void vkxCmdPreparePresent(VkCmdBufferInfo info, VkImage img)
 {
     VkCommandBuffer cmdBuff = info.commandBuffer;
     uint32_t queueFamily = info.queueFamily;

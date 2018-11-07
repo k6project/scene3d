@@ -43,7 +43,7 @@ typedef struct
     bool present; 
     uint32_t* outFamily;
     VkQueue* outQueue;
-} VkQueueRequest;
+} VkxQueueReq;
     
 typedef struct
 {
@@ -57,37 +57,28 @@ extern VkSwapchainKHR gVkSwapchain;
 extern VkSurfaceFormatKHR gSurfaceFormat;
 extern VkImage* gDisplayImage;
 
-void vkInitializeAPP(size_t maxMem, const VkAllocationCallbacks* alloc);
-void vkFinalizeAPP(void); 
-void vkRequestQueuesAPP(uint32_t count, VkQueueRequest* request);
-void vkCreateDeviceAndSwapchainAPP(void);
-void vkCreateCommandBufferAPP(VkCommandBufferAllocateInfo* info, VkCommandBuffer** out);
-void vkDestroyCommandBufferAPP(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr);
-void vkCreateSemaphoreAPP(VkSemaphore** out, uint32_t count);
-void vkDestroySemaphoreAPP(VkSemaphore* sem, uint32_t count);
-void vkCreateFenceAPP(VkFence** out, uint32_t count);
-void vkDestroyFenceAPP(VkFence* fen, uint32_t count);
-void vkCmdClearColorImageAPP(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color);
-void vkAcquireNextImageAPP(VkSemaphore sem, uint32_t* image);
-void vkCmdPreparePresentAPP(VkCmdBufferInfo info, VkImage img);
-uint32_t vkNextFrameAPP(uint32_t current);
+void vkxInitialize(size_t maxMem, const VkAllocationCallbacks* alloc);
+void vkxFinalize(void); 
+void vkxRequestQueues(uint32_t count, VkxQueueReq* request);
+void vkxCreateDeviceAndSwapchain(void);
+void vkxCreateCommandPool(uint32_t queueFamily, VkCommandPool* pool);
+void vkxCreateCommandBuffer(VkCommandPool pool, VkCommandBufferLevel level, uint32_t count, VkCommandBuffer** cbuff);
+void vkxDestroyCommandBuffer(VkCommandPool pool, uint32_t count, VkCommandBuffer* ptr);
+void vkxCreateSemaphore(VkSemaphore** out, uint32_t count);
+void vkxDestroySemaphore(VkSemaphore* sem, uint32_t count);
+void vkxCreateFence(VkFence** out, uint32_t count);
+void vkxDestroyFence(VkFence* fen, uint32_t count);
+void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color);
+void vkxAcquireNextImage(VkSemaphore sem, uint32_t* image);
+void vkxCmdPreparePresent(VkCmdBufferInfo info, VkImage img);
+uint32_t vkxNextFrame(uint32_t current);
     
-#define vkBeginCommandBufferOneOffAPP(cb) \
+#define vkxBeginCommandBufferOneOff(cb) \
     do { VkCommandBufferBeginInfo beginInfo = { \
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .pNext = NULL, \
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, .pInheritanceInfo = NULL \
     };  VK_ASSERT_Q(vkBeginCommandBuffer(cb, &beginInfo)); } while(0)
 
-#define VK_CMDPOOL_CREATE_INFO(n,qf) \
-    VkCommandPoolCreateInfo n = { \
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, \
-        .pNext = NULL , .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = qf }
-   
-#define VK_CMDBUFF_CREATE_INFO(n,cp,l,num) \
-    VkCommandBufferAllocateInfo n = { \
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, \
-        .pNext = NULL, .commandPool = cp ,.level = l , .commandBufferCount = num }
-    
 #define VK_SUBMIT_INFO(n, cb, ws, ss) \
     VkPipelineStageFlags _##n##_wFlags_ = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;\
     VkSubmitInfo n = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO, .pNext = NULL, \

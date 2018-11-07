@@ -13,7 +13,7 @@
 #define STRUCT_INIT(n,v) v
 #define TPTR(n,t) (static_cast<t*>(n))
 #else
-#define STRUCT_INIT(n,v) .##n## = v
+#define STRUCT_INIT(n,v) .n = v
 #define TPTR(n,t) (n)
 #endif
 
