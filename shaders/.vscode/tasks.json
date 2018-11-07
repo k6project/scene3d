@@ -7,6 +7,10 @@
             "label": "glslc",
             "type": "shell",
             "command": "$VULKAN_SDK/macOS/bin/glslc ${file} -o ${file}.spv",
+            "windows": 
+            {
+                "command": "& \"$env:VULKAN_SDK\\Bin\\glslc.exe\" ${file} -o ${file}.spv"
+            },
             "problemMatcher": [],
             "group": {
                 "kind": "build",
