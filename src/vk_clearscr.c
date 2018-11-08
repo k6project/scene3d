@@ -16,6 +16,23 @@ typedef struct
     /*MemAlloc*/void* memory;
 } AppState;
 
+static void cgInitialize(uint32_t rows, uint32_t cols)
+{
+    struct
+    {
+        Vec3f gridStep;
+        uint32_t numVerts;
+        Vec2f gridRange;
+        uint32_t minHeight;
+        uint32_t maxHeight;
+    } gridParams =
+    {
+        { 1.f/((float)cols), 1.f/((float)rows), 0.f },
+        6, { 1.f, 1.f }, 4, 9
+    };
+    
+}
+
 static void initialize(void* dataPtr)
 {
     //AppState* app = dataPtr;

@@ -32,37 +32,49 @@ int main(int argc, const TChar** argv)
 }
 
 #endif
-/*
-#define MEM_FORWD_MIN 65536
-#define MEM_STACK_MIN 65536
 
 struct MemAlloc
 {
+    void *memBlock;
     uint8_t* baseForwd;
     size_t posForwd, maxForwd;
     uint8_t* baseStack;
-    size_t posStack, maxStack;
+    size_t posStack, maxStack, currFrame;
 };
 
-MemAlloc memAllocCreate(size_t forwd, size_t stack)
+HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 {
     forwd = ALIGN16(forwd);
-    forwd = (forwd < MEM_FORWD_MIN) ? MEM_FORWD_MIN : forwd;
     stack = ALIGN16(stack);
-    stack = (stack < MEM_STACK_MIN) ? MEM_STACK_MIN : stack;
     size_t offset = ALIGN16(sizeof(struct MemAlloc));
-    MemAlloc retval = malloc(offset + forwd + stack);
+    size_t total = offset + forwd + stack;
+    struct MemAlloc* retval = block;
+    if (retval == NULL)
+    {
+        ASSERT_Q(retval = malloc(total));
+        retval->memBlock = retval;
+        max = total;
+    }
+    else
+        retval->memBlock = NULL;
+    ASSERT_Q(total <= max);
     retval->baseForwd = ((uint8_t*)retval) + offset;
+    retval->posForwd = 0;
     retval->maxForwd = forwd;
     retval->baseStack = retval->baseForwd + forwd;
     retval->maxStack = stack;
+    retval->posStack = 0;
+    retval->currFrame = stack;
     return retval;
 }
+/*
+ push: write value of current frame into stack, store its offset as new value for current frame
+ alloc: check if stack frame is valid
+ pop if currentFrame < maxStack
+ */
 
-void memAllocRelease(MemAlloc mem)
+void memAllocRelease(HMemAlloc mem)
 {
-    free(mem);
-}*/
-
-#undef MEM_FORWD_MIN
-#undef MEM_STACK_MIN
+    void* block = mem->memBlock;
+    free(block);
+}

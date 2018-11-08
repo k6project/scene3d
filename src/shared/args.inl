@@ -19,10 +19,10 @@
 
 static struct Options gOptions_ =
 {
-    STRUCT_INIT(windowWidth, 512),
-	STRUCT_INIT(windowHeight,512),
+    STRUCT_INIT(windowWidth,  512),
+	STRUCT_INIT(windowHeight, 512),
 	STRUCT_INIT(isFullscreen, 0),
-	STRUCT_INIT(windowTitle, gOptions_.appName)
+	STRUCT_INIT(windowTitle,  gOptions_.appName)
 };
 
 const struct Options* gOptions = &gOptions_;

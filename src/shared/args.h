@@ -23,7 +23,7 @@ typedef struct Options Options;
 
 extern const Options* gOptions;
 
-void argvParse(int argc, const TChar** argv);
+void argvParse(int argc, const TChar** argv); // pass memory allocator
 
 void vkUseExtensionsAPP(const char* names[], uint32_t count);
 
