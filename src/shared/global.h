@@ -27,13 +27,6 @@ extern "C"
 {
 #endif
 
-/*#define memStackBeginFrame(n, s) const uint8_t* const n##_stck_frm_ = s[0]
-#define memStackEndFrame(n, s) s[0] = n##_stck_frm_
-void* memStackInit(MemStack stack, void* mem, size_t size);
-void* memStackAllocate(MemStack stack, size_t bytes);
-*/
-
-
 typedef float Color[4];
 typedef float Vec2f[2];
 typedef float Vec3f[3];
@@ -44,6 +37,7 @@ struct MemAlloc;
 typedef struct MemAlloc* HMemAlloc;
 HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
 void memAllocRelease(HMemAlloc mem);
+void* memStackAlloc(HMemAlloc mem, size_t bytes);
 void* memStackFramePush(HMemAlloc mem);
 void memStackFramePop(HMemAlloc mem);
     

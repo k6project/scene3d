@@ -67,6 +67,12 @@ HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
     retval->currFrame = stack;
     return retval;
 }
+
+void* memStackAlloc(HMemAlloc mem, size_t bytes)
+{
+	return NULL;
+}
+
 /*
  push: write value of current frame into stack, store its offset as new value for current frame
  alloc: check if stack frame is valid
