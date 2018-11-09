@@ -21,8 +21,6 @@ struct Options
 
 typedef struct Options Options;
 
-//void argvParse(int argc, const TChar** argv); // pass memory allocator
-
 const Options* argParse(int argc, const void** argv, HMemAlloc mem);
 
 //void vkUseExtensionsAPP(const char* names[], uint32_t count);

@@ -5,10 +5,15 @@
     <ClCompile Include="..\..\src\win32.c" />
     <ClCompile Include="..\..\src\args.c" />
     <ClCompile Include="..\..\src\memory.c" />
+    <ClCompile Include="..\..\src\vk_api.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\args.h" />
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\memory.h" />
+    <ClInclude Include="..\..\src\vk_api.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\vk_api.inl" />
   </ItemGroup>
 </Project>

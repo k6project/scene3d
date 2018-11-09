@@ -1,9 +1,6 @@
 #include "global.h"
 
-#include "args.h"
-
-//#include "shared/main.inl"
-//#include "shared/vk_api.h"
+#include "vk_api.h"
 
 /* 256k stack allocator */
 #define MAX_STACK (1<<18)
@@ -11,7 +8,7 @@
 /* 768k forward allocator */
 #define MAX_FORWD ((1<<19)+MAX_STACK)
 
-/*static uint32_t gFrameIdx = 0;
+static uint32_t gFrameIdx = 0;
 static uint32_t gQueueFamily = 0;
 static VkQueue gCmdQueue = VK_NULL_HANDLE;
 static VkCommandPool gCmdPool = VK_NULL_HANDLE;
@@ -19,7 +16,7 @@ static VkCommandBuffer* gCmdBuff = NULL;
 static VkSemaphore* gFrmBegin = NULL;
 static VkSemaphore* gFrmEnd = NULL;
 static VkFence gFence = VK_NULL_HANDLE;
-static VkFence* gDrawFence = NULL;*/
+static VkFence* gDrawFence = NULL;
 
 typedef struct
 {
@@ -46,9 +43,8 @@ typedef struct
 
 static void initialize(void* dataPtr)
 {
-    //AppState* app = dataPtr;
-    //MemAlloc memory = memAllocCreate(0, 0);
-    /*vkxInitialize(0, NULL);
+    AppState* app = dataPtr;
+    vkxInitialize(0, app->options, NULL);
     vkxRequestQueues(1, (VkxQueueReq[]) { { VK_QUEUE_GRAPHICS_BIT, true, &gQueueFamily, &gCmdQueue } });
     vkxCreateDeviceAndSwapchain();
     vkxCreateCommandPool(gQueueFamily, &gCmdPool);
@@ -56,13 +52,12 @@ static void initialize(void* dataPtr)
     vkxCreateSemaphore(&gFrmBegin, 0);
     vkxCreateSemaphore(&gFrmEnd, 0);
 	vkxCreateFence(&gDrawFence, 0);
-	gFence = gDrawFence[0];*/
-    //app->memory = memory;
+	gFence = gDrawFence[0];
 }
 
 static void renderFrame()
 {
-    /*uint32_t imageIdx = 0;
+    uint32_t imageIdx = 0;
     VkSemaphore frameBegin = gFrmBegin[gFrameIdx];
     VkSemaphore frameEnd = gFrmEnd[gFrameIdx];
     vkxAcquireNextImage(frameBegin, &imageIdx);
@@ -84,31 +79,32 @@ static void renderFrame()
 	vkQueueSubmit(gCmdQueue, 1, &submitInfo, gFence);
     VK_PRESENT_INFO_KHR(presentInfo, imageIdx, frameEnd);
 	vkQueuePresentKHR(gCmdQueue, &presentInfo);
-    gFrameIdx = vkxNextFrame(gFrameIdx);*/
+    gFrameIdx = vkxNextFrame(gFrameIdx);
 }
 
 static void finalize(void* dataPtr)
 {
-    //AppState* app = dataPtr;
-    /*vkDeviceWaitIdle(gVkDev);
+    vkDeviceWaitIdle(gVkDev);
 	vkxDestroyFence(gDrawFence, 0);
     vkxDestroySemaphore(gFrmEnd, 0);
     vkxDestroySemaphore(gFrmBegin, 0);
     vkxDestroyCommandBuffer(gCmdPool, 0, gCmdBuff);
     vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
-    vkxFinalize();*/
-    //memAllocRelease(app->memory);
-    //app->memory = NULL;
+    vkxFinalize();
 }
+
+extern void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state);
+
+extern bool appShouldKeepRunning(void);
 
 int appMain(int argc, const char** argv)
 {
     AppState appState;
     appState.memory = memAllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
     appState.options = argParse(argc, argv, appState.memory);
-	//static AppCallbacks cbMap = { .beforeStart = &initialize, .beforeStop = &finalize };
-	//appInitialize(appState.memory, appState.options, &cbMap, &appState);
-	//while (appShouldKeepRunning())
-    //    renderFrame();
+	static AppCallbacks cbMap = { .beforeStart = &initialize, .beforeStop = &finalize };
+	appInitialize(appState.memory, appState.options, &cbMap, &appState);
+	while (appShouldKeepRunning())
+        renderFrame();
 	return 0;
 }
