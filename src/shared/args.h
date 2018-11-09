@@ -22,7 +22,7 @@ extern const Options* gOptions;
 
 void argvParse(int argc, const TChar** argv); // pass memory allocator
 
-const Options* argParse(int argc, const char** argv, HMemAlloc mem);
+const Options* argParse(int argc, const TChar** argv, HMemAlloc mem);
 
 void vkUseExtensionsAPP(const char* names[], uint32_t count);
 

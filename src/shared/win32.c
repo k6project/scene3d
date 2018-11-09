@@ -60,7 +60,7 @@ bool appShouldKeepRunning(void)
 	return gState.keepRunning;
 }
 
-void appInitialize(AppCallbacks* callbacks, void* state)
+void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state)
 {
 	gState.appState = state;
 	gState.callbacks = callbacks;
