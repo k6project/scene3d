@@ -1,3 +1,10 @@
+#include "global.h"
+
+#include "args.h"
+
+#include <windows.h>
+
+#if 0
 #include "main.h"
 #include "args.inl"
 #include "vk_api.h"
@@ -149,9 +156,9 @@ void appPrintf(const TChar* fmt, ...)
 	OutputDebugString(buff);
 	va_end(args);
 }
+#endif
 
-#ifndef NO_VULKAN
-bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+/*bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
 	VkWin32SurfaceCreateInfoKHR createInfo;
 	memset(&createInfo, 0, sizeof(createInfo));
@@ -160,5 +167,40 @@ bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkS
 	createInfo.hwnd = gState.window;
 	VK_ASSERT(vkCreateWin32SurfaceKHR(inst, &createInfo, alloc, surface), "ERROR: Failed to create surface");
 	return true;
+}*/
+
+extern int appMain(int argc, const char** argv);
+
+int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
+{
+	
+	int argc = 0, len = 0, idx = 0;
+	for (char* pos = cmd; ; pos++, len++)
+	{
+		if (isspace(*pos))
+		{
+			*pos = 0;
+			if (len > 0)
+				argc++;
+			len = -1;
+		}
+		else if (*pos == 0)
+		{
+			if (len > 0)
+				argc++;
+			break;
+		}
+	}
+	const char** argv = _alloca(argc * sizeof(const char*));
+	for (char *pos = cmd, *arg = cmd, prev = *cmd; idx < argc; pos++)
+	{
+		if (*pos == 0 && prev)
+		{
+			argv[idx++] = arg;
+			arg = pos + 1;
+		}
+		prev = *pos;
+	}
+	appMain(argc, argv);
+	return show;
 }
-#endif
