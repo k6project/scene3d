@@ -22,7 +22,7 @@ HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 	struct MemAlloc* retval = block;
 	if (retval == NULL)
 	{
-		ASSERT_Q(retval = malloc(total));
+		TEST_Q(retval = malloc(total));
 		retval->memBlock = retval;
 		max = total;
 	}

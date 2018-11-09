@@ -14,8 +14,17 @@
 
 #define ALIGN16(n) ((((n-1)>>4)+1)<<4)
 
+#ifdef _DEBUG
 #define ASSERT_Q(c) if(!(c)){debugBreak();}
 #define ASSERT(c,m,...) if(!(c)){appPrintf(m "\n",__VA_ARGS__);debugBreak();}
+#define TEST_Q(c) ASSERT_Q(c)
+#define TEST(c,m,...) ASSERT(c,m,__VA_ARGS__)
+#else
+#define ASSERT_Q(c)
+#define ASSERT(c,m,...)
+#define TEST_Q(c) (c)
+#define TEST(c,m,...) (c)
+#endif
 
 #ifdef __cplusplus
 extern "C"

@@ -123,12 +123,12 @@ void appUnloadLibrary(void* handle)
 
 void appPrintf(const char* fmt, ...)
 {
+#ifdef _DEBUG
 	va_list args;
-	char buff[256];
 	va_start(args, fmt);
-	vsprintf_s(buff, 255, fmt, args);
-	OutputDebugString(buff);
+	vfprintf(stdout, fmt, args);
 	va_end(args);
+#endif
 }
 
 bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
@@ -160,7 +160,11 @@ extern int appMain(int argc, const char** argv);
 
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
-	
+#if _DEBUG
+	AllocConsole();
+	AttachConsole(GetCurrentProcessId());
+	freopen("CON", "w", stdout);
+#endif
 	int argc = 0, len = 0, idx = 0;
 	for (char* pos = cmd; ; pos++, len++)
 	{
