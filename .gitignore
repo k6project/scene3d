@@ -1,12 +1,8 @@
+shaders/*.spv
+/*.vcxproj.user
 /scene3d.VC.db
 /scene3d.VC.VC.opendb
-.vs/
 build/
 ext/
-/scene3d.vcxproj.user
-shaders/*.spv
-/vkview.vcxproj.user
 xcode.sh
 xcode/
-/*.vcxproj.user
-
