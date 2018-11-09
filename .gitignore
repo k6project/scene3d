@@ -6,3 +6,4 @@ build/
 ext/
 xcode.sh
 xcode/
+.vs/
