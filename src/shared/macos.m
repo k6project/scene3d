@@ -96,11 +96,8 @@ static AppCallbacks* gCallbacks = NULL;
 }
 @end
 
-void appInitialize(AppCallbacks* callbacks, void* state)
+void appGetName(TChar* buff, size_t max)
 {
-    gState = state;
-    gCallbacks = callbacks;
-    NSApplication* nsApp = [NSApplication sharedApplication];
     NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
     id appName = [info objectForKey:@"CFBundleDisplayName"];
     if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
@@ -108,9 +105,17 @@ void appInitialize(AppCallbacks* callbacks, void* state)
     if (!appName || ![appName isKindOfClass:[NSString class]] || [appName isEqualToString:@""])
         appName = [info objectForKey:@"CFBundleExecutable"];
     assert(appName && [appName isKindOfClass:[NSString class]] && ![appName isEqualToString:@""]);
-    memcpy(gOptions_.appName, [appName UTF8String], APP_NAME_LEN);
+    memcpy(buff, [appName UTF8String], max);
+}
+
+void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state)
+{
+    gState = state;
+    gCallbacks = callbacks;
+    NSApplication* nsApp = [NSApplication sharedApplication];
     NSMenu* menuBar = [[NSMenu alloc] init];
     [nsApp setMainMenu:menuBar];
+    NSString* appName = [NSString stringWithUTF8String:opts->appName];
     NSMenuItem* appItem = [menuBar addItemWithTitle:appName
                                              action:NULL
                                       keyEquivalent:@""];

@@ -2,9 +2,6 @@
 
 #include "global.h"
 
-#define APP_NAME_LEN 64
-#define APP_NAME_MAX (APP_NAME_LEN+1)
-
 struct Options
 {
     int windowWidth;
@@ -24,6 +21,8 @@ typedef struct Options Options;
 extern const Options* gOptions;
 
 void argvParse(int argc, const TChar** argv); // pass memory allocator
+
+const Options* argParse(int argc, const char** argv, HMemAlloc mem);
 
 void vkUseExtensionsAPP(const char* names[], uint32_t count);
 

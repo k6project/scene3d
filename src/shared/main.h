@@ -14,7 +14,7 @@ typedef struct AppCallbacks
     void (*beforeStop)(void*);
 } AppCallbacks;
 
-void appInitialize(AppCallbacks* callbacks, void* state);
+void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state);
     
 bool appShouldKeepRunning(void);
     

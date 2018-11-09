@@ -72,6 +72,62 @@ static ArgItem gArgMap[] =
     { 0 , 0, NULL, NULL }
 };
 
+static inline void argInitOptions(Options* opts)
+{
+    memset(opts, 0, sizeof(Options));
+    opts->windowWidth = 512;
+    opts->windowHeight = 512;
+    opts->isFullscreen = 0;
+    opts->windowTitle = opts->appName;
+    appGetName(opts->appName, APP_NAME_MAX);
+}
+
+const Options* argParse(int argc, const char** argv, HMemAlloc mem)
+{
+    Options* opts = memForwdAlloc(mem, sizeof(Options));
+    struct Argument
+    {
+        int key, values;
+        int (*parser)(const TChar* arg, void* val);
+        void* val;
+    } argMap[] =
+    {
+        {'w', 1, &argParseInt, &opts->windowWidth},
+        {'h', 1, &argParseInt, &opts->windowHeight},
+        {'i', 1, &argParseStr, (void*)&opts->inputFile},
+        {'t', 1, &argParseStr, (void*)&opts->windowTitle },
+        {'f', 0, &argParseBool, &opts->isFullscreen},
+        { 0 , 0, NULL, NULL }
+    };
+    argInitOptions(opts);
+    for (int i = 0; i < argc; i++)
+    {
+        const TChar* arg = argv[i];
+        if (*arg == '-')
+        {
+            TChar key = *++arg;
+            if (*++arg == 0)
+            {
+                for (const struct Argument* carg = argMap; carg->key; carg++)
+                {
+                    if (carg->key == key)
+                    {
+                        arg = NULL;
+                        if (carg->values)
+                        {
+                            i += carg->values;
+                            arg = argv[i];
+                        }
+                        carg->parser(arg, carg->val);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return opts;
+}
+
 void argvParse(int argc, const TChar** argv)
 {
     for (int i = 0; i < argc; i++)

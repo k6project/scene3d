@@ -37,9 +37,17 @@ struct MemAlloc;
 typedef struct MemAlloc* HMemAlloc;
 HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
 void memAllocRelease(HMemAlloc mem);
+void* memForwdAlloc(HMemAlloc mem, size_t bytes);
 void* memStackAlloc(HMemAlloc mem, size_t bytes);
-void* memStackFramePush(HMemAlloc mem);
+void memStackFramePush(HMemAlloc mem);
 void memStackFramePop(HMemAlloc mem);
+void* memHeapAlloc(HMemAlloc mem, size_t bytes);
+void memHeapFree(HMemAlloc mem, void* ptr);
+    
+/* Misc. application-level functions */
+#define APP_NAME_LEN 64
+#define APP_NAME_MAX (APP_NAME_LEN+1)
+void appGetName(TChar* buff, size_t max);
     
 /* Handling dynamic libraries */
 bool appLoadLibrary(const TChar* name, void** handle);

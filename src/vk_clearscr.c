@@ -1,6 +1,12 @@
 #include "shared/main.inl"
 #include "shared/vk_api.h"
 
+/* 256k stack allocator */
+#define MAX_STACK (1<<18)
+
+/* 768k forward allocator */
+#define MAX_FORWD ((1<<19)+MAX_STACK)
+
 static uint32_t gFrameIdx = 0;
 static uint32_t gQueueFamily = 0;
 static VkQueue gCmdQueue = VK_NULL_HANDLE;
@@ -13,7 +19,8 @@ static VkFence* gDrawFence = NULL;
 
 typedef struct
 {
-    /*MemAlloc*/void* memory;
+    HMemAlloc memory;
+    const Options* options;
 } AppState;
 
 static void cgInitialize(uint32_t rows, uint32_t cols)
@@ -35,7 +42,7 @@ static void cgInitialize(uint32_t rows, uint32_t cols)
 
 static void initialize(void* dataPtr)
 {
-    //AppState* app = dataPtr;
+    AppState* app = dataPtr;
     //MemAlloc memory = memAllocCreate(0, 0);
     vkxInitialize(0, NULL);
     vkxRequestQueues(1, (VkxQueueReq[]) { { VK_QUEUE_GRAPHICS_BIT, true, &gQueueFamily, &gCmdQueue } });
@@ -93,13 +100,10 @@ static void finalize(void* dataPtr)
 int appMain(int argc, const TChar** argv)
 {
     AppState appState;
-	argvParse(argc, argv);
-	static AppCallbacks cbMap =
-	{
-		.beforeStart = &initialize,
-        .beforeStop = &finalize
-	};
-	appInitialize(&cbMap, &appState);
+    appState.memory = memAllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
+    appState.options = argParse(argc, argv, appState.memory);
+	static AppCallbacks cbMap = { .beforeStart = &initialize, .beforeStop = &finalize };
+	appInitialize(appState.memory, appState.options, &cbMap, &appState);
 	while (appShouldKeepRunning())
         renderFrame();
 	return 0;
