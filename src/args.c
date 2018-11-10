@@ -3,7 +3,7 @@
 #include "args.h"
 
 #include <stdlib.h>
-#include <wtypes.h>
+#include <string.h>
 
 static int argParseBool(const char* arg, void* val)
 {
@@ -30,6 +30,8 @@ static int argParseInt(const char* arg, void* val)
     return 0;
 }
 
+extern void appGetName(char* buff, size_t max);
+
 static inline void argInitOptions(Options* opts)
 {
     memset(opts, 0, sizeof(Options));
@@ -40,7 +42,7 @@ static inline void argInitOptions(Options* opts)
     appGetName(opts->appName, APP_NAME_MAX);
 }
 
-const Options* argParse(int argc, const void** argv, HMemAlloc mem)
+const Options* argParse(int argc, const char** argv, HMemAlloc mem)
 {
     Options* opts = memForwdAlloc(mem, sizeof(Options));
     struct Argument

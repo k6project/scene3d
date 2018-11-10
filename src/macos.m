@@ -1,16 +1,18 @@
-#import <Cocoa/Cocoa.h>
-#import <Metal/Metal.h>
-#import <QuartzCore/QuartzCore.h>
+#include "global.h"
+
+#include "args.h"
+#include "vk_api.h"
 
 #include <dlfcn.h>
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "main.h"
-#include "args.inl"
-#include "vk_api.h"
+#import <Cocoa/Cocoa.h>
+#import <Metal/Metal.h>
+#import <QuartzCore/QuartzCore.h>
 
 static void* gState = NULL;
+static const Options* gOpts = NULL;
 static AppCallbacks* gCallbacks = NULL;
 #define INVOKE(c) do if((c)) c (gState); while(0)
 
@@ -68,11 +70,11 @@ static AppCallbacks* gCallbacks = NULL;
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
 {
     NSRect wSize, sSize = [[NSScreen mainScreen] visibleFrame];
-    if (gOptions->isFullscreen)
+    if (gOpts->isFullscreen)
         wSize = sSize;
     else
     {
-        float width = gOptions->windowWidth, height = gOptions->windowHeight;
+        float width = gOpts->windowWidth, height = gOpts->windowHeight;
         float xOrg = (sSize.size.width - width) * 0.5f;
         float yOrg = (sSize.size.height - height) * 0.5f;
         wSize = NSMakeRect(xOrg, yOrg, width, height);
@@ -80,7 +82,7 @@ static AppCallbacks* gCallbacks = NULL;
     NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
     window = [[NSWindow alloc] initWithContentRect:wSize styleMask:style backing:NSBackingStoreBuffered defer:NO];
     windowDelegate = [[AppWindowDelegate alloc] init];
-    if (gOptions->isFullscreen)
+    if (gOpts->isFullscreen)
     {
         [window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
         [window toggleFullScreen:self];
@@ -96,7 +98,7 @@ static AppCallbacks* gCallbacks = NULL;
 }
 @end
 
-void appGetName(TChar* buff, size_t max)
+void appGetName(char* buff, size_t max)
 {
     NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
     id appName = [info objectForKey:@"CFBundleDisplayName"];
@@ -110,12 +112,13 @@ void appGetName(TChar* buff, size_t max)
 
 void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state)
 {
+    gOpts = opts;
     gState = state;
     gCallbacks = callbacks;
     NSApplication* nsApp = [NSApplication sharedApplication];
     NSMenu* menuBar = [[NSMenu alloc] init];
     [nsApp setMainMenu:menuBar];
-    NSString* appName = [NSString stringWithUTF8String:opts->appName];
+    NSString* appName = [NSString stringWithUTF8String:gOpts->appName];
     NSMenuItem* appItem = [menuBar addItemWithTitle:appName
                                              action:NULL
                                       keyEquivalent:@""];
@@ -167,11 +170,6 @@ void appUnloadLibrary(void* handle)
         dlclose(handle);
 }
 
-void appTCharToUTF8(char* dest, const TChar* src, int max)
-{
-    strncpy(dest, src, max);
-}
-
 void appPrintf(const char* fmt, ...)
 {
     va_list args;
@@ -180,7 +178,7 @@ void appPrintf(const char* fmt, ...)
     va_end(args);
 }
 
-bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
     VkMacOSSurfaceCreateInfoMVK createInfo =
     {
@@ -189,9 +187,16 @@ bool vkCreateSurfaceAPP(VkInstance inst, const VkAllocationCallbacks* alloc, VkS
     };
     if (vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) != VK_SUCCESS)
     {
-        appPrintf(STR("ERROR: Failed to create surface"));
+        appPrintf("ERROR: Failed to create surface");
         return false;
     }
-    appPrintf(STR("Created MacOS view-based surface\n"));
+    appPrintf("Created MacOS view-based surface\n");
     return true;
+}
+
+extern int appMain(int argc, const char** argv);
+
+int main(int argc, const char** argv)
+{
+    return appMain(argc, argv);
 }

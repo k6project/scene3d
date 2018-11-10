@@ -21,7 +21,7 @@ struct Options
 
 typedef struct Options Options;
 
-const Options* argParse(int argc, const void** argv, HMemAlloc mem);
+const Options* argParse(int argc, const char** argv, HMemAlloc mem);
 
 //void vkUseExtensionsAPP(const char* names[], uint32_t count);
 

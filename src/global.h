@@ -48,7 +48,6 @@ void* appGetLibraryProc(void* handle, const char* name);
 void appUnloadLibrary(void* handle);
 
 /* Misc. application-level functions */
-void appGetName(char* buff, size_t max);
 void appPrintf(const char* fmt, ...);
 
 #ifdef __cplusplus
