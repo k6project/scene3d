@@ -88,7 +88,7 @@ static const char* VK_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
 
 static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEVICE_EXTENSIONS) / sizeof(const char*);
 
-extern bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
+extern bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
 
 #ifdef _DEBUG
 
@@ -101,7 +101,7 @@ static VkBool32 vkDebugAPP(VkDebugReportFlagsEXT flags,
 	                       const char* pMessage,
 	                       void* pUserData)
 {
-	appPrintf("%s\n", pMessage);
+	sysPrintf("%s\n", pMessage);
 	return VK_FALSE;
 }
 
@@ -110,13 +110,13 @@ static VkBool32 vkDebugAPP(VkDebugReportFlagsEXT flags,
 static void vkCreateAndInitInstanceAPP(const Options* opts)
 {
     STACK_MARK(frame);
-    vkGetInstanceProcAddr = appGetLibraryProc(gVkDllHandle, "vkGetInstanceProcAddr");
+    vkGetInstanceProcAddr = sysGetLibraryProc(gVkDllHandle, "vkGetInstanceProcAddr");
     ASSERT(vkGetInstanceProcAddr, "ERROR: Failed to get pointer to %s", "vkGetInstanceProcAddr");
 #define VULKAN_API_GOBAL(proc) \
     vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( NULL, "vk" #proc ); \
     ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
-    appPrintf("Loaded global function pointers\n");
+    sysPrintf("Loaded global function pointers\n");
 	VkApplicationInfo appInfo;
     memset(&appInfo, 0, sizeof(appInfo));
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -136,9 +136,9 @@ static void vkCreateAndInitInstanceAPP(const Options* opts)
 	}
 	else
 		createInfo.ppEnabledLayerNames = VK_REQUIRED_LAYERS;
-    appPrintf("Instance debug layers:\n");
+    sysPrintf("Instance debug layers:\n");
     for (uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
-        appPrintf("  %s\n", createInfo.ppEnabledLayerNames[i]);
+        sysPrintf("  %s\n", createInfo.ppEnabledLayerNames[i]);
 	createInfo.enabledExtensionCount = VK_NUM_REQUIRED_EXTENSIONS + opts->numExtensions;
 	if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
 	{
@@ -149,9 +149,9 @@ static void vkCreateAndInitInstanceAPP(const Options* opts)
 	}
 	else
 		createInfo.ppEnabledExtensionNames = VK_REQUIRED_EXTENSIONS;
-    appPrintf("Instance extensions:\n");
+    sysPrintf("Instance extensions:\n");
     for (uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
-        appPrintf("  %s\n", createInfo.ppEnabledExtensionNames[i]);
+        sysPrintf("  %s\n", createInfo.ppEnabledExtensionNames[i]);
     VkResult result = vkCreateInstance(&createInfo, gVkAlloc, &gVkInst);
     if (result == VK_SUCCESS)
     {
@@ -159,7 +159,7 @@ static void vkCreateAndInitInstanceAPP(const Options* opts)
         vk ## proc = ( PFN_vk ## proc )vkGetInstanceProcAddr( gVkInst, "vk" #proc ); \
         ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
-        appPrintf("Loaded instance-specific function pointers\n");
+        sysPrintf("Loaded instance-specific function pointers\n");
 #ifdef _DEBUG
 		VkDebugReportCallbackCreateInfoEXT debugInfo =
 		{
@@ -190,7 +190,7 @@ static void vkGetGraphicsAdapterAPP()
                 VkPhysicalDeviceProperties props;
                 vkGetPhysicalDeviceProperties(adapters[i], &props);
                 vkGetPhysicalDeviceQueueFamilyProperties(adapters[i], &numFamilies, NULL);
-                appPrintf("%u: %s (%u queue fam.)\n", i, props.deviceName, numFamilies);
+                sysPrintf("%u: %s (%u queue fam.)\n", i, props.deviceName, numFamilies);
                 VkBool32 canPresent = VK_FALSE;
                 for (uint32_t j = 0; j < numFamilies; j++)
                 {
@@ -214,7 +214,7 @@ static void vkGetGraphicsAdapterAPP()
         }
     }
     ASSERT(gVkPhDev, "ERROR: %s", "Failed to choose graphics adapter");
-    appPrintf("Unsing adapter %u\n", idx);
+    sysPrintf("Unsing adapter %u\n", idx);
     STACK_FREE(frame);
 	gPhDevMask = 1 << idx;
     vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, NULL);
@@ -339,7 +339,7 @@ void vkxCreateDeviceAndSwapchain()
     vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( gVkDev, "vk" #proc ); \
     ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
-    appPrintf("Loaded device-specific function pointers\n");
+    sysPrintf("Loaded device-specific function pointers\n");
     for (uint32_t i = 0; i < gNumQueueRequests; i++)
     {
         uint32_t family = gOutQueues[i].family;
@@ -476,9 +476,9 @@ void vkxInitialize(size_t maxMem, const Options* opts, const VkAllocationCallbac
     gVkMemBufferSize = (maxMem < VK_MIN_BUFFER) ? VK_MIN_BUFFER : maxMem;
     gVkMemBuffer = malloc(gVkMemBufferSize);
     ASSERT(gVkMemBuffer, "ERROR: %s", "Failed to allocate internal memory");
-    ASSERT(appLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: %s", "Failed to load library");
+    ASSERT(sysLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: %s", "Failed to load library");
     vkCreateAndInitInstanceAPP(opts);
-    ASSERT_Q(appCreateVkSurface(gVkInst, gVkAlloc, &gVkSurf));
+    ASSERT_Q(sysCreateVkSurface(gVkInst, gVkAlloc, &gVkSurf));
     vkGetGraphicsAdapterAPP();
 }
 
@@ -492,7 +492,7 @@ void vkxFinalize(void)
 	vkDestroyDebugReportCallbackEXT(gVkInst, gDebug, gVkAlloc);
 #endif
     vkDestroyInstance(gVkInst, gVkAlloc);
-    appUnloadLibrary(gVkDllHandle);
+    sysUnloadLibrary(gVkDllHandle);
     free(gVkMemBuffer);
 }
 

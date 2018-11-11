@@ -51,7 +51,7 @@ void* memForwdAlloc(HMemAlloc mem, size_t bytes)
 void* memStackAlloc(HMemAlloc mem, size_t bytes)
 {
 	bytes = ALIGN16(bytes);
-	ASSERT_Q(mem->currFrame < mem->maxStack);
+	ASSERT_Q(mem->currFrame < mem->maxStack || mem->posStack == 0);
 	ASSERT_Q(mem->maxStack - mem->posStack >= bytes);
 	void* retval = mem->baseStack + mem->posStack;
 	mem->posStack += bytes;
@@ -69,8 +69,8 @@ void memStackFramePush(HMemAlloc mem)
 void memStackFramePop(HMemAlloc mem)
 {
 	ASSERT_Q(mem->currFrame < mem->maxStack);
-	mem->posStack = *(size_t*)(mem->baseStack + mem->currFrame);
-	mem->currFrame = mem->posStack;
+    mem->posStack = mem->currFrame;
+    mem->currFrame = *(size_t*)(mem->baseStack + mem->currFrame);
 }
 
 void memAllocRelease(HMemAlloc mem)

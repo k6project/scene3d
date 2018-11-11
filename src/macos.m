@@ -6,15 +6,20 @@
 #include <dlfcn.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
 
 static void* gState = NULL;
+static char* gRootDir = NULL;
+static size_t gRootDirLen = 0;
 static const Options* gOpts = NULL;
-static AppCallbacks* gCallbacks = NULL;
-#define INVOKE(c) do if((c)) c (gState); while(0)
+
+extern void appOnStartup(void* dataPtr);
+
+extern void appOnShutdown(void* dataPtr);
 
 @interface NSMetalView : NSView
 @end
@@ -49,7 +54,7 @@ static AppCallbacks* gCallbacks = NULL;
 @implementation AppWindowDelegate
 - (void)windowWillClose:(NSNotification *)notification
 {
-    INVOKE(gCallbacks->beforeStop);
+    appOnShutdown(gState);
     [NSApp performSelector:@selector(terminate:) withObject:nil afterDelay:0.f];
 }
 @end
@@ -64,7 +69,7 @@ static AppCallbacks* gCallbacks = NULL;
 }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    appPrintf("====  LOG END  ====\n\n");
+    sysPrintf("====  LOG END  ====\n\n");
     return NSTerminateNow;
 }
 - (void)applicationDidFinishLaunching:(NSNotification *)notification
@@ -93,8 +98,8 @@ static AppCallbacks* gCallbacks = NULL;
     [window setContentView:view];
     [window setDelegate:windowDelegate];
     [window makeKeyAndOrderFront:NSApp];
-    appPrintf("\n==== LOG BEGIN ====\n");
-    INVOKE(gCallbacks->beforeStart);
+    sysPrintf("\n==== LOG BEGIN ====\n");
+    appOnStartup(gState);
 }
 @end
 
@@ -110,11 +115,10 @@ void appGetName(char* buff, size_t max)
     memcpy(buff, [appName UTF8String], max);
 }
 
-void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state)
+void appInitialize(HMemAlloc mem, const Options* opts, void* state)
 {
     gOpts = opts;
     gState = state;
-    gCallbacks = callbacks;
     NSApplication* nsApp = [NSApplication sharedApplication];
     NSMenu* menuBar = [[NSMenu alloc] init];
     [nsApp setMainMenu:menuBar];
@@ -150,27 +154,27 @@ void appPollEvents(void)
 {
 }
 
-bool appLoadLibrary(const char* name, void** handle)
+bool sysLoadLibrary(const char* name, void** handle)
 {
     void* ptr = dlopen(name, RTLD_LOCAL | RTLD_NOW);
     *handle = (ptr) ? ptr : NULL;
     return (ptr) ? true : false;
 }
 
-void* appGetLibraryProc(void* handle, const char* name)
+void* sysGetLibraryProc(void* handle, const char* name)
 {
     if (handle)
         return dlsym(handle, name);
     return NULL;
 }
 
-void appUnloadLibrary(void* handle)
+void sysUnloadLibrary(void* handle)
 {
     if (handle)
         dlclose(handle);
 }
 
-void appPrintf(const char* fmt, ...)
+void sysPrintf(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -178,7 +182,7 @@ void appPrintf(const char* fmt, ...)
     va_end(args);
 }
 
-bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
     VkMacOSSurfaceCreateInfoMVK createInfo =
     {
@@ -187,11 +191,48 @@ bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkS
     };
     if (vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) != VK_SUCCESS)
     {
-        appPrintf("ERROR: Failed to create surface");
+        sysPrintf("ERROR: Failed to create surface");
         return false;
     }
-    appPrintf("Created MacOS view-based surface\n");
+    sysPrintf("Created MacOS view-based surface\n");
     return true;
+}
+
+void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode)
+{
+    ASSERT_Q(*path == '/');
+    if (!gRootDir && gRootDirLen == 0)
+    {
+        NSString* resPath = [NSBundle mainBundle].resourcePath;
+        char* rootFolder = memForwdAlloc(mem, resPath.length + 1);
+        memcpy(rootFolder, resPath.UTF8String, resPath.length);
+        rootFolder[resPath.length] = 0;
+        gRootDir = rootFolder;
+        gRootDirLen = resPath.length;
+    }
+    size_t length = strlen(path);
+    memStackFramePush(mem);
+    char* resolved = memStackAlloc(mem, length + gRootDirLen + 1);
+    memcpy(resolved, gRootDir, gRootDirLen);
+    strcpy(resolved + gRootDirLen, path);
+    FILE* fp = fopen(resolved, "rb");
+    memStackFramePop(mem);
+    ASSERT_Q(fp);
+    struct stat fstBuff;
+    ASSERT_Q((fstat(fileno(fp), &fstBuff) == 0) && (S_ISREG(fstBuff.st_mode)));
+    *size = fstBuff.st_size;
+    void* buffer = NULL;
+    switch (mode)
+    {
+        case MEM_FORWD: buffer = memForwdAlloc(mem, *size); break;
+        case MEM_STACK: buffer = memStackAlloc(mem, *size); break;
+        case MEM_HEAP : buffer = memHeapAlloc(mem, *size); break;
+    }
+    ASSERT_Q(buffer);
+    size_t readOk = fread(buffer, *size, 1, fp);
+    fclose(fp);
+    ASSERT_Q(readOk == 1);
+    return buffer;
 }
 
 extern int appMain(int argc, const char** argv);

@@ -4,9 +4,18 @@
 extern "C"
 {
 #endif
+    
+/* Memory allocation modes */
+typedef enum
+{
+    MEM_FORWD,
+    MEM_STACK,
+    MEM_HEAP
+} MemAllocMode;
 
 struct MemAlloc;
 typedef struct MemAlloc* HMemAlloc;
+
 HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
 void memAllocRelease(HMemAlloc mem);
 void* memForwdAlloc(HMemAlloc mem, size_t bytes);
