@@ -11,20 +11,17 @@ static struct
 {
 	HWND window;
 	bool keepRunning;
-	AppCallbacks* callbacks;
 	void* appState;
 } gState =
 {
 	NULL,
 	false,
-	NULL,
 	NULL
 };
 
-#define INVOKE(c) \
-    do if((gState.callbacks->##c##)) \
-    gState.callbacks->##c##(gState.appState); \
-    while(0)
+extern void appOnStartup(void* dataPtr);
+
+extern void appOnShutdown(void* dataPtr);
 
 static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 {
@@ -34,14 +31,14 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	case WM_CREATE:
 		gState.keepRunning = true;
 		gState.window = wnd;
-		INVOKE(beforeStart);
+		appOnStartup(gState.appState);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		gState.keepRunning = false;
 		break;
 	case WM_CLOSE:
-		INVOKE(beforeStop);
+		appOnShutdown(gState.appState);
 		DestroyWindow(wnd);
 		break;
 	default:
@@ -62,10 +59,9 @@ bool appShouldKeepRunning(void)
 	return gState.keepRunning;
 }
 
-void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, void* state)
+void appInitialize(HMemAlloc mem, const Options* opts, void* state)
 {
 	gState.appState = state;
-	gState.callbacks = callbacks;
 	WNDCLASS wndClass;
 	ZeroMemory(&wndClass, sizeof(wndClass));
 	wndClass.style = CS_OWNDC;
@@ -97,14 +93,14 @@ void appInitialize(HMemAlloc mem, const Options* opts, AppCallbacks* callbacks, 
 	CreateWindow("APP_WND", opts->windowTitle, wStyle, left, top, cols, rows, NULL, NULL, GetModuleHandle(NULL), NULL);
 }
 
-bool appLoadLibrary(const char* name, void** handle)
+bool sysLoadLibrary(const char* name, void** handle)
 {
 	HMODULE ptr = LoadLibrary(name);
 	*handle = (ptr != INVALID_HANDLE_VALUE) ? (void*)ptr : NULL;
 	return true;
 }
 
-void* appGetLibraryProc(void* handle, const char* name)
+void* sysGetLibraryProc(void* handle, const char* name)
 {
 	if (handle)
 #ifdef __cplusplus
@@ -115,13 +111,13 @@ void* appGetLibraryProc(void* handle, const char* name)
 	return NULL;
 }
 
-void appUnloadLibrary(void* handle)
+void sysUnloadLibrary(void* handle)
 {
 	if (handle)
 		FreeLibrary((HMODULE)handle);
 }
 
-void appPrintf(const char* fmt, ...)
+void sysPrintf(const char* fmt, ...)
 {
 #ifdef _DEBUG
 	va_list args;
@@ -131,7 +127,7 @@ void appPrintf(const char* fmt, ...)
 #endif
 }
 
-bool appCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
 {
 	VkWin32SurfaceCreateInfoKHR createInfo;
 	memset(&createInfo, 0, sizeof(createInfo));
@@ -154,6 +150,12 @@ void appGetName(char* buff, size_t max)
 			len = max;
 		memcpy(buff, fileName, len);
 	}
+}
+
+void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode)
+{
+	ASSERT_Q(NULL);
+	return NULL;
 }
 
 extern int appMain(int argc, const char** argv);
