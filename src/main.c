@@ -22,7 +22,54 @@ typedef struct
 {
 	HMemAlloc memory;
     const Options* options;
+    VkShaderModule generator;
+    VkDescriptorSetLayout generatorSetLayout;
+    VkPipelineLayout generatorPipelineLayout;
 } AppState;
+
+static void initGenerator(AppState* app)
+{
+    memStackFramePush(app->memory);
+    VkShaderModuleCreateInfo info =
+    {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = NULL, .flags = 0, .codeSize = 0, .pCode = NULL
+    };
+    info.pCode = sysLoadFile("/shaders/cityget.comp.spv", &info.codeSize, app->memory, MEM_STACK);
+    memStackFramePop(app->memory);
+    VK_ASSERT_Q(vkCreateShaderModule(gVkDev, &info, NULL, &app->generator));
+    
+    VkDescriptorSetLayoutBinding outBinding;
+    outBinding.binding = 0;
+    outBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    outBinding.descriptorCount = 1; // array size
+    outBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    outBinding.pImmutableSamplers = NULL;
+    
+    // can be shared - only a relatively small number of layouts will be used
+    VkDescriptorSetLayoutCreateInfo layoutInfo;
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.pNext = NULL;
+    layoutInfo.flags = 0;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &outBinding;
+    VK_ASSERT_Q(vkCreateDescriptorSetLayout(gVkDev, &layoutInfo, NULL, &app->generatorSetLayout));
+    
+    // multiple pipelines can have identical layout
+    VkPushConstantRange constRange;
+    constRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    constRange.offset = 0;
+    constRange.size = 8;
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo;
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.pNext = NULL;
+    pipelineLayoutInfo.flags = 0;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &app->generatorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &constRange;
+    VK_ASSERT_Q(vkCreatePipelineLayout(gVkDev, &pipelineLayoutInfo, NULL, &app->generatorPipelineLayout));
+}
 
 void appOnStartup(void* dataPtr)
 {
@@ -36,6 +83,7 @@ void appOnStartup(void* dataPtr)
     vkxCreateSemaphore(&gFrmEnd, 0);
 	vkxCreateFence(&gDrawFence, 0);
 	gFence = gDrawFence[0];
+    initGenerator(app);
 }
 
 static void renderFrame()
@@ -67,8 +115,14 @@ static void renderFrame()
 
 void appOnShutdown(void* dataPtr)
 {
+    AppState* app = dataPtr;
     vkDeviceWaitIdle(gVkDev);
-	vkxDestroyFence(gDrawFence, 0);
+    
+    vkDestroyPipelineLayout(gVkDev, app->generatorPipelineLayout, NULL);
+    vkDestroyDescriptorSetLayout(gVkDev, app->generatorSetLayout, NULL);
+    vkDestroyShaderModule(gVkDev, app->generator, NULL);
+	
+    vkxDestroyFence(gDrawFence, 0);
     vkxDestroySemaphore(gFrmEnd, 0);
     vkxDestroySemaphore(gFrmBegin, 0);
     vkxDestroyCommandBuffer(gCmdPool, 0, gCmdBuff);
