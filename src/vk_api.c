@@ -223,7 +223,7 @@ void vklGetGraphicsAdapter(struct VklEnv* vk)
     vk->phdMask = 1 << idx;
     vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &vk->qfNum, NULL);
     
-    gQueueCount = stackAlloc(gNumQueueFamilies * sizeof(uint32_t));
+    /*gQueueCount = stackAlloc(gNumQueueFamilies * sizeof(uint32_t));
     memset(gQueueCount, 0, (gNumQueueFamilies * sizeof(uint32_t)));
     gQueueFamProps = stackAlloc(gNumQueueFamilies * sizeof(VkQueueFamilyProperties));
     vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, gQueueFamProps);
@@ -234,7 +234,7 @@ void vklGetGraphicsAdapter(struct VklEnv* vk)
     vkGetPhysicalDeviceSurfaceFormatsKHR(gVkPhDev, gVkSurf, &gNumSurfFormats, gSurfFormats);
     vkGetPhysicalDeviceSurfacePresentModesKHR(gVkPhDev, gVkSurf, &gNumPresentModes, gPresentModes);
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->adapter, vk->surface, &vk->phdSurfCaps);
-    vkGetPhysicalDeviceMemoryProperties(vk->adapter, &vk->phdMemProps);
+    vkGetPhysicalDeviceMemoryProperties(vk->adapter, &vk->phdMemProps);*/
 }
 
 /////////////////////////////////////////////////////////////////// LEGACY

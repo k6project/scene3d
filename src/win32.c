@@ -154,8 +154,35 @@ void appGetName(char* buff, size_t max)
 
 void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode)
 {
-	ASSERT_Q(NULL);
-	return NULL;
+	char root[MAX_PATH + 1];
+#ifdef _DEBUG
+	DWORD length = GetCurrentDirectory(MAX_PATH + 1, root);
+	char* delim = &root[length];
+#else
+	DWORD length = GetModuleFileName(NULL, root, MAX_PATH + 1);
+	char* delim = StrRChr(root, NULL, '\\');
+#endif
+	for (const char *ch = path;; ch++, delim++)
+	{
+		*delim = (*ch == '/') ? '\\' : *ch;
+		if (!*ch) break;
+	}
+	HANDLE fp = CreateFile(root, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	ASSERT_Q(fp != INVALID_HANDLE_VALUE);
+	void* retVal = NULL;
+	LARGE_INTEGER fSize;
+	TEST_Q(GetFileSizeEx(fp, &fSize))
+	size_t bytes = fSize.LowPart;
+	switch (mode)
+	{
+		case MEM_FORWD: retVal = memForwdAlloc(mem, bytes);
+		case MEM_STACK: retVal = memStackAlloc(mem, bytes);
+		case MEM_HEAP: retVal = memHeapAlloc(mem, bytes);
+	}
+	TEST_Q(ReadFile(fp, retVal, bytes & UINT32_MAX, NULL, NULL));
+	CloseHandle(fp);
+	*size = bytes;
+	return retVal;
 }
 
 extern int appMain(int argc, const char** argv);

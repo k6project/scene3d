@@ -7,3 +7,4 @@ ext/
 xcode.sh
 xcode/
 .vs/
+/scene3d.cap
