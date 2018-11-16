@@ -5,3 +5,4 @@ Function namespace designation:
   'mem': Memory management;
   'sys': Wrappers around native functionality
   'vfs': Virtual file system functions
+  'vlk': Vulkan API wrapper functions

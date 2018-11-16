@@ -12,6 +12,10 @@
 #define FORCE_INLINE static inline __attribute__((always_inline))
 #endif
 
+#define INV_IDX8  0xffu8
+#define INV_IDX16 0xffffu16
+#define INV_IDX   0xffffffffu
+
 #define ALIGN16(n) ((((n-1)>>4)+1)<<4)
 
 #ifdef _DEBUG

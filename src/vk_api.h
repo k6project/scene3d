@@ -3,6 +3,8 @@
 #include "global.h"
 #include "args.h"
 
+#define VK_SHADER_MAIN "main"
+
 #ifdef _MSC_VER
 #define VK_USE_PLATFORM_WIN32_KHR
 #define VK_LIBRARY "vulkan-1.dll"
@@ -10,6 +12,15 @@
 #define VK_USE_PLATFORM_MACOS_MVK
 #define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 #endif
+
+#ifdef VKL_IMPL
+struct VlkEnv;
+typedef struct VlkEnv* HVulkan;
+#else
+typedef void* HVulkan;
+#endif
+
+typedef uint32_t HVkQueue;
 
 #define VK_SWAPCHAIN_SIZE 3
 #define VK_NO_PROTOTYPES
@@ -69,6 +80,7 @@ void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue*
 void vkxAcquireNextImage(VkSemaphore sem, uint32_t* image);
 void vkxCmdPreparePresent(VkCmdBufferInfo info, VkImage img);
 uint32_t vkxNextFrame(uint32_t current);
+VkDeviceMemory vkxMallocBuffer(VkBuffer buff, VkMemoryPropertyFlags flags);
     
 #define vkxBeginCommandBufferOneOff(cb) \
     do { VkCommandBufferBeginInfo beginInfo = { \
