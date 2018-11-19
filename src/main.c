@@ -41,7 +41,7 @@ typedef struct
     uint32_t generatorSetupLen;
 } AppState;
 
-static void initGenerator(AppState* app, uint32_t rows, uint32_t cols)
+static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t cols)
 {
     struct {
         Vec3f gridStep;
@@ -51,7 +51,8 @@ static void initGenerator(AppState* app, uint32_t rows, uint32_t cols)
         uint32_t maxHeight;
     } genParams =
     {
-        {0.1f, 0.1f, 0.1f}, 6, {1.f, 1.f}, 2, 9
+        {size.x / ((float)cols), size.y / ((float)rows), 0.0f},
+        6, {size.x * 0.5f, size.y * 0.5f}, 2, 9
     };
     {
         memStackFramePush(app->memory);
@@ -218,7 +219,7 @@ void appOnStartup(void* dataPtr)
         VK_ASSERT_Q(vkCreateDescriptorPool(gVkDev, &info, NULL, &app->descPool));
     }
     
-    initGenerator(app, 8, 8);
+    initGenerator(app, V2F(2.f, 2.f), 8, 8);
 	gFence = gDrawFence[0];
 }
 

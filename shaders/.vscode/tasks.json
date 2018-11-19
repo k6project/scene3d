@@ -6,7 +6,7 @@
         {
             "label": "glslc",
             "type": "shell",
-            "command": "$VULKAN_SDK/macOS/bin/glslc ${file} -o ${fileDirname}/../assets/shaders/${fileBasename}.spv",
+            "command": "$VULKAN_SDK/macOS/bin/glslc ${file} -std=450core -o ${fileDirname}/../assets/shaders/${fileBasename}.spv",
             "windows": 
             {
                 "command": "& \"$env:VULKAN_SDK\\Bin\\glslc.exe\" ${file} -o ${fileDirname}\\..\\assets\\shaders\\${fileBasename}.spv"

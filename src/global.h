@@ -38,9 +38,18 @@ extern "C"
 #endif
 
 typedef float Color[4];
-typedef float Vec2f[2];
+//typedef float Vec2f[2];
 typedef float Vec3f[3];
 typedef float Vec4f[4];
+
+typedef union
+{
+    struct { float x, y; };
+    struct { float u, v; };
+    float ptr[2];
+} Vec2f;
+    
+#define V2F(a,b) ((Vec2f){(a),(b)})
    
 /* File I/O */
 void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode);
