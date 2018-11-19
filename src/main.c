@@ -1,5 +1,6 @@
 #include "global.h"
 
+#include "args.h"
 #include "vk_api.h"
 
 #include <string.h>
@@ -28,6 +29,9 @@ typedef struct
 {
 	HMemAlloc memory;
     const Options* options;
+	HVulkan vkContext;
+	HVkQueue vkQueue;
+#if 0
     VkDescriptorPool descPool;
     
     VkShaderModule generator;
@@ -39,10 +43,12 @@ typedef struct
     VkDescriptorSet generatorDescr;
     void* generatorSetup;
     uint32_t generatorSetupLen;
+#endif
 } AppState;
 
 static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t cols)
 {
+#if 0
     struct {
         Vec3f gridStep;
         uint32_t numVerts;
@@ -172,11 +178,17 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
         app->generatorSetup = memForwdAlloc(app->memory, sizeof(genParams));
         memcpy(app->generatorSetup, &genParams, sizeof(genParams));
     }
+#endif
 }
 
 void appOnStartup(void* dataPtr)
 {
     AppState* app = dataPtr;
+	HVkQueue* queues[] = { &app->vkQueue };
+	VklQueueReq queueReq = { VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, true };
+	VklOptions vklOpts = { app->options, 1, &queueReq };
+	vklInitialize(&app->vkContext, &vklOpts, app->memory);
+#if 0
     vkxInitialize(0, app->options, NULL);
     vkxRequestQueues(1, (VkxQueueReq[])
     {
@@ -221,10 +233,12 @@ void appOnStartup(void* dataPtr)
     
     initGenerator(app, V2F(2.f, 2.f), 8, 8);
 	gFence = gDrawFence[0];
+#endif
 }
 
 static void renderFrame(AppState* app)
 {
+#if 0
     uint32_t imageIdx = 0;
     VkSemaphore frameBegin = gFrmBegin[gFrameIdx];
     VkSemaphore frameEnd = gFrmEnd[gFrameIdx];
@@ -241,8 +255,12 @@ static void renderFrame(AppState* app)
     
     vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipeline);
     vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipelineLayout, 0, 1, &app->generatorDescr, 0, NULL);
+	//buffer to writable state
+	//vklBufferBarrierCSOutToVSIn
+	//
     vkCmdPushConstants(cmdBuff, app->generatorPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, app->generatorSetupLen, app->generatorSetup);
     vkCmdDispatch(cmdBuff, 1, 1, 1);
+	//buffer to VBO state
     
     vkxCmdClearColorImage(cmdBuffInfo, displayImg, VK_CLEAR_COLOR(0.f, 0.4f, 0.9f, 1.f));
     vkxCmdPreparePresent(cmdBuffInfo, displayImg);
@@ -253,10 +271,15 @@ static void renderFrame(AppState* app)
     VK_PRESENT_INFO_KHR(presentInfo, imageIdx, frameEnd);
 	vkQueuePresentKHR(gCmdQueue, &presentInfo);
     gFrameIdx = vkxNextFrame(gFrameIdx);
+#endif
 }
 
 void appOnShutdown(void* dataPtr)
 {
+	AppState* app = dataPtr;
+	HVulkan vk = app->vkContext;
+	vklFinalize(vk);
+#if 0
     AppState* app = dataPtr;
     vkDeviceWaitIdle(gVkDev);
     
@@ -275,6 +298,7 @@ void appOnShutdown(void* dataPtr)
     vkxDestroyCommandBuffer(gCmdPool, 0, gCmdBuff);
     vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
     vkxFinalize();
+#endif
 }
 
 extern void appInitialize(HMemAlloc mem, const Options* opts, void* state);

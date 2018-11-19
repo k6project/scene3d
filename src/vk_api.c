@@ -1,14 +1,10 @@
 #include "global.h"
 
-#define VKL_IMPL
 #include "vk_api.h"
+#include "args.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-#define VK_MAX_QUEUES 8
-#define VK_MAX_QUEUE_FAMILIES 8
-#define VK_MAX_SURFACE_FORMATS 8
 
 #define VKL_CPU_MEM_TOTAL 65536u // 3/4 forward, 1/4 stack
 #define VKL_CPU_MEM_FORWD ((VKL_CPU_MEM_TOTAL >> 1) + (VKL_CPU_MEM_TOTAL >> 2))
@@ -38,6 +34,12 @@ static const uint32_t VKL_NUM_REQUIRED_EXTENSIONS = sizeof(VKL_REQUIRED_EXTENSIO
 static const char* VKL_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
 static const uint32_t VKL_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VKL_REQUIRED_DEVICE_EXTENSIONS) / sizeof(const char*);
 
+struct VkQueue_
+{
+	uint32_t family;
+	VkQueue ptr;
+};
+
 struct VklEnv
 {
     HMemAlloc memory;
@@ -47,39 +49,71 @@ struct VklEnv
     VkInstance instance;
     VkSurfaceKHR surface;
     VkPhysicalDevice adapter;
-    VkPhysicalDeviceMemoryProperties phdMemProps;
-    VkSurfaceCapabilitiesKHR phdSurfCaps;
+    VkPhysicalDeviceMemoryProperties memProps;
     VkDevice device;
-    uint32_t phdMask;           // physical device mask
+	struct VkQueue_* queue;		// array of device queues
+	uint32_t phdMask;           // physical device mask
     uint32_t scSize;            // number of buffers in the swapchain
     VkImage* fbImage;           // array holding swapchain images
     VkSwapchainKHR swapchain;
     VkSurfaceFormatKHR sFormat;
-    uint32_t qfNum;             // number of queue families
-    uint32_t* qfCount;          // number of queues from each family
-    
-    //IDEA: vklSubmit(myQueueHandle, buffers,....)
-    //      myQueueHandle is an index to the array
-    uint32_t* qfIndex;          // queue family indices
-    VkQueue* queue;             // queue handles
 };
 
 extern bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
 
-static void vklCreateAndInitInstance(struct VklEnv* vk, const Options* opts);
-static void vklGetGraphicsAdapter(struct VklEnv* vk);
+static void vklRequestQueue(HVulkan vk, VkQueueFamilyProperties* props, uint32_t* count, uint32_t num, VklQueueReq* req, uint32_t* outFamily);
+static void vklCreateAndInitInstance(HVulkan vk, const Options* opts);
+static void vklGetGraphicsAdapter(HVulkan vk);
+static void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_t numFamilies);
 
-void vklInitialize(struct VklEnv** vkPtr, const Options* opts, HMemAlloc memory)
+void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory)
 {
-    void* parentMem = memForwdAlloc(memory, VKL_CPU_MEM_TOTAL);
-    HMemAlloc local = memAllocCreate(VKL_CPU_MEM_FORWD, VKL_CPU_MEM_STACK, parentMem, VKL_CPU_MEM_TOTAL);
-    struct VklEnv* vk = memForwdAlloc(local, sizeof(struct VklEnv));
+	size_t memBytes = memSubAllocSize(VKL_CPU_MEM_TOTAL);
+    void* parentMem = memForwdAlloc(memory, memBytes);
+    HMemAlloc local = memAllocCreate(VKL_CPU_MEM_FORWD, VKL_CPU_MEM_STACK, parentMem, memBytes);
+	struct VklEnv* vk = memForwdAlloc(local, sizeof(struct VklEnv));
     vk->memory = local;
     vk->alloc = NULL;
-    vklCreateAndInitInstance(vk, opts);
+	memStackFramePush(vk->memory);
+    vklCreateAndInitInstance(vk, opts->appOpts);
     TEST_Q(sysCreateVkSurface(vk->instance, vk->alloc, &vk->surface));
     vklGetGraphicsAdapter(vk);
+	uint32_t numQueueFamilies = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &numQueueFamilies, NULL);
+	VkQueueFamilyProperties* qProps = memStackAlloc(vk->memory, numQueueFamilies * sizeof(VkQueueFamilyProperties));
+	uint32_t* qCount = memStackAlloc(vk->memory, numQueueFamilies * sizeof(uint32_t));
+	vk->queue = memForwdAlloc(vk->memory, opts->numQueueReq * sizeof(struct VkQueue_));
+	vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &numQueueFamilies, qProps);
+	memset(qCount, 0, (numQueueFamilies * sizeof(uint32_t)));
+	for (uint32_t i = 0; i < opts->numQueueReq; i++)
+		vklRequestQueue(vk, qProps, qCount, numQueueFamilies, &opts->queueReq[i], &vk->queue[i].family);
+	vklCreateDeviceAndSwapchain(vk, qCount, numQueueFamilies);
+	memStackFramePop(vk->memory);
     *vkPtr = vk;
+}
+
+void vklRequestQueue(HVulkan vk, VkQueueFamilyProperties* props, uint32_t* count, uint32_t num, VklQueueReq* req, uint32_t* outFamily)
+{
+	uint32_t family = num;
+	for (uint32_t i = 0; i < num; i++)
+	{
+		if ((props[i].queueFlags & req->flags) == req->flags && count[i] < props[i].queueCount)
+		{
+			if (req->present)
+			{
+				VkBool32 canPresent = VK_FALSE;
+				vkGetPhysicalDeviceSurfaceSupportKHR(vk->adapter, i, vk->surface, &canPresent);
+				if (canPresent == VK_FALSE)
+					continue;
+			}
+			family = i;
+			if (count[i] == 0)
+				break;
+		}
+	}
+	ASSERT(family < num, "ERROR: %s", "Failed to allocate device queue");
+	*outFamily = family;
+	++count[family];
 }
 
 static VkBool32 vklDebugFn(VkDebugReportFlagsEXT flags,
@@ -91,11 +125,12 @@ static VkBool32 vklDebugFn(VkDebugReportFlagsEXT flags,
                            const char* pMessage,
                            void* pUserData)
 {
+	HVulkan vk = pUserData;
     sysPrintf("%s\n", pMessage);
     return VK_FALSE;
 }
 
-void vklCreateAndInitInstance(struct VklEnv* vk, const Options* opts)
+void vklCreateAndInitInstance(HVulkan vk, const Options* opts)
 {
     ASSERT(sysLoadLibrary(VK_LIBRARY, &vk->dll), "ERROR: %s", "Failed to load library");
     memStackFramePush(vk->memory);
@@ -164,7 +199,7 @@ void vklCreateAndInitInstance(struct VklEnv* vk, const Options* opts)
     memStackFramePop(vk->memory);
 }
 
-void vklFinalize(struct VklEnv* vk)
+void vklFinalize(HVulkan vk)
 {
     vkDeviceWaitIdle(vk->device);
     vkDestroySwapchainKHR(vk->device, vk->swapchain, vk->alloc);
@@ -177,7 +212,7 @@ void vklFinalize(struct VklEnv* vk)
     sysUnloadLibrary(vk->dll);
 }
 
-void vklGetGraphicsAdapter(struct VklEnv* vk)
+void vklGetGraphicsAdapter(HVulkan vk)
 {
     memStackFramePush(vk->memory);
     vk->adapter = VK_NULL_HANDLE;
@@ -193,7 +228,7 @@ void vklGetGraphicsAdapter(struct VklEnv* vk)
                 VkPhysicalDeviceProperties props;
                 vkGetPhysicalDeviceProperties(adapters[i], &props);
                 vkGetPhysicalDeviceQueueFamilyProperties(adapters[i], &numFamilies, NULL);
-                sysPrintf("%u: %s (%u queue fam.)\n", i, props.deviceName, numFamilies);
+                sysPrintf("%u: %s (%u queue families)\n", i, props.deviceName, numFamilies);
                 VkBool32 canPresent = VK_FALSE;
                 for (uint32_t j = 0; j < numFamilies; j++)
                 {
@@ -218,23 +253,70 @@ void vklGetGraphicsAdapter(struct VklEnv* vk)
         }
     }
     ASSERT(vk->adapter, "ERROR: %s", "Failed to choose graphics adapter");
-    sysPrintf("Unsing adapter %u\n", idx);
+	vkGetPhysicalDeviceMemoryProperties(vk->adapter, &vk->memProps);
+    sysPrintf("Using adapter %u\n", idx);
     memStackFramePop(vk->memory);
     vk->phdMask = 1 << idx;
-    vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &vk->qfNum, NULL);
-    
-    /*gQueueCount = stackAlloc(gNumQueueFamilies * sizeof(uint32_t));
-    memset(gQueueCount, 0, (gNumQueueFamilies * sizeof(uint32_t)));
-    gQueueFamProps = stackAlloc(gNumQueueFamilies * sizeof(VkQueueFamilyProperties));
-    vkGetPhysicalDeviceQueueFamilyProperties(gVkPhDev, &gNumQueueFamilies, gQueueFamProps);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(gVkPhDev, gVkSurf, &gNumSurfFormats, NULL);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(gVkPhDev, gVkSurf, &gNumPresentModes, NULL);
-    gSurfFormats = stackAlloc(gNumSurfFormats * sizeof(VkSurfaceFormatKHR));
-    gPresentModes = stackAlloc(gNumPresentModes * sizeof(VkPresentModeKHR));
-    vkGetPhysicalDeviceSurfaceFormatsKHR(gVkPhDev, gVkSurf, &gNumSurfFormats, gSurfFormats);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(gVkPhDev, gVkSurf, &gNumPresentModes, gPresentModes);
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->adapter, vk->surface, &vk->phdSurfCaps);
-    vkGetPhysicalDeviceMemoryProperties(vk->adapter, &vk->phdMemProps);*/
+}
+
+void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_t numFamilies)
+{
+	memStackFramePush(vk->memory);
+	VkDeviceCreateInfo info = {0};
+	VkDeviceQueueCreateInfo* qInfo = memStackAlloc(vk->memory, numFamilies * sizeof(VkDeviceQueueCreateInfo));
+	for (uint32_t i = 0; i < numFamilies; i++)
+	{ 
+		if (queueCount[i] > 0)
+		{
+			qInfo[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			qInfo[i].pNext = NULL;
+			qInfo[i].flags = 0;
+			qInfo[i].queueFamilyIndex = i;
+			qInfo[i].queueCount = queueCount[i];
+			float* prios = memStackAlloc(vk->memory, queueCount[i] * sizeof(float));
+			for (uint32_t j = 0; j < queueCount[i]; j++)
+				prios[j] = 1.f;
+			qInfo[i].pQueuePriorities = prios;
+			info.queueCreateInfoCount += 1;
+		}
+	}
+	info.pQueueCreateInfos = qInfo;
+	info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	info.enabledExtensionCount = VKL_NUM_REQUIRED_DEVICE_EXTENSIONS;
+	info.ppEnabledExtensionNames = VKL_REQUIRED_DEVICE_EXTENSIONS;
+	VK_ASSERT(vkCreateDevice(vk->adapter, &info, vk->alloc, &vk->device), "ERROR: %s", "Failed to create device");
+#define VULKAN_API_DEVICE(proc) \
+    vk ## proc = ( PFN_vk ## proc )vkGetDeviceProcAddr( vk->device, "vk" #proc ); \
+    ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", "vk" #proc );
+#include "vk_api.inl"
+	sysPrintf("Loaded device-specific function pointers\n");
+	memStackFramePop(vk->memory);
+}
+
+void vklBufferBarrierCSOutToVSIn(struct VklEnv* vk, VkBuffer buff)
+{
+	VkBufferMemoryBarrier barr = {0};
+	barr.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+	barr.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+	barr.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_INDEX_READ_BIT;
+	barr.srcQueueFamilyIndex = -1;//TODO
+	barr.dstQueueFamilyIndex = -1;//TODO
+	barr.buffer = buff;
+	barr.offset = 0; //TODO
+	barr.size = 0; //TODO
+	//TODO write into VklEnv
+}
+
+void vklBufferBarrierVSInToCSOut(struct VklEnv* vk, VkBuffer buff)
+{
+	vklBufferBarrierCSOutToVSIn(vk, buff);
+	//TODO: swap srcAccessMask and dstAccessMask of last buffer memory barrier definition
+}
+
+void vklCmdBarrier(struct VklEnv* vk, VkCommandBuffer cb, VkPipelineStageFlags src, VkPipelineStageFlags dst)
+{
+	//TODO: resource barriers are stored in VklEnv and reset after execution
+	vkCmdPipelineBarrier(cb, src, dst, 0, 0, NULL, 0, NULL, 0, NULL);
 }
 
 /////////////////////////////////////////////////////////////////// LEGACY

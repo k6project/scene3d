@@ -24,6 +24,7 @@ void memStackFramePush(HMemAlloc mem);
 void memStackFramePop(HMemAlloc mem);
 void* memHeapAlloc(HMemAlloc mem, size_t bytes);
 void memHeapFree(HMemAlloc mem, void* ptr);
+size_t memSubAllocSize(size_t bytes);
 
 #ifdef __cplusplus
 }

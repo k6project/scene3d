@@ -44,4 +44,10 @@ void main()
 
 #endif // STAGE_VS_
 
+#ifdef STAGE_CS_
+
+#define VERTEX_DATA_BUFFER(n) buffer n##_ { Vertex n []; }
+
+#endif // STAGE_CS_
+
 #endif // VERTEX_

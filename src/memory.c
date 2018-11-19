@@ -88,3 +88,8 @@ void memHeapFree(HMemAlloc mem, void* ptr)
 {
 	free(ptr);
 }
+
+size_t memSubAllocSize(size_t bytes)
+{
+	return (bytes + sizeof(struct MemAlloc));
+}

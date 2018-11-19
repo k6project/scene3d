@@ -9,7 +9,7 @@
             "command": "$VULKAN_SDK/macOS/bin/glslc ${file} -std=450core -o ${fileDirname}/../assets/shaders/${fileBasename}.spv",
             "windows": 
             {
-                "command": "& \"$env:VULKAN_SDK\\Bin\\glslc.exe\" ${file} -o ${fileDirname}\\..\\assets\\shaders\\${fileBasename}.spv"
+                "command": "& \"$env:VULKAN_SDK\\Bin\\glslc.exe\" ${file} -std=450core -o ${fileDirname}\\..\\assets\\shaders\\${fileBasename}.spv"
             },
             "problemMatcher": [],
             "group": {

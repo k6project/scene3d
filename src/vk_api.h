@@ -1,7 +1,6 @@
 #pragma once
 
 #include "global.h"
-#include "args.h"
 
 #define VK_SHADER_MAIN "main"
 
@@ -12,15 +11,6 @@
 #define VK_USE_PLATFORM_MACOS_MVK
 #define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 #endif
-
-#ifdef VKL_IMPL
-struct VlkEnv;
-typedef struct VlkEnv* HVulkan;
-#else
-typedef void* HVulkan;
-#endif
-
-typedef uint32_t HVkQueue;
 
 #define VK_SWAPCHAIN_SIZE 3
 #define VK_NO_PROTOTYPES
@@ -44,6 +34,34 @@ extern "C"
 #define VULKAN_API_INSTANCE(proc) extern PFN_vk ## proc vk ## proc;
 #define VULKAN_API_DEVICE(proc) extern PFN_vk ## proc vk ## proc;
 #include "vk_api.inl"
+
+///////////////////////////////////////
+
+typedef uint32_t HVkQueue;
+typedef uint32_t HVkBuffer; // can be distinct object or sub-allocation, distinct object can have or not have committed memory
+
+struct Options;
+
+typedef struct
+{
+	VkQueueFlags flags;
+	bool present;
+} VklQueueReq;
+
+typedef struct
+{
+	const struct Options* appOpts;
+	uint32_t numQueueReq;
+	VklQueueReq* queueReq;
+} VklOptions;
+
+struct VklEnv;
+typedef struct VklEnv* HVulkan;
+
+void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory);
+void vklFinalize(HVulkan vk);
+
+///////////////////////////////////////
     
 typedef struct
 {
@@ -65,7 +83,7 @@ extern VkSwapchainKHR gVkSwapchain;
 extern VkSurfaceFormatKHR gSurfaceFormat;
 extern VkImage* gDisplayImage;
 
-void vkxInitialize(size_t maxMem, const Options* opts, const VkAllocationCallbacks* alloc);
+void vkxInitialize(size_t maxMem, const struct Options* opts, const VkAllocationCallbacks* alloc);
 void vkxFinalize(void); 
 void vkxRequestQueues(uint32_t count, VkxQueueReq* request);
 void vkxCreateDeviceAndSwapchain(void);

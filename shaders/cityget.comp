@@ -5,6 +5,8 @@
 
 layout(local_size_x_id = 0, local_size_y_id = 1) in;
 
+layout (std430, binding = 0) VERTEX_DATA_BUFFER(gOut);
+
 layout(push_constant)
 uniform Parameters
 {
@@ -13,12 +15,6 @@ uniform Parameters
     vec2 gGridRange;
     uint gMinHeight;
     uint gMaxHeight;
-};
-
-layout (std430, binding = 0) 
-buffer Output 
-{ 
-    Vertex gVertices[]; 
 };
 
 const vec3 gTemplatePos[] =
@@ -40,9 +36,8 @@ void main()
     uint index = gl_LocalInvocationIndex * gNumVerts;
     for (uint i = 0; i < gNumVerts; i++)
     {
-        VSInput vertex;
         vertex.position = center + gTemplatePos[i] * gGridStep.xyz;
         uint idx = index + i;
-        packVertex(vertex, gVertices[idx]);
+        packVertex(vertex, gOut[idx]);
     }
 }
