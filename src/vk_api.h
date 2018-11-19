@@ -12,7 +12,6 @@
 #define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 #endif
 
-#define VK_SWAPCHAIN_SIZE 3
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
@@ -21,9 +20,6 @@
 
 #define VK_ASSERT(c, m, ...) \
     ASSERT(c == VK_SUCCESS, m, __VA_ARGS__)
-
-#define VK_QUEUE_GCT \
-    (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT)
 
 #ifdef __cplusplus
 extern "C"
@@ -58,7 +54,7 @@ typedef struct
 struct VklEnv;
 typedef struct VklEnv* HVulkan;
 
-void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory);
+void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory, HVkQueue** pQueues);
 void vklFinalize(HVulkan vk);
 
 ///////////////////////////////////////

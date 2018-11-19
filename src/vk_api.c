@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define VKL_SWAPCHAIN_MIN_SIZE 3
 #define VKL_CPU_MEM_TOTAL 65536u // 3/4 forward, 1/4 stack
 #define VKL_CPU_MEM_FORWD ((VKL_CPU_MEM_TOTAL >> 1) + (VKL_CPU_MEM_TOTAL >> 2))
 #define VKL_CPU_MEM_STACK (VKL_CPU_MEM_TOTAL - VKL_CPU_MEM_FORWD)
@@ -37,6 +38,7 @@ static const uint32_t VKL_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VKL_REQUIRED_D
 struct VkQueue_
 {
 	uint32_t family;
+    uint32_t index;
 	VkQueue ptr;
 };
 
@@ -65,8 +67,11 @@ static void vklRequestQueue(HVulkan vk, VkQueueFamilyProperties* props, uint32_t
 static void vklCreateAndInitInstance(HVulkan vk, const Options* opts);
 static void vklGetGraphicsAdapter(HVulkan vk);
 static void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_t numFamilies);
+static VkSurfaceFormatKHR vklGetSwapchainSurfaceFormat(HVulkan vk);
+static VkPresentModeKHR vklGetSwapchainPresentMode(HVulkan vk);
+static uint32_t vklGetSwapchainSize(VkSurfaceCapabilitiesKHR* caps);
 
-void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory)
+void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory, HVkQueue** pQueues)
 {
 	size_t memBytes = memSubAllocSize(VKL_CPU_MEM_TOTAL);
     void* parentMem = memForwdAlloc(memory, memBytes);
@@ -86,8 +91,15 @@ void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory)
 	vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &numQueueFamilies, qProps);
 	memset(qCount, 0, (numQueueFamilies * sizeof(uint32_t)));
 	for (uint32_t i = 0; i < opts->numQueueReq; i++)
-		vklRequestQueue(vk, qProps, qCount, numQueueFamilies, &opts->queueReq[i], &vk->queue[i].family);
+    {
+        uint32_t familyIdx = INV_IDX;
+        vklRequestQueue(vk, qProps, qCount, numQueueFamilies, &opts->queueReq[i], &familyIdx);
+        vk->queue[i].family = familyIdx;
+        vk->queue[i].index = qCount[familyIdx] - 1;
+    }
 	vklCreateDeviceAndSwapchain(vk, qCount, numQueueFamilies);
+    for (uint32_t i = 0; i < opts->numQueueReq; i++)
+        *pQueues[i] = i;
 	memStackFramePop(vk->memory);
     *vkPtr = vk;
 }
@@ -125,7 +137,7 @@ static VkBool32 vklDebugFn(VkDebugReportFlagsEXT flags,
                            const char* pMessage,
                            void* pUserData)
 {
-	HVulkan vk = pUserData;
+	//HVulkan vk = pUserData;
     sysPrintf("%s\n", pMessage);
     return VK_FALSE;
 }
@@ -261,6 +273,7 @@ void vklGetGraphicsAdapter(HVulkan vk)
 
 void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_t numFamilies)
 {
+    uint32_t numQueues = 0;
 	memStackFramePush(vk->memory);
 	VkDeviceCreateInfo info = {0};
 	VkDeviceQueueCreateInfo* qInfo = memStackAlloc(vk->memory, numFamilies * sizeof(VkDeviceQueueCreateInfo));
@@ -278,6 +291,7 @@ void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_
 				prios[j] = 1.f;
 			qInfo[i].pQueuePriorities = prios;
 			info.queueCreateInfoCount += 1;
+            numQueues += queueCount[i];
 		}
 	}
 	info.pQueueCreateInfos = qInfo;
@@ -290,7 +304,85 @@ void vklCreateDeviceAndSwapchain(HVulkan vk, const uint32_t* queueCount, uint32_
     ASSERT(vk ## proc, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
 	sysPrintf("Loaded device-specific function pointers\n");
+    for (uint32_t i = 0; i < numQueues; i++)
+    {
+        uint32_t family = vk->queue[i].family;
+        uint32_t index = vk->queue[i].index;
+        VkQueue* queue = &vk->queue[i].ptr;
+        vkGetDeviceQueue(vk->device, family, index, queue);
+    }
+    VkSwapchainCreateInfoKHR swapchainInfo = {0};
+    VkSurfaceCapabilitiesKHR surfCaps;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->adapter, vk->surface, &surfCaps);
+    vk->sFormat = vklGetSwapchainSurfaceFormat(vk);
+    swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainInfo.imageArrayLayers = 1;
+    swapchainInfo.clipped = VK_TRUE;
+    swapchainInfo.preTransform = surfCaps.currentTransform;
+    swapchainInfo.minImageCount = vklGetSwapchainSize(&surfCaps);
+    swapchainInfo.presentMode = vklGetSwapchainPresentMode(vk);
+    swapchainInfo.imageFormat = vk->sFormat.format;
+    swapchainInfo.imageColorSpace = vk->sFormat.colorSpace;
+    swapchainInfo.surface = vk->surface;
+    swapchainInfo.imageExtent = surfCaps.currentExtent;
+    VK_ASSERT(vkCreateSwapchainKHR(vk->device, &swapchainInfo, vk->alloc, &vk->swapchain), "ERROR: %s", "Failed to create swapchain");
+    VK_ASSERT(vkGetSwapchainImagesKHR(vk->device, vk->swapchain, &vk->scSize, NULL), "ERROR: %s", "Failed to get swapchain images");
+    vk->fbImage = memForwdAlloc(vk->memory, vk->scSize * sizeof(VkImage));
+    vkGetSwapchainImagesKHR(vk->device, vk->swapchain, &vk->scSize, vk->fbImage);
 	memStackFramePop(vk->memory);
+}
+
+VkSurfaceFormatKHR vklGetSwapchainSurfaceFormat(HVulkan vk)
+{
+    memStackFramePush(vk->memory);
+    VkSurfaceFormatKHR retVal =
+    {
+        VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+    };
+    uint32_t numFormats = 0;
+    VK_ASSERT_Q(vkGetPhysicalDeviceSurfaceFormatsKHR(vk->adapter, vk->surface, &numFormats, NULL));
+    VkSurfaceFormatKHR* formats = memStackAlloc(vk->memory, numFormats * sizeof(VkSurfaceFormatKHR));
+    vkGetPhysicalDeviceSurfaceFormatsKHR(vk->adapter, vk->surface, &numFormats, formats);
+    for (uint32_t i = 0; i < numFormats; i++)
+    {
+        if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB)
+        {
+            retVal = formats[i];
+            break;
+        }
+    }
+    memStackFramePop(vk->memory);
+    return retVal;
+}
+
+uint32_t vklGetSwapchainSize(VkSurfaceCapabilitiesKHR* caps)
+{
+    if (caps->minImageCount > VKL_SWAPCHAIN_MIN_SIZE)
+        return caps->minImageCount;
+    if (caps->maxImageCount < VKL_SWAPCHAIN_MIN_SIZE)
+        return caps->maxImageCount;
+    return VKL_SWAPCHAIN_MIN_SIZE;
+}
+
+VkPresentModeKHR vklGetSwapchainPresentMode(HVulkan vk)
+{
+    memStackFramePush(vk->memory);
+    uint32_t numModes = 0;
+    VkPresentModeKHR retVal = VK_PRESENT_MODE_FIFO_KHR;
+    VK_ASSERT_Q(vkGetPhysicalDeviceSurfacePresentModesKHR(vk->adapter, vk->surface, &numModes, NULL));
+    VkPresentModeKHR* modes = memStackAlloc(vk->memory, numModes * sizeof(VkPresentModeKHR));
+    vkGetPhysicalDeviceSurfacePresentModesKHR(vk->adapter, vk->surface, &numModes, modes);
+    for (uint32_t i = 0; i < numModes; i++)
+        if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+        {
+            retVal = modes[i];
+            break;
+        }
+    memStackFramePop(vk->memory);
+    return retVal;
 }
 
 void vklBufferBarrierCSOutToVSIn(struct VklEnv* vk, VkBuffer buff)
@@ -539,11 +631,14 @@ static void vkGetGraphicsAdapterAPP()
 
 static uint32_t vkGetSwapchainSizeAPP()
 {
+    /*
     if (gSurfCaps.minImageCount > VK_SWAPCHAIN_SIZE)
         return gSurfCaps.minImageCount;
     if (gSurfCaps.maxImageCount < VK_SWAPCHAIN_SIZE)
         return gSurfCaps.maxImageCount;
     return VK_SWAPCHAIN_SIZE;
+     */
+    return 0;
 }
 
 static VkPresentModeKHR vkGetSwapchainPresentMode()

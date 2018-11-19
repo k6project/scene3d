@@ -15,6 +15,7 @@
 #define MAX_DESC_IMAGE  0
 #define MAX_DESC_SETS   8
 
+#if 0
 static uint32_t gFrameIdx = 0;
 static uint32_t gQueueFamily = 0;
 static VkQueue gCmdQueue = VK_NULL_HANDLE;
@@ -24,6 +25,7 @@ static VkSemaphore* gFrmBegin = NULL;
 static VkSemaphore* gFrmEnd = NULL;
 static VkFence gFence = VK_NULL_HANDLE;
 static VkFence* gDrawFence = NULL;
+#endif
 
 typedef struct
 {
@@ -187,7 +189,7 @@ void appOnStartup(void* dataPtr)
 	HVkQueue* queues[] = { &app->vkQueue };
 	VklQueueReq queueReq = { VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, true };
 	VklOptions vklOpts = { app->options, 1, &queueReq };
-	vklInitialize(&app->vkContext, &vklOpts, app->memory);
+	vklInitialize(&app->vkContext, &vklOpts, app->memory, queues);
 #if 0
     vkxInitialize(0, app->options, NULL);
     vkxRequestQueues(1, (VkxQueueReq[])
