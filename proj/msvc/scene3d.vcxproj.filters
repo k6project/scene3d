@@ -6,12 +6,17 @@
     <ClCompile Include="..\..\src\args.c" />
     <ClCompile Include="..\..\src\memory.c" />
     <ClCompile Include="..\..\src\vk_api.c" />
+    <ClCompile Include="..\..\src\pcgen.c" />
+    <ClCompile Include="..\..\src\vk_context.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\args.h" />
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\memory.h" />
     <ClInclude Include="..\..\src\vk_api.h" />
+    <ClInclude Include="..\..\src\pcgen.h" />
+    <ClInclude Include="..\..\src\vk_types.h" />
+    <ClInclude Include="..\..\src\vk_context.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\vk_api.inl" />

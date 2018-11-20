@@ -1,7 +1,7 @@
 #include "global.h"
 
 #include "args.h"
-#include "vk_api.h"
+#include "vk_context.h"
 
 #include <string.h>
 
@@ -31,8 +31,9 @@ typedef struct
 {
 	HMemAlloc memory;
     const Options* options;
-	HVulkan vkContext;
-	HVkQueue vkQueue;
+	VkContext* vulkan;
+	//HVulkan vkContext;
+	//HVkQueue vkQueue;
 #if 0
     VkDescriptorPool descPool;
     
@@ -185,11 +186,20 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
 
 void appOnStartup(void* dataPtr)
 {
+	VkContext* vk = NULL;
     AppState* app = dataPtr;
-	HVkQueue* queues[] = { &app->vkQueue };
-	VklQueueReq queueReq = { VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, true };
-	VklOptions vklOpts = { app->options, 1, &queueReq };
-	vklInitialize(&app->vkContext, &vklOpts, app->memory, queues);
+	VkQueueRequest queueRequest = 
+	{
+		VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT,
+		true
+	};
+	VkContextInfo contextInfo = {0};
+	contextInfo.options = app->options;
+	contextInfo.numQueueReq = 1;
+	contextInfo.queueReq = &queueRequest;
+	vk_CreateContext(vk, &contextInfo, app->memory);
+	//
+	app->vulkan = vk;
 #if 0
     vkxInitialize(0, app->options, NULL);
     vkxRequestQueues(1, (VkxQueueReq[])
@@ -240,6 +250,9 @@ void appOnStartup(void* dataPtr)
 
 static void renderFrame(AppState* app)
 {
+	//VkFrame frame;
+	//VkContext* vk = app->vulkan;
+	//vk_BeginFrame(vk, &frame);
 #if 0
     uint32_t imageIdx = 0;
     VkSemaphore frameBegin = gFrmBegin[gFrameIdx];
@@ -274,13 +287,14 @@ static void renderFrame(AppState* app)
 	vkQueuePresentKHR(gCmdQueue, &presentInfo);
     gFrameIdx = vkxNextFrame(gFrameIdx);
 #endif
+	//vk_EndFrame(vk, &frame);
 }
 
 void appOnShutdown(void* dataPtr)
 {
 	AppState* app = dataPtr;
-	HVulkan vk = app->vkContext;
-	vklFinalize(vk);
+	VkContext* vk = app->vulkan;
+	vk_DestroyContext(vk);
 #if 0
     AppState* app = dataPtr;
     vkDeviceWaitIdle(gVkDev);
@@ -309,7 +323,7 @@ extern bool appShouldKeepRunning(void);
 
 int appMain(int argc, const char** argv)
 {
-    AppState appState;
+	AppState appState = {0};
     appState.memory = memAllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
     appState.options = argParse(argc, argv, appState.memory);
 	appInitialize(appState.memory, appState.options, &appState);

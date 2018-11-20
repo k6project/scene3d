@@ -1,7 +1,7 @@
 #include "global.h"
 
 #include "args.h"
-#include "vk_api.h"
+#include "vk_context.h"
 
 #include <stdio.h>
 #include <shlwapi.h>
@@ -127,14 +127,14 @@ void sysPrintf(const char* fmt, ...)
 #endif
 }
 
-bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+bool sysCreateVkSurface(VkContext* vk)
 {
 	VkWin32SurfaceCreateInfoKHR createInfo;
 	memset(&createInfo, 0, sizeof(createInfo));
 	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 	createInfo.hinstance = GetModuleHandle(NULL);
 	createInfo.hwnd = gState.window;
-	VK_ASSERT(vkCreateWin32SurfaceKHR(inst, &createInfo, alloc, surface), "ERROR: %s", "Failed to create surface");
+	VKFN(vk->CreateWin32SurfaceKHRImpl(vk->inst, &createInfo, vk->alloc, &vk->surf));
 	return true;
 }
 

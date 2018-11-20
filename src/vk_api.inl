@@ -52,7 +52,17 @@ VULKAN_API_DEVICE(AllocateCommandBuffers)
 VULKAN_API_DEVICE(FreeCommandBuffers)
 VULKAN_API_DEVICE(CreateRenderPass)
 VULKAN_API_DEVICE(DestroyRenderPass)
+#ifdef _MSC_VER
+#undef CreateSemaphore
 VULKAN_API_DEVICE(CreateSemaphore)
+#ifdef UNICODE
+#define CreateSemaphore  CreateSemaphoreW
+#else
+#define CreateSemaphore  CreateSemaphoreA
+#endif
+#else
+VULKAN_API_DEVICE(CreateSemaphore)
+#endif
 VULKAN_API_DEVICE(DestroySemaphore)
 VULKAN_API_DEVICE(CreateFence)
 VULKAN_API_DEVICE(DestroyFence)
