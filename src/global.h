@@ -48,6 +48,13 @@ typedef union
     struct { float u, v; };
     float ptr[2];
 } Vec2f;
+
+typedef union
+{
+    struct { uint32_t x, y, z; };
+    struct { uint32_t u, v, w; };
+    uint32_t ptr[3];
+} Vec3u;
     
 #define V2F(a,b) ((Vec2f){(a),(b)})
    

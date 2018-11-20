@@ -1,7 +1,5 @@
 #pragma once
 
-#include "global.h"
-
 #define VK_SHADER_MAIN "main"
 
 #ifdef _MSC_VER
@@ -33,9 +31,8 @@ extern "C"
 
 ///////////////////////////////////////
 
-typedef uint32_t HVkQueue;
-typedef uint32_t HVkBuffer; // can be distinct object or sub-allocation, distinct object can have or not have committed memory
-
+#include "vk_types.h"
+    
 struct Options;
 
 typedef struct
@@ -50,9 +47,6 @@ typedef struct
 	uint32_t numQueueReq;
 	VklQueueReq* queueReq;
 } VklOptions;
-
-struct VklEnv;
-typedef struct VklEnv* HVulkan;
 
 void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory, HVkQueue** pQueues);
 void vklFinalize(HVulkan vk);

@@ -42,6 +42,14 @@ struct VkQueue_
 	VkQueue ptr;
 };
 
+struct VkPipeline_
+{
+    VkPipelineBindPoint bindPoint;
+    VkShaderStageFlagBits stage;
+    VkPipelineLayout layout;
+    VkPipeline ptr;
+};
+
 struct VklEnv
 {
     HMemAlloc memory;
@@ -53,7 +61,11 @@ struct VklEnv
     VkPhysicalDevice adapter;
     VkPhysicalDeviceMemoryProperties memProps;
     VkDevice device;
-	struct VkQueue_* queue;		// array of device queues
+	
+    struct VkQueue_* queue;		 // array of device queues
+    uint32_t pipelineCount;      // number of pipelines
+    struct VkPipeline_ pipeline; // draw/compute pipelines
+    
 	uint32_t phdMask;           // physical device mask
     uint32_t scSize;            // number of buffers in the swapchain
     VkImage* fbImage;           // array holding swapchain images
