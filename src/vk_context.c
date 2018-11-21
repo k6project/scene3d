@@ -3,6 +3,8 @@
 #include "vk_context.h"
 #include "args.h"
 
+#include <string.h>
+
 #ifdef _MSC_VER
 #define VK_LIBRARY "vulkan-1.dll"
 #else
@@ -78,6 +80,12 @@ void vk_DestroyContextImpl(VkContext** ctx)
 {
 	VkContext* vk = *ctx;
 	vk->DeviceWaitIdleImpl(vk->dev);
+    for (uint32_t i = 0; i < vk->scSize; i++)
+    {
+        vk->DestroySemaphoreImpl(vk->dev, vk->frmFbOk[i], vk->alloc);
+        vk->DestroySemaphoreImpl(vk->dev, vk->frmFinished[i], vk->alloc);
+        vk->DestroyFenceImpl(vk->dev, vk->frmFence[i], vk->alloc);
+    }
 	vk->DestroySwapchainKHRImpl(vk->dev, vk->swapchain, vk->alloc);
 	vk->DestroyDeviceImpl(vk->dev, vk->alloc);
 	vk->DestroySurfaceKHRImpl(vk->inst, vk->surf, vk->alloc);
@@ -91,14 +99,13 @@ void vk_DestroyContextImpl(VkContext** ctx)
 
 void vk_BeginFrame(VkContext* vk, VkFrame* frm)
 {
+    frm->index = vk->frameIdx;
 	frm->imgIdx = INV_IDX;
 	frm->fbImage = VK_NULL_HANDLE;
 	frm->fbOk = vk->frmFbOk[vk->frameIdx];
 	frm->finished = vk->frmFinished[vk->frameIdx];
-	VkFence fence = vk->frmFence[vk->frameIdx];
-	vk->WaitForFencesImpl(vk->dev, 1, &fence, VK_TRUE, UINT64_MAX);
-	uint32_t nextIndex = vk->frameIdx + 1;
-	frm->fence = vk->frmFence[(nextIndex == vk->scSize) ? 0 : nextIndex];
+	frm->fence = vk->frmFence[vk->frameIdx];
+	vk->WaitForFencesImpl(vk->dev, 1, &frm->fence, VK_TRUE, UINT64_MAX);
 	vk->ResetFencesImpl(vk->dev, 1, &frm->fence);
 }
 
@@ -106,6 +113,27 @@ void vk_EndFrame(VkContext* vk, VkFrame* frm)
 {
 	uint32_t nextIndex = vk->frameIdx + 1;
 	vk->frameIdx = (nextIndex == vk->scSize) ? 0 : nextIndex;
+}
+
+void vk_InitCommandRecorder(VkContext* vk, VkCommandRecorder* cr, uint32_t queueIdx)
+{
+    VkCommandPoolCreateInfo info = {0};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    VKFN(vk->CreateCommandPoolImpl(vk->dev, &info, vk->alloc, &cr->pool));
+    cr->buffers = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
+    VkCommandBufferAllocateInfo cbInfo = {0};
+    cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cbInfo.commandPool = cr->pool;
+    cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cbInfo.commandBufferCount = vk->scSize;
+    VKFN(vk->AllocateCommandBuffersImpl(vk->dev, &cbInfo, cr->buffers));
+}
+
+void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr)
+{
+    vk->FreeCommandBuffersImpl(vk->dev, cr->pool, vk->scSize, cr->buffers);
+    vk->DestroyCommandPoolImpl(vk->dev, cr->pool, vk->alloc);
 }
 
 void vk_RequestQueue(VkContext* vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
@@ -139,8 +167,8 @@ void vk_CreateAndInitInstance(VkContext* vk, const Options* opts)
 	vk->GetInstanceProcAddrImpl = sysGetLibraryProc(vk->dll, "vkGetInstanceProcAddr");
 	ASSERT(vk->GetInstanceProcAddrImpl, "ERROR: Failed to get pointer to %s", "vkGetInstanceProcAddr");
 #define VULKAN_API_GOBAL(proc) \
-    vk-> ## proc ## Impl = ( PFN_vk ## proc )vk->GetInstanceProcAddrImpl( NULL, "vk" #proc ); \
-    ASSERT(vk-> ## proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
+    vk->proc ## Impl = ( PFN_vk ## proc )vk->GetInstanceProcAddrImpl( NULL, "vk" #proc ); \
+    ASSERT(vk->proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
 	sysPrintf("Loaded global function pointers\n");
 	VkApplicationInfo appInfo;
@@ -182,8 +210,8 @@ void vk_CreateAndInitInstance(VkContext* vk, const Options* opts)
 	if (result == VK_SUCCESS)
 	{
 #define VULKAN_API_INSTANCE(proc) \
-        vk-> ## proc ## Impl = ( PFN_vk ## proc )vk->GetInstanceProcAddrImpl( vk->inst, "vk" #proc ); \
-        ASSERT(vk-> ## proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
+        vk->proc ## Impl = ( PFN_vk ## proc )vk->GetInstanceProcAddrImpl( vk->inst, "vk" #proc ); \
+        ASSERT(vk->proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
 		sysPrintf("Loaded instance-specific function pointers\n");
 #ifdef _DEBUG
@@ -289,8 +317,8 @@ void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint
 	info.ppEnabledExtensionNames = VK_REQUIRED_DEVICE_EXTENSIONS;
 	VKFN(vk->CreateDeviceImpl(vk->phdev, &info, vk->alloc, &vk->dev));
 #define VULKAN_API_DEVICE(proc) \
-    vk-> ## proc ## Impl = ( PFN_vk ## proc )vk->GetDeviceProcAddrImpl( vk->dev, "vk" #proc ); \
-    ASSERT(vk-> ## proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
+    vk->proc ## Impl = ( PFN_vk ## proc )vk->GetDeviceProcAddrImpl( vk->dev, "vk" #proc ); \
+    ASSERT(vk->proc ## Impl, "ERROR: Failed to get pointer to %s", "vk" #proc );
 #include "vk_api.inl"
 	sysPrintf("Loaded device-specific function pointers\n");
 	for (uint32_t i = 0; i < numQueues; i++)

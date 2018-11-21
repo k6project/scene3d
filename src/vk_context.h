@@ -53,6 +53,17 @@ typedef struct
 	VkFence* frmFence;
 	uint32_t frameIdx; // current frame index
 } VkContext;
+    
+//Thread-local: command pool + commandbuffers
+//Begin frame allocates array of command buffers (depending on renderer architecture)
+//them functions are called (runCompute(<command buffer slot>), drawEverything(<...>))
+//internally, each runs on other thread and fills the slot with command buffer
+
+typedef struct
+{
+    VkCommandPool pool;
+    VkCommandBuffer* buffers;
+} VkCommandRecorder;
 
 typedef struct
 {
@@ -70,6 +81,7 @@ typedef struct
 
 typedef struct
 {
+    uint32_t index;
 	uint32_t imgIdx;
 	VkImage fbImage;
 	VkSemaphore fbOk;
@@ -81,6 +93,10 @@ void vk_CreateContextImpl(VkContext** ctx, const VkContextInfo* info, HMemAlloc 
 void vk_DestroyContextImpl(VkContext** ctx);
 void vk_BeginFrame(VkContext* vk, VkFrame* frm);
 void vk_EndFrame(VkContext* vk, VkFrame* frm);
+void vk_InitCommandRecorder(VkContext* vk, VkCommandRecorder* cr, uint32_t queueIdx);
+void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr);
+    
+#define vk_GetCommandBuffer(f,cr) ((cr).buffers[(f).index])
 
 #define VKFN(c) TEST_Q( (c) == VK_SUCCESS ) 
 #define vk_CreateContext(v,o,m) vk_CreateContextImpl(&v,o,m)

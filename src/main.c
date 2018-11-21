@@ -32,8 +32,7 @@ typedef struct
 	HMemAlloc memory;
     const Options* options;
 	VkContext* vulkan;
-	//HVulkan vkContext;
-	//HVkQueue vkQueue;
+    VkCommandRecorder cRec;
 #if 0
     VkDescriptorPool descPool;
     
@@ -198,7 +197,7 @@ void appOnStartup(void* dataPtr)
 	contextInfo.numQueueReq = 1;
 	contextInfo.queueReq = &queueRequest;
 	vk_CreateContext(vk, &contextInfo, app->memory);
-	//
+	vk_InitCommandRecorder(vk, &app->cRec, 0);
 	app->vulkan = vk;
 #if 0
     vkxInitialize(0, app->options, NULL);
@@ -253,6 +252,8 @@ static void renderFrame(AppState* app)
 	//VkFrame frame;
 	//VkContext* vk = app->vulkan;
 	//vk_BeginFrame(vk, &frame);
+    //VkCommandBuffer cb = vk_GetCommandBuffer(frame,app->cRec);
+    //vk_BeginCommandBufferOneOff(cb); //reset+begin
 #if 0
     uint32_t imageIdx = 0;
     VkSemaphore frameBegin = gFrmBegin[gFrameIdx];
@@ -265,6 +266,7 @@ static void renderFrame(AppState* app)
     vkWaitForFences(gVkDev, 1, &gFence, VK_TRUE, UINT64_MAX);
 	gFence = gDrawFence[gFrameIdx];
 	vkResetFences(gVkDev, 1, &gFence);
+    
 	vkResetCommandBuffer(cmdBuff, 0);
     vkxBeginCommandBufferOneOff(cmdBuff);
     
@@ -294,6 +296,7 @@ void appOnShutdown(void* dataPtr)
 {
 	AppState* app = dataPtr;
 	VkContext* vk = app->vulkan;
+    vk_DestroyCommandRecorder(vk, &app->cRec);
 	vk_DestroyContext(vk);
 #if 0
     AppState* app = dataPtr;

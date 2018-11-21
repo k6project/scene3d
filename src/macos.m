@@ -1,7 +1,7 @@
 #include "global.h"
 
 #include "args.h"
-#include "vk_api.h"
+#include "vk_context.h"
 
 #include <dlfcn.h>
 #include <stdarg.h>
@@ -182,14 +182,14 @@ void sysPrintf(const char* fmt, ...)
     va_end(args);
 }
 
-bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface)
+bool sysCreateVkSurface(VkContext* vk)
 {
     VkMacOSSurfaceCreateInfoMVK createInfo =
     {
         .sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK, .pNext = NULL,
         .flags = 0, .pView = (__bridge void*)[[NSApp keyWindow] contentView]
     };
-    if (vkCreateMacOSSurfaceMVK(inst, &createInfo, alloc, surface) != VK_SUCCESS)
+    if (vk->CreateMacOSSurfaceMVKImpl(vk->inst, &createInfo, vk->alloc, &vk->surf) != VK_SUCCESS)
     {
         sysPrintf("ERROR: Failed to create surface");
         return false;
