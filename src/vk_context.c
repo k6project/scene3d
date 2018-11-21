@@ -85,6 +85,7 @@ void vk_DestroyContextImpl(VkContext** ctx)
         vk->DestroySemaphoreImpl(vk->dev, vk->frmFbOk[i], vk->alloc);
         vk->DestroySemaphoreImpl(vk->dev, vk->frmFinished[i], vk->alloc);
         vk->DestroyFenceImpl(vk->dev, vk->frmFence[i], vk->alloc);
+		vk->DestroyImageViewImpl(vk->dev, vk->fbView[i], vk->alloc);
     }
 	vk->DestroySwapchainKHRImpl(vk->dev, vk->swapchain, vk->alloc);
 	vk->DestroyDeviceImpl(vk->dev, vk->alloc);
@@ -348,10 +349,11 @@ void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint
 	VKFN(vk->CreateSwapchainKHRImpl(vk->dev, &swapchainInfo, vk->alloc, &vk->swapchain));
 	VKFN(vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, NULL));
 	vk->fbImage = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImage));
-	vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, vk->fbImage);
+	vk->fbView = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImageView));
 	vk->frmFbOk = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
 	vk->frmFinished = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
 	vk->frmFence = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkFence));
+	vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, vk->fbImage);
 	for (uint32_t i = 0; i < vk->scSize; i++)
 	{
 		VkSemaphoreCreateInfo sInfo = {0};
@@ -362,6 +364,18 @@ void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint
 		VKFN(vk->CreateFenceImpl(vk->dev, &fInfo, vk->alloc, &vk->frmFence[i]));
 		VKFN(vk->CreateSemaphoreImpl(vk->dev, &sInfo, vk->alloc, &vk->frmFbOk[i]));
 		VKFN(vk->CreateSemaphoreImpl(vk->dev, &sInfo, vk->alloc, &vk->frmFinished[i]));
+		VkImageViewCreateInfo ivInfo = {0};
+		ivInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		ivInfo.image = vk->fbImage[i];
+		ivInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		ivInfo.format = vk->surfFmt.format;
+		ivInfo.components.r = ivInfo.components.g = ivInfo.components.b = ivInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		ivInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		ivInfo.subresourceRange.baseMipLevel = 0;
+		ivInfo.subresourceRange.levelCount = 1;
+		ivInfo.subresourceRange.baseArrayLayer = 0;
+		ivInfo.subresourceRange.layerCount = 1;
+		VKFN(vk->CreateImageViewImpl(vk->dev, &ivInfo, vk->alloc, &vk->fbView[i]));
 	}
 	memStackFramePop(vk->mem);
 }

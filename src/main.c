@@ -198,6 +198,8 @@ void appOnStartup(void* dataPtr)
 	contextInfo.queueReq = &queueRequest;
 	vk_CreateContext(vk, &contextInfo, app->memory);
 	vk_InitCommandRecorder(vk, &app->cRec, 0);
+	//create render pass with framebuffer attachment
+	//vk_CreateRenderPass(vk, 0<number of attachments>, NULL<array of attachment images>, <depth attachment ptr>);
 	app->vulkan = vk;
 #if 0
     vkxInitialize(0, app->options, NULL);

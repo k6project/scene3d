@@ -9,6 +9,8 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+#define VK_MAX_BARRIERS_PER_CALL 4
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -48,17 +50,13 @@ typedef struct
 	VkQueueInfo* queues;
 	VkSwapchainKHR swapchain;
 	VkImage* fbImage; // array holding swapchain images
+	VkImageView* fbView;
 	VkSemaphore* frmFbOk; // semaphores to signify image acquisition
 	VkSemaphore* frmFinished; // semaphores to signal to present
 	VkFence* frmFence;
 	uint32_t frameIdx; // current frame index
 } VkContext;
     
-//Thread-local: command pool + commandbuffers
-//Begin frame allocates array of command buffers (depending on renderer architecture)
-//them functions are called (runCompute(<command buffer slot>), drawEverything(<...>))
-//internally, each runs on other thread and fills the slot with command buffer
-
 typedef struct
 {
     VkCommandPool pool;
@@ -79,6 +77,11 @@ typedef struct
 	VkQueueRequest* queueReq;
 } VkContextInfo;
 
+typedef struct 
+{
+	VkFramebuffer ptr;
+} VkFramebufferInfo;
+
 typedef struct
 {
     uint32_t index;
@@ -87,6 +90,12 @@ typedef struct
 	VkSemaphore fbOk;
 	VkSemaphore finished;
 	VkFence fence;
+	uint32_t numImgBarrier;
+	VkImageMemoryBarrier imgBarrier[VK_MAX_BARRIERS_PER_CALL];
+	uint32_t numBufBarrier;
+	VkBufferMemoryBarrier bufBarrier[VK_MAX_BARRIERS_PER_CALL];
+	uint32_t numMemBarrier;
+	VkMemoryBarrier memBarrier[VK_MAX_BARRIERS_PER_CALL];
 } VkFrame;
 
 void vk_CreateContextImpl(VkContext** ctx, const VkContextInfo* info, HMemAlloc mem);
@@ -101,7 +110,6 @@ void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr);
 #define VKFN(c) TEST_Q( (c) == VK_SUCCESS ) 
 #define vk_CreateContext(v,o,m) vk_CreateContextImpl(&v,o,m)
 #define vk_CreateCommandPool(v,inf,ptr) VKFN((v)->CreateCommandPoolImpl((v)->dev,(inf),(v)->alloc,(ptr)))
-	//CreateCommandBuffer ???
 
 #define vk_CreateSemaphore(v,inf,ptr) do { \
 	VkSemaphoreCreateInfo info = {0}; \
@@ -116,7 +124,6 @@ void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr);
 	VKFN((v)->CreateFenceImpl((v)->dev,&info,(v)->alloc,(ptr))); \
 } while (0)
 
-//CreateDescriptorPool
 #define vk_CreateComputePipelines(v,cnt,inf,ptr) VKFN((v)->CreateComputePipelines((v)->dev,(v)->plCache,(cnt),(inf),(v)->alloc,(ptr)))
 #define vk_DeviceWaitIdle(v) (v)->DeviceWaitIdleImpl((v)->dev)
 #define vk_DestroyContext(v) vk_DestroyContextImpl(&v)
