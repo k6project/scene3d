@@ -34,28 +34,83 @@ static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEV
 #define VK_CPU_MEM_FORWD ((VK_CPU_MEM_TOTAL >> 1) + (VK_CPU_MEM_TOTAL >> 2))
 #define VK_CPU_MEM_STACK (VK_CPU_MEM_TOTAL - VK_CPU_MEM_FORWD)
 
-extern bool sysCreateVkSurface(VkContext* vk);
-static void vk_RequestQueue(VkContext* vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam);
-static void vk_CreateAndInitInstance(VkContext* vk, const Options* opts);
+struct VkContextImpl
+{
+	PFN_vkGetInstanceProcAddr GetInstanceProcAddrImpl;
+#define VULKAN_API_GOBAL(proc) PFN_vk ## proc proc ## Impl;
+#define VULKAN_API_INSTANCE(proc) PFN_vk ## proc proc ## Impl;
+#define VULKAN_API_DEVICE(proc) PFN_vk ## proc proc ## Impl;
+#include "vk_api.inl"
+
+	HMemAlloc mem;
+	void* dll;
+	VkAllocationCallbacks* alloc;
+	VkInstance inst;
+#ifdef _DEBUG
+	VkDebugReportCallbackEXT debug;
+#endif
+	VkSurfaceKHR surf;
+	VkSurfaceFormatKHR surfFmt;
+	VkPhysicalDevice phdev;
+	VkPhysicalDeviceMemoryProperties memProps;
+
+	uint32_t phdMask; // physical device mask
+	uint32_t scSize;  // number of buffers in the swapchain
+	
+	VkExtent2D fbSize;
+	VkDevice dev;
+	VkPipelineCache plCache;
+	VkQueueInfo* queues;
+	
+	VkSwapchainKHR swapchain;
+	VkImage* fbImage; // array holding swapchain images
+	VkImageView* fbView;
+	VkSemaphore* frmFbOk; // semaphores to signify image acquisition
+	VkSemaphore* frmFinished; // semaphores to signal to present
+	VkFence* frmFence;
+	uint32_t frameIdx; // current frame index
+
+	struct 
+	{
+		uint32_t image;
+		VkSemaphore fbOk, finished;
+		VkFence fence;
+	} frame;
+
+	struct  
+	{
+		VkCommandPool pool;
+		VkCommandBuffer* buffer;
+	} cmd;
+};
+
+extern const void* sysGetVkSurfaceInfo();
+static void vk_RequestQueue(HVkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam);
+static void vk_CreateAndInitInstance(HVkContext vk, const Options* opts);
 static VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
-static void vk_GetGraphicsAdapter(VkContext* vk);
-static void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint32_t numFamilies);
-static VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext* vk);
-static VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext* vk);
+static void vk_GetGraphicsAdapter(HVkContext vk);
+static void vk_CreateDeviceAndSwapchain(HVkContext vk, const uint32_t* queueCount, uint32_t numFamilies);
+static VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(HVkContext vk);
+static VkPresentModeKHR vk_GetSwapchainPresentMode(HVkContext vk);
 static uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps);
 
-void vk_CreateContextImpl(VkContext** ctx, const VkContextInfo* info, HMemAlloc mem)
+void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkContext* vkPtr)
 {
 	ASSERT_Q(info->parent == NULL);
 	size_t memBytes = memSubAllocSize(VK_CPU_MEM_TOTAL);
 	void* parentMem = memForwdAlloc(mem, memBytes);
 	HMemAlloc local = memAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
-	VkContext* vk = memForwdAlloc(local, sizeof(VkContext));
+	HVkContext vk = memForwdAlloc(local, sizeof(struct VkContextImpl));
 	vk->mem = local;
 	vk->alloc = NULL;
+	vk->frameIdx = 0;
 	memStackFramePush(vk->mem);
 	vk_CreateAndInitInstance(vk, info->options);
-	TEST_Q(sysCreateVkSurface(vk));
+#if defined(VK_USE_PLATFORM_MACOS_MVK)
+	//
+#elif defined(VK_USE_PLATFORM_WIN32_KHR)
+	VKFN(vk->CreateWin32SurfaceKHRImpl(vk->inst, sysGetVkSurfaceInfo(), vk->alloc, &vk->surf));
+#endif
 	vk_GetGraphicsAdapter(vk);
 	uint32_t numQueueFamilies = 0;
 	vk->GetPhysicalDeviceQueueFamilyPropertiesImpl(vk->phdev, &numQueueFamilies, NULL);
@@ -72,13 +127,23 @@ void vk_CreateContextImpl(VkContext** ctx, const VkContextInfo* info, HMemAlloc 
 		vk->queues[i].index = qCount[familyIdx] - 1;
 	}
 	vk_CreateDeviceAndSwapchain(vk, qCount, numQueueFamilies);
+	VkCommandPoolCreateInfo poolInfo = {0};
+	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	VKFN(vk->CreateCommandPoolImpl(vk->dev, &poolInfo, vk->alloc, &vk->cmd.pool));
+	vk->cmd.buffer = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
+	VkCommandBufferAllocateInfo cbInfo = {0};
+	cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cbInfo.commandPool = vk->cmd.pool;
+	cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	cbInfo.commandBufferCount = vk->scSize;
+	VKFN(vk->AllocateCommandBuffersImpl(vk->dev, &cbInfo, vk->cmd.buffer));
 	memStackFramePop(vk->mem);
-	*ctx = vk;
+	*vkPtr = vk;
 }
 
-void vk_DestroyContextImpl(VkContext** ctx)
+void vk_DestroyRenderContext(HVkContext vk)
 {
-	VkContext* vk = *ctx;
 	vk->DeviceWaitIdleImpl(vk->dev);
     for (uint32_t i = 0; i < vk->scSize; i++)
     {
@@ -87,6 +152,8 @@ void vk_DestroyContextImpl(VkContext** ctx)
         vk->DestroyFenceImpl(vk->dev, vk->frmFence[i], vk->alloc);
 		vk->DestroyImageViewImpl(vk->dev, vk->fbView[i], vk->alloc);
     }
+	vk->FreeCommandBuffersImpl(vk->dev, vk->cmd.pool, vk->scSize, vk->cmd.buffer);
+	vk->DestroyCommandPoolImpl(vk->dev, vk->cmd.pool, vk->alloc);
 	vk->DestroySwapchainKHRImpl(vk->dev, vk->swapchain, vk->alloc);
 	vk->DestroyDeviceImpl(vk->dev, vk->alloc);
 	vk->DestroySurfaceKHRImpl(vk->inst, vk->surf, vk->alloc);
@@ -95,40 +162,56 @@ void vk_DestroyContextImpl(VkContext** ctx)
 #endif
 	vk->DestroyInstanceImpl(vk->inst, vk->alloc);
 	sysUnloadLibrary(vk->dll);
-	*ctx = NULL;
 }
 
-void vk_BeginFrame(VkContext* vk, VkFrame* frm)
+VkFormat vk_GetSwapchainImageFormat(HVkContext vk)
 {
-    frm->index = vk->frameIdx;
-	frm->imgIdx = INV_IDX;
-	frm->fbImage = VK_NULL_HANDLE;
-	frm->fbOk = vk->frmFbOk[vk->frameIdx];
-	frm->finished = vk->frmFinished[vk->frameIdx];
-	frm->fence = vk->frmFence[vk->frameIdx];
-	vk->WaitForFencesImpl(vk->dev, 1, &frm->fence, VK_TRUE, UINT64_MAX);
-	vk->ResetFencesImpl(vk->dev, 1, &frm->fence);
+	return vk->surfFmt.format;
 }
 
-void vk_EndFrame(VkContext* vk, VkFrame* frm)
+void vk_BeginFrame(HVkContext vk)
 {
+	vk->frame.image = INV_IDX;
+	vk->frame.fbOk = vk->frmFbOk[vk->frameIdx];
+	vk->frame.finished = vk->frmFinished[vk->frameIdx];
+	vk->frame.fence = vk->frmFence[vk->frameIdx];
+	VKFN(vk->WaitForFencesImpl(vk->dev, 1, &vk->frame.fence, VK_TRUE, UINT64_MAX));
+	VKFN(vk->ResetFencesImpl(vk->dev, 1, &vk->frame.fence));
+	VKFN(vk->AcquireNextImageKHRImpl(vk->dev, vk->swapchain, UINT64_MAX, vk->frame.fbOk, VK_NULL_HANDLE, &vk->frame.image));
+	VkCommandBufferBeginInfo info = {0};
+	info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	VKFN(vk->BeginCommandBufferImpl(vk->cmd.buffer[vk->frameIdx], &info));
+}
+
+VkCommandBuffer vk_GetPrimaryCommandBuffer(HVkContext vk)
+{
+	return vk->cmd.buffer[vk->frameIdx];
+}
+
+void vk_SubmitFrame(HVkContext vk, uint32_t queue)
+{
+	VKFN(vk->EndCommandBufferImpl(vk->cmd.buffer[vk->frameIdx]));
+	VkSubmitInfo sInfo = {0};
+	sInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	sInfo.waitSemaphoreCount = 1;
+	sInfo.pWaitSemaphores = &vk->frame.fbOk;
+	sInfo.pWaitDstStageMask = (VkPipelineStageFlags[]) { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
+	sInfo.commandBufferCount = 1;
+	sInfo.pCommandBuffers = &vk->cmd.buffer[vk->frameIdx];
+	sInfo.signalSemaphoreCount = 1;
+	sInfo.pSignalSemaphores = &vk->frame.finished;
+	VKFN(vk->QueueSubmitImpl(vk->queues[queue].queue, 1, &sInfo, vk->frame.fence));
+	VkPresentInfoKHR pInfo = { 0 };
+	pInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	pInfo.waitSemaphoreCount = 1;
+	pInfo.pWaitSemaphores = &vk->frame.finished;
+	pInfo.swapchainCount = 1;
+	pInfo.pSwapchains = &vk->swapchain;
+	pInfo.pImageIndices = &vk->frame.image;
+	VKFN(vk->QueuePresentKHRImpl(vk->queues[queue].queue, &pInfo));
 	uint32_t nextIndex = vk->frameIdx + 1;
 	vk->frameIdx = (nextIndex == vk->scSize) ? 0 : nextIndex;
-}
-
-void vk_InitCommandRecorder(VkContext* vk, VkCommandRecorder* cr, uint32_t queueIdx)
-{
-    VkCommandPoolCreateInfo info = {0};
-    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    VKFN(vk->CreateCommandPoolImpl(vk->dev, &info, vk->alloc, &cr->pool));
-    cr->buffers = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
-    VkCommandBufferAllocateInfo cbInfo = {0};
-    cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cbInfo.commandPool = cr->pool;
-    cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cbInfo.commandBufferCount = vk->scSize;
-    VKFN(vk->AllocateCommandBuffersImpl(vk->dev, &cbInfo, cr->buffers));
 }
 
 void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr)
@@ -137,7 +220,7 @@ void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr)
     vk->DestroyCommandPoolImpl(vk->dev, cr->pool, vk->alloc);
 }
 
-void vk_RequestQueue(VkContext* vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
+void vk_RequestQueue(HVkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
 {
 	uint32_t family = num;
 	for (uint32_t i = 0; i < num; i++)
@@ -161,7 +244,7 @@ void vk_RequestQueue(VkContext* vk, VkQueueFamilyProperties* qfp, uint32_t* cnt,
 	++cnt[family];
 }
 
-void vk_CreateAndInitInstance(VkContext* vk, const Options* opts)
+void vk_CreateAndInitInstance(HVkContext vk, const Options* opts)
 {
 	TEST(sysLoadLibrary(VK_LIBRARY, &vk->dll), "ERROR: %s", "Failed to load library");
 	memStackFramePush(vk->mem);
@@ -242,7 +325,7 @@ VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags,
 	return VK_FALSE;
 }
 
-void vk_GetGraphicsAdapter(VkContext* vk)
+void vk_GetGraphicsAdapter(HVkContext vk)
 {
 	memStackFramePush(vk->mem);
 	vk->phdev = VK_NULL_HANDLE;
@@ -289,7 +372,7 @@ void vk_GetGraphicsAdapter(VkContext* vk)
 	vk->phdMask = 1 << idx;
 }
 
-void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint32_t numFamilies)
+void vk_CreateDeviceAndSwapchain(HVkContext vk, const uint32_t* queueCount, uint32_t numFamilies)
 {
 	uint32_t numQueues = 0;
 	memStackFramePush(vk->mem);
@@ -381,7 +464,7 @@ void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint
 	memStackFramePop(vk->mem);
 }
 
-VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext* vk)
+VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(HVkContext vk)
 {
 	memStackFramePush(vk->mem);
 	VkSurfaceFormatKHR retVal =
@@ -404,7 +487,7 @@ VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext* vk)
 	return retVal;
 }
 
-VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext* vk)
+VkPresentModeKHR vk_GetSwapchainPresentMode(HVkContext vk)
 {
 	memStackFramePush(vk->mem);
 	uint32_t numModes = 0;
@@ -431,7 +514,7 @@ uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps)
 	return VK_SWAPCHAIN_MIN_SIZE;
 }
 
-struct VkImageViewImpl
+struct VkTexture2DImpl
 {
     uint32_t width, height;
     VkImageView id;
@@ -443,46 +526,52 @@ struct VkRenderPassImpl
     struct
     {
         uint32_t num;
-        uint32_t current;
         uint32_t width;
         uint32_t height;
         VkFramebuffer* id;
     } fb;
+	VkClearValue* clearVal;
     VkRenderPass id;
 };
 
-void vk_CreateRenderPass(const VkContext* vk, const VkRenderPassCreateInfo* info, VkRenderPassRef* pass)
+void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkRenderPass* pass)
 {
-    VkRenderPassRef tmp = memForwdAlloc(vk->mem, sizeof(struct VkRenderPassImpl));
+    HVkRenderPass tmp = memForwdAlloc(vk->mem, sizeof(struct VkRenderPassImpl));
     VKFN(vk->CreateRenderPassImpl(vk->dev, info, vk->alloc, &tmp->id));
     tmp->numAttachments = info->attachmentCount;
+	tmp->clearVal = memForwdAlloc(vk->mem, sizeof(VkClearValue) * tmp->numAttachments);
+	memset(tmp->clearVal, 0, sizeof(VkClearValue) * tmp->numAttachments);
     *pass = tmp;
 }
 
-void vk_DestroyRenderPass(const VkContext* vk, VkRenderPassRef* pass)
+void vk_DestroyRenderPass(HVkContext vk, HVkRenderPass pass)
 {
-    VkRenderPassRef tmp = *pass;
-    vk->DestroyRenderPassImpl(vk->dev, tmp->id, vk->alloc);
-    for (uint32_t i = 0; i < tmp->fb.num; i++)
-        vk->DestroyFramebufferImpl(vk->dev, tmp->fb.id[i], vk->alloc);
-    *pass = NULL;
+    vk->DestroyRenderPassImpl(vk->dev, pass->id, vk->alloc);
+    for (uint32_t i = 0; i < pass->fb.num; i++)
+        vk->DestroyFramebufferImpl(vk->dev, pass->fb.id[i], vk->alloc);
 }
 
-void vk_CmdBeginRenderPass(const VkContext* vk, VkCommandBuffer cb, VkRenderPassRef pass)
+void vk_CmdBeginRenderPass(HVkContext vk, VkCommandBuffer cb, HVkRenderPass pass)
 {
     VkRenderPassBeginInfo info = {0};
     info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     info.renderPass = pass->id;
-    //info.framebuffer = (fb->numFramebuffers != 1) ? fb->ids[vk->frameIdx] : fb->id;
-    //fb->current = (fb->current + 1) % fb->numFramebuffers;
-    //info.framebuffer = fb->id[fb->current];
-    //TODO
+	info.framebuffer = (pass->fb.num != 1) ? pass->fb.id[vk->frame.image] : *pass->fb.id;
+	info.renderArea.extent.width = pass->fb.width;
+	info.renderArea.extent.height = pass->fb.height;
+	info.clearValueCount = 1;
+	info.pClearValues = pass->clearVal;
+	vk->CmdBeginRenderPassImpl(cb, &info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vk_InitPassFramebuffer(const VkContext* vk, VkRenderPassRef pass, const VkImageViewRef* views)
+void vk_CmdEndRenderPass(HVkContext vk, VkCommandBuffer cb)
+{
+	vk->CmdEndRenderPassImpl(cb);
+}
+
+void vk_InitPassFramebuffer(HVkContext vk, HVkRenderPass pass, const HVkTexture2D* views)
 {
     pass->fb.num = 1;
-    pass->fb.current = 0;
     memStackFramePush(vk->mem);
     ASSERT_Q((views) || (pass->numAttachments == 1));
     uint32_t scImageIndex = INV_IDX, fbWidth = UINT32_MAX, fbHeight = UINT32_MAX;

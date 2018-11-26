@@ -145,6 +145,7 @@
     <ClCompile Include="..\..\src\main.c" />
     <ClCompile Include="..\..\src\memory.c" />
     <ClCompile Include="..\..\src\pcgen.c" />
+    <ClCompile Include="..\..\src\render.c" />
     <ClCompile Include="..\..\src\vk_api.c" />
     <ClCompile Include="..\..\src\vk_context.c" />
     <ClCompile Include="..\..\src\win32.c" />
@@ -154,6 +155,7 @@
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\memory.h" />
     <ClInclude Include="..\..\src\pcgen.h" />
+    <ClInclude Include="..\..\src\render.h" />
     <ClInclude Include="..\..\src\vk_api.h" />
     <ClInclude Include="..\..\src\vk_context.h" />
     <ClInclude Include="..\..\src\vk_types.h" />

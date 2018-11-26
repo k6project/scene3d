@@ -1,11 +1,14 @@
 #include "global.h"
 
 #include "args.h"
-#include "vk_context.h"
 
 #include <stdio.h>
 #include <shlwapi.h>
 #include <windows.h>
+
+#define VK_NO_PROTOTYPES
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan.h>
 
 static struct
 {
@@ -127,15 +130,13 @@ void sysPrintf(const char* fmt, ...)
 #endif
 }
 
-bool sysCreateVkSurface(VkContext* vk)
+const void* sysGetVkSurfaceInfo()
 {
-	VkWin32SurfaceCreateInfoKHR createInfo;
-	memset(&createInfo, 0, sizeof(createInfo));
+	static VkWin32SurfaceCreateInfoKHR createInfo;
 	createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
 	createInfo.hinstance = GetModuleHandle(NULL);
 	createInfo.hwnd = gState.window;
-	VKFN(vk->CreateWin32SurfaceKHRImpl(vk->inst, &createInfo, vk->alloc, &vk->surf));
-	return true;
+	return &createInfo;
 }
 
 void appGetName(char* buff, size_t max)

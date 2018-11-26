@@ -73,7 +73,7 @@ struct VklEnv
     VkSurfaceFormatKHR sFormat;
 };
 
-extern bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
+//extern bool sysCreateVkSurface(VkInstance inst, const VkAllocationCallbacks* alloc, VkSurfaceKHR* surface);
 
 static void vklRequestQueue(HVulkan vk, VkQueueFamilyProperties* props, uint32_t* count, uint32_t num, VklQueueReq* req, uint32_t* outFamily);
 static void vklCreateAndInitInstance(HVulkan vk, const Options* opts);
@@ -93,7 +93,7 @@ void vklInitialize(HVulkan* vkPtr, const VklOptions* opts, HMemAlloc memory, HVk
     vk->alloc = NULL;
 	memStackFramePush(vk->memory);
     vklCreateAndInitInstance(vk, opts->appOpts);
-    TEST_Q(sysCreateVkSurface(vk->instance, vk->alloc, &vk->surface));
+    //TEST_Q(sysCreateVkSurface(vk->instance, vk->alloc, &vk->surface));
     vklGetGraphicsAdapter(vk);
 	uint32_t numQueueFamilies = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(vk->adapter, &numQueueFamilies, NULL);
@@ -891,7 +891,7 @@ void vkxInitialize(size_t maxMem, const Options* opts, const VkAllocationCallbac
     ASSERT(gVkMemBuffer, "ERROR: %s", "Failed to allocate internal memory");
     ASSERT(sysLoadLibrary(VK_LIBRARY, &gVkDllHandle), "ERROR: %s", "Failed to load library");
     vkCreateAndInitInstanceAPP(opts);
-    ASSERT_Q(sysCreateVkSurface(gVkInst, gVkAlloc, &gVkSurf));
+    //ASSERT_Q(sysCreateVkSurface(gVkInst, gVkAlloc, &gVkSurf));
     vkGetGraphicsAdapterAPP();
 }
 

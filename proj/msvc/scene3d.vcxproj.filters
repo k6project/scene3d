@@ -8,6 +8,7 @@
     <ClCompile Include="..\..\src\vk_api.c" />
     <ClCompile Include="..\..\src\pcgen.c" />
     <ClCompile Include="..\..\src\vk_context.c" />
+    <ClCompile Include="..\..\src\render.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\args.h" />
@@ -17,6 +18,7 @@
     <ClInclude Include="..\..\src\pcgen.h" />
     <ClInclude Include="..\..\src\vk_types.h" />
     <ClInclude Include="..\..\src\vk_context.h" />
+    <ClInclude Include="..\..\src\render.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\vk_api.inl" />

@@ -2,13 +2,8 @@
 
 #include "vk_context.h"
 
-typedef struct
-{
-    HMemAlloc mem, outer;
-    VkContext* vulkan;
-    VkCommandRecorder cmdRec;
-    VkRenderPassRef basePass;
-} Renderer;
+typedef struct RendererImpl* HRenderer;
 
-void rdr_CreateRenderer(HMemAlloc mem, const struct Options* opts, Renderer** rdrPtr);
-void rdr_DestroyRenderer(Renderer** rdrPtr);
+void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rdrPtr);
+void rnd_DestroyRenderer(HRenderer rnd);
+void rnd_RenderFrame(HRenderer rnd);

@@ -20,7 +20,7 @@ typedef struct
 {
 	HMemAlloc memory;
     const Options* options;
-    Renderer* renderer;
+    HRenderer renderer;
 #if 0
     VkDescriptorPool descPool;
     
@@ -173,9 +173,9 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
 
 void appOnStartup(void* dataPtr)
 {
-    Renderer* rdr = NULL;
+    HRenderer rdr = NULL;
     AppState* app = dataPtr;
-    rdr_CreateRenderer(app->memory, app->options, &rdr);
+    rnd_CreateRenderer(app->memory, app->options, &rdr);
 	app->renderer = rdr;
 #if 0
     vkxInitialize(0, app->options, NULL);
@@ -227,6 +227,7 @@ void appOnStartup(void* dataPtr)
 
 static void renderFrame(AppState* app)
 {
+	rnd_RenderFrame(app->renderer);
 	//VkFrame frame;
 	//VkContext* vk = app->vulkan;
 	//vk_BeginFrame(vk, &frame);
@@ -273,27 +274,7 @@ static void renderFrame(AppState* app)
 void appOnShutdown(void* dataPtr)
 {
 	AppState* app = dataPtr;
-    rdr_DestroyRenderer(&app->renderer);
-#if 0
-    AppState* app = dataPtr;
-    vkDeviceWaitIdle(gVkDev);
-    
-    vkDestroyPipeline(gVkDev, app->generatorPipeline, NULL);
-    vkDestroyPipelineLayout(gVkDev, app->generatorPipelineLayout, NULL);
-    vkDestroyDescriptorSetLayout(gVkDev, app->generatorSetLayout, NULL);
-    vkDestroyShaderModule(gVkDev, app->generator, NULL);
-    vkDestroyBuffer(gVkDev, app->generatorOutput, NULL);
-    vkFreeMemory(gVkDev, app->generatorMemory, NULL);
-    vkFreeDescriptorSets(gVkDev, app->descPool, 1, &app->generatorDescr);
-    vkDestroyDescriptorPool(gVkDev, app->descPool, NULL);
-	
-    vkxDestroyFence(gDrawFence, 0);
-    vkxDestroySemaphore(gFrmEnd, 0);
-    vkxDestroySemaphore(gFrmBegin, 0);
-    vkxDestroyCommandBuffer(gCmdPool, 0, gCmdBuff);
-    vkDestroyCommandPool(gVkDev, gCmdPool, gVkAlloc);
-    vkxFinalize();
-#endif
+    rnd_DestroyRenderer(app->renderer);
 }
 
 extern void appInitialize(HMemAlloc mem, const Options* opts, void* state);

@@ -23,6 +23,12 @@ typedef struct
 	VkQueue queue;
 } VkQueueInfo;
 
+typedef struct VkContextImpl* HVkContext;
+typedef struct VkTexture2DImpl* HVkTexture2D;
+typedef struct VkRenderPassImpl* HVkRenderPass;
+typedef struct VkFrameContextImpl* HFrameContext;
+typedef struct VkCommandBufferImpl* VkCommandBuferRef;
+
 typedef struct
 {
 	PFN_vkGetInstanceProcAddr GetInstanceProcAddrImpl;
@@ -70,14 +76,11 @@ typedef struct
 
 typedef struct
 {
-	const VkContext* parent;
+	HVkContext parent;
 	const struct Options* options;
 	uint32_t numQueueReq;
 	VkQueueRequest* queueReq;
-} VkContextInfo;
-
-typedef struct VkImageViewImpl* VkImageViewRef;
-typedef struct VkRenderPassImpl* VkRenderPassRef;
+} VkRenderContextInfo;
     
 typedef struct
 {
@@ -95,40 +98,21 @@ typedef struct
 	VkMemoryBarrier memBarrier[VK_MAX_BARRIERS_PER_CALL];
 } VkFrame;
 
-void vk_CreateContextImpl(VkContext** ctx, const VkContextInfo* info, HMemAlloc mem);
-void vk_DestroyContextImpl(VkContext** ctx);
-void vk_BeginFrame(VkContext* vk, VkFrame* frm);
-void vk_EndFrame(VkContext* vk, VkFrame* frm);
-void vk_InitCommandRecorder(VkContext* vk, VkCommandRecorder* cr, uint32_t queueIdx);
-void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr);
-
-void vk_CreateRenderPass(const VkContext* vk, const VkRenderPassCreateInfo* info, VkRenderPassRef* pass);
-void vk_InitPassFramebuffer(const VkContext* vk, VkRenderPassRef pass, const VkImageViewRef* views);
-void vk_DestroyRenderPass(const VkContext* vk, VkRenderPassRef* pass);
-void vk_CmdBeginRenderPass(const VkContext* vk, VkCommandBuffer cb, VkRenderPassRef pass);
+void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkContext* vkPtr);
+void vk_DestroyRenderContext(HVkContext vk);
+void vk_BeginFrame(HVkContext vk);
+VkFormat vk_GetSwapchainImageFormat(HVkContext vk);
+VkCommandBuffer vk_GetPrimaryCommandBuffer(HVkContext vk);
+void vk_SubmitFrame(HVkContext vk, uint32_t queue);
+void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkRenderPass* pass);
+void vk_InitPassFramebuffer(HVkContext vk, HVkRenderPass pass, const HVkTexture2D* textures);
+void vk_DestroyRenderPass(HVkContext vk, HVkRenderPass pass);
+void vk_CmdBeginRenderPass(HVkContext vk, VkCommandBuffer cb, HVkRenderPass pass);
+void vk_CmdEndRenderPass(HVkContext vk, VkCommandBuffer cb);
 
 #define vk_GetDisplayFormat(v) (v->surfFmt.format)
 
 #define VKFN(c) TEST_Q( (c) == VK_SUCCESS ) 
-#define vk_CreateContext(v,o,m) vk_CreateContextImpl(&v,o,m)
-#define vk_CreateCommandPool(v,inf,ptr) VKFN((v)->CreateCommandPoolImpl((v)->dev,(inf),(v)->alloc,(ptr)))
-
-#define vk_CreateSemaphore(v,inf,ptr) do { \
-	VkSemaphoreCreateInfo info = {0}; \
-	info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO; \
-    VKFN((v)->CreateSemaphoreImpl((v)->dev,(inf),(v)->alloc,(ptr))) \
-} while (0)
-
-#define vk_CreateFence(v,signaled,ptr) do { \
-	VkFenceCreateInfo info = {0}; \
-	info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO; \
-	info.flags = ((signaled)) ? VK_FENCE_CREATE_SIGNALED_BIT : 0; \
-	VKFN((v)->CreateFenceImpl((v)->dev,&info,(v)->alloc,(ptr))); \
-} while (0)
-
-#define vk_CreateComputePipelines(v,cnt,inf,ptr) VKFN((v)->CreateComputePipelines((v)->dev,(v)->plCache,(cnt),(inf),(v)->alloc,(ptr)))
-#define vk_DeviceWaitIdle(v) (v)->DeviceWaitIdleImpl((v)->dev)
-#define vk_DestroyContext(v) vk_DestroyContextImpl(&v)
 
 #ifdef __cplusplus
 }

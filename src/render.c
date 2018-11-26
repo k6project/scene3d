@@ -4,6 +4,11 @@
 
 enum
 {
+	RND_QUEUE_DEFAULT
+};
+
+enum
+{
     BASE_PASS_ATTACHMENT_COLOR0,
     BASE_PASS_NUM_ATTACHMENTS
 };
@@ -18,29 +23,31 @@ enum
 #define RDR_CPU_MEM_FORWD ((RDR_CPU_MEM_TOTAL >> 1) + (RDR_CPU_MEM_TOTAL >> 2))
 #define RDR_CPU_MEM_STACK (RDR_CPU_MEM_TOTAL - RDR_CPU_MEM_FORWD)
 
-void rdr_CreateRenderer(HMemAlloc mem, const struct Options* opts, Renderer** rdrPtr)
+struct RendererImpl
+{
+	HMemAlloc mem;
+	HVkContext vk;
+	HVkRenderPass basePass;
+};
+
+void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rndPtr)
 {
     size_t memBytes = memSubAllocSize(RDR_CPU_MEM_TOTAL);
     void* parentMem = memForwdAlloc(mem, memBytes);
     HMemAlloc local = memAllocCreate(RDR_CPU_MEM_FORWD, RDR_CPU_MEM_STACK, parentMem, memBytes);
-    Renderer* rdr = memForwdAlloc(local, sizeof(Renderer));
-    rdr->mem = local;
-    rdr->outer = mem;
-    //TODO
-    
+    HRenderer rnd = memForwdAlloc(local, sizeof(struct RendererImpl));
+    rnd->mem = local;
     VkQueueRequest queueRequest = {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, true};
-    VkContextInfo contextInfo = {0};
+    VkRenderContextInfo contextInfo = {0};
     contextInfo.options = opts;
     contextInfo.numQueueReq = 1;
     contextInfo.queueReq = &queueRequest;
-    VkContext* vk = NULL;
-    vk_CreateContext(vk, &contextInfo, mem);
-    vk_InitCommandRecorder(vk, &rdr->cmdRec, 0);
-    
+    HVkContext vk = NULL;
+    vk_CreateRenderContext(mem, &contextInfo, &vk);
     VkAttachmentDescription attachments[BASE_PASS_NUM_ATTACHMENTS] = {0};
     {
         VkAttachmentDescription* att = &attachments[BASE_PASS_ATTACHMENT_COLOR0];
-        att->format = vk_GetDisplayFormat(vk);
+		att->format = vk_GetSwapchainImageFormat(vk);
         att->samples = VK_SAMPLE_COUNT_1_BIT;
         att->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -49,7 +56,6 @@ void rdr_CreateRenderer(HMemAlloc mem, const struct Options* opts, Renderer** rd
         att->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         att->finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     }
-
     VkSubpassDescription subpasses[BASE_PASS_NUM_SUBPASSES] = {0};
     {
         VkAttachmentReference aRefs[] =
@@ -61,26 +67,29 @@ void rdr_CreateRenderer(HMemAlloc mem, const struct Options* opts, Renderer** rd
         spass->colorAttachmentCount = ARRAY_LEN(aRefs);
         spass->pColorAttachments = aRefs;
     }
-    
     VkRenderPassCreateInfo passInfo = {0};
     passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     passInfo.attachmentCount = BASE_PASS_NUM_ATTACHMENTS;
     passInfo.pAttachments = attachments;
     passInfo.subpassCount = BASE_PASS_NUM_SUBPASSES;
     passInfo.pSubpasses = subpasses;
-    vk_CreateRenderPass(vk, &passInfo, &rdr->basePass);
-    vk_InitPassFramebuffer(vk, rdr->basePass, NULL);
-    rdr->vulkan = vk;
-    *rdrPtr = rdr;
+    vk_CreateRenderPass(vk, &passInfo, &rnd->basePass);
+    vk_InitPassFramebuffer(vk, rnd->basePass, NULL);
+    rnd->vk = vk;
+    *rndPtr = rnd;
 }
 
-void rdr_DestroyRenderer(Renderer** rdrPtr)
+void rnd_DestroyRenderer(HRenderer rnd)
 {
-    Renderer* rdr = *rdrPtr;
-    VkContext* vk = rdr->vulkan;
-    //TODO
-    vk_DestroyRenderPass(vk, &rdr->basePass);
-    vk_DestroyCommandRecorder(vk, &rdr->cmdRec);
-    vk_DestroyContext(rdr->vulkan);
-    *rdrPtr = NULL;
+    vk_DestroyRenderPass(rnd->vk, rnd->basePass);
+    vk_DestroyRenderContext(rnd->vk);
+}
+
+void rnd_RenderFrame(HRenderer rnd)
+{
+	vk_BeginFrame(rnd->vk);
+	VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
+	vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->basePass);
+	vk_CmdEndRenderPass(rnd->vk, pcb);
+	vk_SubmitFrame(rnd->vk, RND_QUEUE_DEFAULT);
 }
