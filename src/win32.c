@@ -172,7 +172,7 @@ void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mo
 	ASSERT_Q(fp != INVALID_HANDLE_VALUE);
 	void* retVal = NULL;
 	LARGE_INTEGER fSize;
-	TEST_Q(GetFileSizeEx(fp, &fSize))
+	TEST_Q(GetFileSizeEx(fp, &fSize));
 	size_t bytes = fSize.LowPart;
 	switch (mode)
 	{

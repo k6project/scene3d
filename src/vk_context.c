@@ -142,6 +142,11 @@ void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkC
 	*vkPtr = vk;
 }
 
+void vk_DeviceWaitIdle(HVkContext vk)
+{
+	vk->DeviceWaitIdleImpl(vk->dev);
+}
+
 void vk_DestroyRenderContext(HVkContext vk)
 {
 	vk->DeviceWaitIdleImpl(vk->dev);
@@ -542,6 +547,14 @@ void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkR
 	tmp->clearVal = memForwdAlloc(vk->mem, sizeof(VkClearValue) * tmp->numAttachments);
 	memset(tmp->clearVal, 0, sizeof(VkClearValue) * tmp->numAttachments);
     *pass = tmp;
+}
+
+void vk_SetClearColorValue(HVkRenderPass pass, uint32_t att, Vec4f value)
+{
+	pass->clearVal[att].color.float32[0] = value.r;
+	pass->clearVal[att].color.float32[1] = value.g;
+	pass->clearVal[att].color.float32[2] = value.b;
+	pass->clearVal[att].color.float32[3] = value.a;
 }
 
 void vk_DestroyRenderPass(HVkContext vk, HVkRenderPass pass)

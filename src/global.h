@@ -44,7 +44,6 @@ struct Options;
 typedef float Color[4];
 //typedef float Vec2f[2];
 typedef float Vec3f[3];
-typedef float Vec4f[4];
 
 typedef union
 {
@@ -55,12 +54,20 @@ typedef union
 
 typedef union
 {
+	struct { float x, y, z, w; };
+	struct { float r, g, b, a; };
+	float ptr[4];
+} Vec4f;
+
+typedef union
+{
     struct { uint32_t x, y, z; };
     struct { uint32_t u, v, w; };
     uint32_t ptr[3];
 } Vec3u;
     
 #define V2F(a,b) ((Vec2f){(a),(b)})
+#define V4F(r,g,b,a) ((Vec4f){(r),(g),(b),(a)})
    
 /* File I/O */
 void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode);

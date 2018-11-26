@@ -42,6 +42,7 @@ void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rn
     contextInfo.options = opts;
     contextInfo.numQueueReq = 1;
     contextInfo.queueReq = &queueRequest;
+	memStackFramePush(rnd->mem);
     HVkContext vk = NULL;
     vk_CreateRenderContext(mem, &contextInfo, &vk);
     VkAttachmentDescription attachments[BASE_PASS_NUM_ATTACHMENTS] = {0};
@@ -58,14 +59,14 @@ void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rn
     }
     VkSubpassDescription subpasses[BASE_PASS_NUM_SUBPASSES] = {0};
     {
-        VkAttachmentReference aRefs[] =
-        {
-            {BASE_PASS_ATTACHMENT_COLOR0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}
-        };
+		uint32_t attRefs = 1;
+		VkAttachmentReference* refs = memStackAlloc(rnd->mem, attRefs * sizeof(VkAttachmentReference));
+		refs[0].attachment = BASE_PASS_ATTACHMENT_COLOR0;
+		refs[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkSubpassDescription* spass = &subpasses[BASE_PASS_SUBPASS_MAIN];
         spass->pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        spass->colorAttachmentCount = ARRAY_LEN(aRefs);
-        spass->pColorAttachments = aRefs;
+        spass->colorAttachmentCount = attRefs;
+        spass->pColorAttachments = refs;
     }
     VkRenderPassCreateInfo passInfo = {0};
     passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -74,13 +75,16 @@ void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rn
     passInfo.subpassCount = BASE_PASS_NUM_SUBPASSES;
     passInfo.pSubpasses = subpasses;
     vk_CreateRenderPass(vk, &passInfo, &rnd->basePass);
+	vk_SetClearColorValue(rnd->basePass, 0, V4F(0.f, 0.4f, 0.9f, 1.f));
     vk_InitPassFramebuffer(vk, rnd->basePass, NULL);
+	memStackFramePop(rnd->mem);
     rnd->vk = vk;
     *rndPtr = rnd;
 }
 
 void rnd_DestroyRenderer(HRenderer rnd)
 {
+	vk_DeviceWaitIdle(rnd->vk);
     vk_DestroyRenderPass(rnd->vk, rnd->basePass);
     vk_DestroyRenderContext(rnd->vk);
 }

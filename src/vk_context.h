@@ -99,12 +99,14 @@ typedef struct
 } VkFrame;
 
 void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkContext* vkPtr);
+void vk_DeviceWaitIdle(HVkContext vk);
 void vk_DestroyRenderContext(HVkContext vk);
 void vk_BeginFrame(HVkContext vk);
 VkFormat vk_GetSwapchainImageFormat(HVkContext vk);
 VkCommandBuffer vk_GetPrimaryCommandBuffer(HVkContext vk);
 void vk_SubmitFrame(HVkContext vk, uint32_t queue);
 void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkRenderPass* pass);
+void vk_SetClearColorValue(HVkRenderPass pass, uint32_t att, Vec4f value);
 void vk_InitPassFramebuffer(HVkContext vk, HVkRenderPass pass, const HVkTexture2D* textures);
 void vk_DestroyRenderPass(HVkContext vk, HVkRenderPass pass);
 void vk_CmdBeginRenderPass(HVkContext vk, VkCommandBuffer cb, HVkRenderPass pass);
