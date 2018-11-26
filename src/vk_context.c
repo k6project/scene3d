@@ -107,7 +107,7 @@ void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkC
 	memStackFramePush(vk->mem);
 	vk_CreateAndInitInstance(vk, info->options);
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
-	//
+    VKFN(vk->CreateMacOSSurfaceMVKImpl(vk->inst, sysGetVkSurfaceInfo(), vk->alloc, &vk->surf));
 #elif defined(VK_USE_PLATFORM_WIN32_KHR)
 	VKFN(vk->CreateWin32SurfaceKHRImpl(vk->inst, sysGetVkSurfaceInfo(), vk->alloc, &vk->surf));
 #endif
