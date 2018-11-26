@@ -16,6 +16,8 @@
 #define INV_IDX16 0xffffu16
 #define INV_IDX   0xffffffffu
 
+#define ARRAY_LEN(a) ((sizeof(a))/sizeof((a)[0]))
+
 #define ALIGN16(n) ((((n-1)>>4)+1)<<4)
 
 #ifdef _DEBUG
@@ -36,6 +38,8 @@
 extern "C"
 {
 #endif
+    
+struct Options;
 
 typedef float Color[4];
 //typedef float Vec2f[2];

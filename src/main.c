@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "args.h"
+#include "render.h"
 #include "vk_context.h"
 
 #include <string.h>
@@ -15,24 +16,11 @@
 #define MAX_DESC_IMAGE  0
 #define MAX_DESC_SETS   8
 
-#if 0
-static uint32_t gFrameIdx = 0;
-static uint32_t gQueueFamily = 0;
-static VkQueue gCmdQueue = VK_NULL_HANDLE;
-static VkCommandPool gCmdPool = VK_NULL_HANDLE;
-static VkCommandBuffer* gCmdBuff = NULL;
-static VkSemaphore* gFrmBegin = NULL;
-static VkSemaphore* gFrmEnd = NULL;
-static VkFence gFence = VK_NULL_HANDLE;
-static VkFence* gDrawFence = NULL;
-#endif
-
 typedef struct
 {
 	HMemAlloc memory;
     const Options* options;
-	VkContext* vulkan;
-    VkCommandRecorder cRec;
+    Renderer* renderer;
 #if 0
     VkDescriptorPool descPool;
     
@@ -185,22 +173,10 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
 
 void appOnStartup(void* dataPtr)
 {
-	VkContext* vk = NULL;
+    Renderer* rdr = NULL;
     AppState* app = dataPtr;
-	VkQueueRequest queueRequest = 
-	{
-		VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT,
-		true
-	};
-	VkContextInfo contextInfo = {0};
-	contextInfo.options = app->options;
-	contextInfo.numQueueReq = 1;
-	contextInfo.queueReq = &queueRequest;
-	vk_CreateContext(vk, &contextInfo, app->memory);
-	vk_InitCommandRecorder(vk, &app->cRec, 0);
-	//create render pass with framebuffer attachment
-	//vk_CreateRenderPass(vk, 0<number of attachments>, NULL<array of attachment images>, <depth attachment ptr>);
-	app->vulkan = vk;
+    rdr_CreateRenderer(app->memory, app->options, &rdr);
+	app->renderer = rdr;
 #if 0
     vkxInitialize(0, app->options, NULL);
     vkxRequestQueues(1, (VkxQueueReq[])
@@ -297,9 +273,7 @@ static void renderFrame(AppState* app)
 void appOnShutdown(void* dataPtr)
 {
 	AppState* app = dataPtr;
-	VkContext* vk = app->vulkan;
-    vk_DestroyCommandRecorder(vk, &app->cRec);
-	vk_DestroyContext(vk);
+    rdr_DestroyRenderer(&app->renderer);
 #if 0
     AppState* app = dataPtr;
     vkDeviceWaitIdle(gVkDev);

@@ -16,8 +16,6 @@ extern "C"
 {
 #endif
 
-struct Options;
-
 typedef struct
 {
 	uint32_t family;
@@ -45,6 +43,7 @@ typedef struct
 	VkPhysicalDeviceMemoryProperties memProps;
 	uint32_t phdMask; // physical device mask
 	uint32_t scSize;  // number of buffers in the swapchain
+    VkExtent2D fbSize;
 	VkDevice dev;
 	VkPipelineCache plCache;
 	VkQueueInfo* queues;
@@ -77,11 +76,9 @@ typedef struct
 	VkQueueRequest* queueReq;
 } VkContextInfo;
 
-typedef struct 
-{
-	VkFramebuffer ptr;
-} VkFramebufferInfo;
-
+typedef struct VkImageViewImpl* VkImageViewRef;
+typedef struct VkRenderPassImpl* VkRenderPassRef;
+    
 typedef struct
 {
     uint32_t index;
@@ -104,8 +101,13 @@ void vk_BeginFrame(VkContext* vk, VkFrame* frm);
 void vk_EndFrame(VkContext* vk, VkFrame* frm);
 void vk_InitCommandRecorder(VkContext* vk, VkCommandRecorder* cr, uint32_t queueIdx);
 void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr);
-    
-#define vk_GetCommandBuffer(f,cr) ((cr).buffers[(f).index])
+
+void vk_CreateRenderPass(const VkContext* vk, const VkRenderPassCreateInfo* info, VkRenderPassRef* pass);
+void vk_InitPassFramebuffer(const VkContext* vk, VkRenderPassRef pass, const VkImageViewRef* views);
+void vk_DestroyRenderPass(const VkContext* vk, VkRenderPassRef* pass);
+void vk_CmdBeginRenderPass(const VkContext* vk, VkCommandBuffer cb, VkRenderPassRef pass);
+
+#define vk_GetDisplayFormat(v) (v->surfFmt.format)
 
 #define VKFN(c) TEST_Q( (c) == VK_SUCCESS ) 
 #define vk_CreateContext(v,o,m) vk_CreateContextImpl(&v,o,m)

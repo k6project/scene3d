@@ -348,6 +348,7 @@ void vk_CreateDeviceAndSwapchain(VkContext* vk, const uint32_t* queueCount, uint
 	swapchainInfo.imageExtent = surfCaps.currentExtent;
 	VKFN(vk->CreateSwapchainKHRImpl(vk->dev, &swapchainInfo, vk->alloc, &vk->swapchain));
 	VKFN(vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, NULL));
+    vk->fbSize = surfCaps.currentExtent;
 	vk->fbImage = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImage));
 	vk->fbView = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImageView));
 	vk->frmFbOk = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
@@ -428,4 +429,93 @@ uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps)
 	if (caps->maxImageCount < VK_SWAPCHAIN_MIN_SIZE)
 		return caps->maxImageCount;
 	return VK_SWAPCHAIN_MIN_SIZE;
+}
+
+struct VkImageViewImpl
+{
+    uint32_t width, height;
+    VkImageView id;
+};
+
+struct VkRenderPassImpl
+{
+    uint32_t numAttachments;
+    struct
+    {
+        uint32_t num;
+        uint32_t current;
+        uint32_t width;
+        uint32_t height;
+        VkFramebuffer* id;
+    } fb;
+    VkRenderPass id;
+};
+
+void vk_CreateRenderPass(const VkContext* vk, const VkRenderPassCreateInfo* info, VkRenderPassRef* pass)
+{
+    VkRenderPassRef tmp = memForwdAlloc(vk->mem, sizeof(struct VkRenderPassImpl));
+    VKFN(vk->CreateRenderPassImpl(vk->dev, info, vk->alloc, &tmp->id));
+    tmp->numAttachments = info->attachmentCount;
+    *pass = tmp;
+}
+
+void vk_DestroyRenderPass(const VkContext* vk, VkRenderPassRef* pass)
+{
+    VkRenderPassRef tmp = *pass;
+    vk->DestroyRenderPassImpl(vk->dev, tmp->id, vk->alloc);
+    for (uint32_t i = 0; i < tmp->fb.num; i++)
+        vk->DestroyFramebufferImpl(vk->dev, tmp->fb.id[i], vk->alloc);
+    *pass = NULL;
+}
+
+void vk_CmdBeginRenderPass(const VkContext* vk, VkCommandBuffer cb, VkRenderPassRef pass)
+{
+    VkRenderPassBeginInfo info = {0};
+    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    info.renderPass = pass->id;
+    //info.framebuffer = (fb->numFramebuffers != 1) ? fb->ids[vk->frameIdx] : fb->id;
+    //fb->current = (fb->current + 1) % fb->numFramebuffers;
+    //info.framebuffer = fb->id[fb->current];
+    //TODO
+}
+
+void vk_InitPassFramebuffer(const VkContext* vk, VkRenderPassRef pass, const VkImageViewRef* views)
+{
+    pass->fb.num = 1;
+    pass->fb.current = 0;
+    memStackFramePush(vk->mem);
+    ASSERT_Q((views) || (pass->numAttachments == 1));
+    uint32_t scImageIndex = INV_IDX, fbWidth = UINT32_MAX, fbHeight = UINT32_MAX;
+    VkImageView* copy = memStackAlloc(vk->mem, pass->numAttachments * sizeof(VkImageView));
+    for (uint32_t i = 0; i < pass->numAttachments; i++)
+    {
+        copy[i] = (views && views[i]) ? views[i]->id : VK_NULL_HANDLE;
+        uint32_t w = (views && views[i]) ? views[i]->width : vk->fbSize.width;
+        uint32_t h = (views && views[i]) ? views[i]->height : vk->fbSize.height;
+        if (copy[i] == VK_NULL_HANDLE)
+        {
+            scImageIndex = i;
+            pass->fb.num = vk->scSize;
+        }
+        fbHeight = (fbHeight > h) ? h : fbHeight;
+        fbWidth = (fbWidth > w) ? w : fbWidth;
+    }
+    pass->fb.width = fbWidth;
+    pass->fb.height = fbHeight;
+    pass->fb.id = memForwdAlloc(vk->mem, sizeof(VkFramebuffer) * pass->fb.num);
+    VkFramebufferCreateInfo info = {0};
+    info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    info.renderPass = pass->id;
+    info.attachmentCount = pass->numAttachments;
+    info.pAttachments = copy;
+    info.width = fbWidth;
+    info.height = fbHeight;
+    info.layers = 1;
+    for (uint32_t i = 0; i < pass->fb.num; i++)
+    {
+        if (scImageIndex != INV_IDX)
+            copy[scImageIndex] = vk->fbView[i];
+        VKFN(vk->CreateFramebufferImpl(vk->dev, &info, vk->alloc, &pass->fb.id[i]));
+    }
+    memStackFramePop(vk->mem);
 }
