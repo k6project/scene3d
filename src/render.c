@@ -68,6 +68,15 @@ void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rn
         spass->colorAttachmentCount = attRefs;
         spass->pColorAttachments = refs;
     }
+    {
+        VkSubpassDependency dep = {0};
+        dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dep.dstSubpass = 0;
+        dep.srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        dep.dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        dep.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+        dep.dstAccessMask = VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    }
     VkRenderPassCreateInfo passInfo = {0};
     passInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     passInfo.attachmentCount = BASE_PASS_NUM_ATTACHMENTS;
@@ -93,6 +102,7 @@ void rnd_RenderFrame(HRenderer rnd)
 {
 	vk_BeginFrame(rnd->vk);
 	VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
+    //if needed, dispatch secondary command buffers for  content generation
 	vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->basePass);
 	vk_CmdEndRenderPass(rnd->vk, pcb);
 	vk_SubmitFrame(rnd->vk, RND_QUEUE_DEFAULT);

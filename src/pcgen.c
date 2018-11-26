@@ -5,6 +5,8 @@
 
 #define PCG_DIRTY 0x0001
 
+// create all necessary objects and generate secondary command buffer to execute within subpass
+
 struct PCGen
 {
     uint32_t flags;
