@@ -13,17 +13,16 @@ typedef enum
     MEM_HEAP
 } MemAllocMode;
 
-struct MemAlloc;
-typedef struct MemAlloc* HMemAlloc;
+typedef struct MemAllocImpl* MemAlloc;
 
-HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
-void memAllocRelease(HMemAlloc mem);
-void* memForwdAlloc(HMemAlloc mem, size_t bytes);
-void* memStackAlloc(HMemAlloc mem, size_t bytes);
-void memStackFramePush(HMemAlloc mem);
-void memStackFramePop(HMemAlloc mem);
-void* memHeapAlloc(HMemAlloc mem, size_t bytes);
-void memHeapFree(HMemAlloc mem, void* ptr);
+MemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
+void memAllocRelease(MemAlloc mem);
+void* memForwdAlloc(MemAlloc mem, size_t bytes);
+void* memStackAlloc(MemAlloc mem, size_t bytes);
+void memStackFramePush(MemAlloc mem);
+void memStackFramePop(MemAlloc mem);
+void* memHeapAlloc(MemAlloc mem, size_t bytes);
+void memHeapFree(MemAlloc mem, void* ptr);
 size_t memSubAllocSize(size_t bytes);
 
 #ifdef __cplusplus

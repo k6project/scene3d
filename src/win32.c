@@ -62,7 +62,7 @@ bool appShouldKeepRunning(void)
 	return gState.keepRunning;
 }
 
-void appInitialize(HMemAlloc mem, const Options* opts, void* state)
+void appInitialize(MemAlloc mem, const Options* opts, void* state)
 {
 	gState.appState = state;
 	WNDCLASS wndClass;
@@ -153,7 +153,7 @@ void appGetName(char* buff, size_t max)
 	}
 }
 
-void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode)
+void* sysLoadFile(const char* path, size_t* size, MemAlloc mem, MemAllocMode mode)
 {
 	char root[MAX_PATH + 1];
 #ifdef _DEBUG

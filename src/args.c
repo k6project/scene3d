@@ -42,7 +42,7 @@ static inline void argInitOptions(Options* opts)
     appGetName(opts->appName, APP_NAME_MAX);
 }
 
-const Options* argParse(int argc, const char** argv, HMemAlloc mem)
+const Options* argParse(int argc, const char** argv, MemAlloc mem)
 {
     Options* opts = memForwdAlloc(mem, sizeof(Options));
     struct Argument

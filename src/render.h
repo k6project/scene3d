@@ -1,7 +1,16 @@
 #pragma once
 
-typedef struct RendererImpl* HRenderer;
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rdrPtr);
-void rnd_DestroyRenderer(HRenderer rnd);
-void rnd_RenderFrame(HRenderer rnd);
+typedef struct RendererImpl* Renderer;
+
+void rnd_CreateRenderer(MemAlloc mem, const struct Options* opts, Renderer* rdrPtr);
+void rnd_DestroyRenderer(Renderer rnd);
+void rnd_RenderFrame(Renderer rnd);
+
+#ifdef __cplusplus
+}
+#endif

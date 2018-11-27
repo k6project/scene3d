@@ -11,6 +11,8 @@
 #define VK_LIBRARY "@rpath/libvulkan.1.dylib"
 #endif
 
+#define VKFN(c) TEST_Q( (c) == VK_SUCCESS )
+
 static const char* VK_REQUIRED_LAYERS[] = { "VK_LAYER_LUNARG_standard_validation" };
 static const uint32_t VK_NUM_REQUIRED_LAYERS = sizeof(VK_REQUIRED_LAYERS) / sizeof(const char*);
 static const char* VK_REQUIRED_EXTENSIONS[] =
@@ -34,6 +36,13 @@ static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEV
 #define VK_CPU_MEM_FORWD ((VK_CPU_MEM_TOTAL >> 1) + (VK_CPU_MEM_TOTAL >> 2))
 #define VK_CPU_MEM_STACK (VK_CPU_MEM_TOTAL - VK_CPU_MEM_FORWD)
 
+typedef struct VkQueueInfo
+{
+    uint32_t family;
+    uint32_t index;
+    VkQueue queue;
+} VkQueueInfo;
+
 struct VkContextImpl
 {
     PFN_vkGetInstanceProcAddr GetInstanceProcAddrImpl;
@@ -42,7 +51,7 @@ struct VkContextImpl
 #define VULKAN_API_DEVICE(proc) PFN_vk ## proc proc ## Impl;
 #include "vk_api.inl"
 
-    HMemAlloc mem;
+    MemAlloc mem;
     void* dll;
     VkAllocationCallbacks* alloc;
     VkInstance inst;
@@ -94,12 +103,12 @@ static VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext vk);
 static VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext vk);
 static uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps);
 
-void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, VkContext* vkPtr)
+void vk_CreateContext(MemAlloc mem, const VkContextInfo* info, VkContext* vkPtr)
 {
     ASSERT_Q(info->parent == NULL);
     size_t memBytes = memSubAllocSize(VK_CPU_MEM_TOTAL);
     void* parentMem = memForwdAlloc(mem, memBytes);
-    HMemAlloc local = memAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
+    MemAlloc local = memAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
     VkContext vk = memForwdAlloc(local, sizeof(struct VkContextImpl));
     vk->mem = local;
     vk->alloc = NULL;
@@ -147,7 +156,7 @@ void vk_DeviceWaitIdle(VkContext vk)
     vk->DeviceWaitIdleImpl(vk->dev);
 }
 
-void vk_DestroyRenderContext(VkContext vk)
+void vk_DestroyContext(VkContext vk)
 {
     vk->DeviceWaitIdleImpl(vk->dev);
     for (uint32_t i = 0; i < vk->scSize; i++)
@@ -227,6 +236,16 @@ void vk_SubmitFrame(VkContext vk, uint32_t queue)
     VKFN(vk->QueuePresentKHRImpl(vk->queues[queue].queue, &pInfo));
     uint32_t nextIndex = vk->frameIdx + 1;
     vk->frameIdx = (nextIndex == vk->scSize) ? 0 : nextIndex;
+}
+
+void vk_CreateDescriptorPool(VkContext vk, const VkDescriptorPoolCreateInfo* info, VkDescriptorPool* pool)
+{
+    VKFN(vk->CreateDescriptorPoolImpl(vk->dev, info, vk->alloc, pool));
+}
+
+void vk_DestroyDescriptorPool(VkContext vk, VkDescriptorPool pool)
+{
+    vk->DestroyDescriptorPoolImpl(vk->dev, pool, vk->alloc);
 }
 
 void vk_RequestQueue(VkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
@@ -624,4 +643,29 @@ void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* vi
         VKFN(vk->CreateFramebufferImpl(vk->dev, &info, vk->alloc, &pass->fb.id[i]));
     }
     memStackFramePop(vk->mem);
+}
+
+void vk_MallocBuffer(VkContext vk, VkBuffer buff, VkMemoryPropertyFlags flags)
+{
+    VkMemoryRequirements reqs;
+    uint32_t type = VK_MAX_MEMORY_TYPES;
+    VkDeviceMemory result = VK_NULL_HANDLE;
+    vk->GetBufferMemoryRequirementsImpl(vk->dev, buff, &reqs);
+    for (uint32_t i = 0; i < vk->memProps.memoryTypeCount; i++)
+    {
+        if ((reqs.memoryTypeBits & (1 << i))
+            && ((vk->memProps.memoryTypes[i].propertyFlags & flags) == flags))
+        {
+            type = i;
+            break;
+        }
+    }
+    ASSERT_Q(type < vk->memProps.memoryTypeCount);
+    VkMemoryAllocateInfo allocInfo;
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.pNext = NULL;
+    allocInfo.allocationSize = reqs.size;
+    allocInfo.memoryTypeIndex = type;
+    VKFN(vk->AllocateMemoryImpl(vk->dev, &allocInfo, vk->alloc, &result));
+    VKFN(vk->BindBufferMemoryImpl(vk->dev, buff, result, 0));
 }

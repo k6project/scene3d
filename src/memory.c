@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-struct MemAlloc
+struct MemAllocImpl
 {
 	void *memBlock;
 	uint8_t* baseForwd;
@@ -13,13 +13,13 @@ struct MemAlloc
 	size_t posStack, maxStack, currFrame;
 };
 
-HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
+MemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 {
 	forwd = ALIGN16(forwd);
 	stack = ALIGN16(stack);
-	size_t offset = ALIGN16(sizeof(struct MemAlloc));
+	size_t offset = ALIGN16(sizeof(struct MemAllocImpl));
 	size_t total = offset + forwd + stack;
-	struct MemAlloc* retval = block;
+	struct MemAllocImpl* retval = block;
 	if (retval == NULL)
 	{
 		TEST_Q(retval = malloc(total));
@@ -39,7 +39,7 @@ HMemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 	return retval;
 }
 
-void* memForwdAlloc(HMemAlloc mem, size_t bytes)
+void* memForwdAlloc(MemAlloc mem, size_t bytes)
 {
 	bytes = ALIGN16(bytes);
 	ASSERT_Q(mem->maxForwd - mem->posForwd >= bytes);
@@ -48,7 +48,7 @@ void* memForwdAlloc(HMemAlloc mem, size_t bytes)
 	return retval;
 }
 
-void* memStackAlloc(HMemAlloc mem, size_t bytes)
+void* memStackAlloc(MemAlloc mem, size_t bytes)
 {
 	bytes = ALIGN16(bytes);
 	ASSERT_Q(mem->currFrame < mem->maxStack || mem->posStack == 0);
@@ -58,7 +58,7 @@ void* memStackAlloc(HMemAlloc mem, size_t bytes)
 	return retval;
 }
 
-void memStackFramePush(HMemAlloc mem)
+void memStackFramePush(MemAlloc mem)
 {
 	size_t pos = mem->posStack;
 	size_t* prev = memStackAlloc(mem, sizeof(size_t));
@@ -66,30 +66,30 @@ void memStackFramePush(HMemAlloc mem)
 	mem->currFrame = pos;
 }
 
-void memStackFramePop(HMemAlloc mem)
+void memStackFramePop(MemAlloc mem)
 {
 	ASSERT_Q(mem->currFrame < mem->maxStack);
     mem->posStack = mem->currFrame;
     mem->currFrame = *(size_t*)(mem->baseStack + mem->currFrame);
 }
 
-void memAllocRelease(HMemAlloc mem)
+void memAllocRelease(MemAlloc mem)
 {
 	void* block = mem->memBlock;
 	free(block);
 }
 
-void* memHeapAlloc(HMemAlloc mem, size_t bytes)
+void* memHeapAlloc(MemAlloc mem, size_t bytes)
 {
 	return malloc(bytes);
 }
 
-void memHeapFree(HMemAlloc mem, void* ptr)
+void memHeapFree(MemAlloc mem, void* ptr)
 {
 	free(ptr);
 }
 
 size_t memSubAllocSize(size_t bytes)
 {
-	return (bytes + sizeof(struct MemAlloc));
+	return (bytes + sizeof(struct MemAllocImpl));
 }

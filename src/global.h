@@ -70,7 +70,7 @@ typedef union
 #define V4F(r,g,b,a) ((Vec4f){(r),(g),(b),(a)})
    
 /* File I/O */
-void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode);
+void* sysLoadFile(const char* path, size_t* size, MemAlloc mem, MemAllocMode mode);
     
 /* Handling dynamic libraries */
 bool sysLoadLibrary(const char* name, void** handle);

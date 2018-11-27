@@ -18,22 +18,9 @@
 
 typedef struct
 {
-	HMemAlloc memory;
+	MemAlloc memory;
     const Options* options;
-    HRenderer renderer;
-#if 0
-    VkDescriptorPool descPool;
-    
-    VkShaderModule generator;
-    VkDescriptorSetLayout generatorSetLayout;
-    VkPipelineLayout generatorPipelineLayout;
-    VkPipeline generatorPipeline;
-    VkBuffer generatorOutput;
-    VkDeviceMemory generatorMemory;
-    VkDescriptorSet generatorDescr;
-    void* generatorSetup;
-    uint32_t generatorSetupLen;
-#endif
+    Renderer renderer;
 } AppState;
 
 static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t cols)
@@ -170,102 +157,22 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
 
 void appOnStartup(void* dataPtr)
 {
-    HRenderer rdr = NULL;
+    Renderer rdr = NULL;
     AppState* app = dataPtr;
     rnd_CreateRenderer(app->memory, app->options, &rdr);
 	app->renderer = rdr;
-#if 0
-    vkxInitialize(0, app->options, NULL);
-    vkxRequestQueues(1, (VkxQueueReq[])
-    {
-        {
-            VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT,
-            true,
-            &gQueueFamily,
-            &gCmdQueue
-        }
-    });
-    vkxCreateDeviceAndSwapchain();
-    vkxCreateCommandPool(gQueueFamily, &gCmdPool);
-    vkxCreateCommandBuffer(gCmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, &gCmdBuff);
-    vkxCreateSemaphore(&gFrmBegin, 0);
-    vkxCreateSemaphore(&gFrmEnd, 0);
-	vkxCreateFence(&gDrawFence, 0);
-    
-    {
-        uint32_t numSizes = 0;
-        VkDescriptorPoolSize sizes[2];
-        if (MAX_DESC_BUFFER > 0)
-        {
-            sizes[numSizes].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            sizes[numSizes].descriptorCount = MAX_DESC_BUFFER;
-            ++numSizes;
-        }
-        if (MAX_DESC_IMAGE > 0)
-        {
-            sizes[numSizes].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            sizes[numSizes].descriptorCount = MAX_DESC_IMAGE;
-            ++numSizes;
-        }
-        VkDescriptorPoolCreateInfo info;
-        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        info.pNext = NULL;
-        info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        info.maxSets = MAX_DESC_SETS;
-        info.poolSizeCount = numSizes;
-        info.pPoolSizes = sizes;
-        VK_ASSERT_Q(vkCreateDescriptorPool(gVkDev, &info, NULL, &app->descPool));
-    }
-    
-    initGenerator(app, V2F(2.f, 2.f), 8, 8);
-	gFence = gDrawFence[0];
-#endif
 }
 
 static void renderFrame(AppState* app)
 {
 	rnd_RenderFrame(app->renderer);
-	//VkFrame frame;
-	//VkContext* vk = app->vulkan;
-	//vk_BeginFrame(vk, &frame);
-    //VkCommandBuffer cb = vk_GetCommandBuffer(frame,app->cRec);
-    //vk_BeginCommandBufferOneOff(cb); //reset+begin
 #if 0
-    uint32_t imageIdx = 0;
-    VkSemaphore frameBegin = gFrmBegin[gFrameIdx];
-    VkSemaphore frameEnd = gFrmEnd[gFrameIdx];
-    vkxAcquireNextImage(frameBegin, &imageIdx);
-	VkImage displayImg = gDisplayImage[imageIdx];
-    
-    VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
-    VkCommandBufferInfo cmdBuffInfo = { gQueueFamily, cmdBuff };
-    vkWaitForFences(gVkDev, 1, &gFence, VK_TRUE, UINT64_MAX);
-	gFence = gDrawFence[gFrameIdx];
-	vkResetFences(gVkDev, 1, &gFence);
-    
-	vkResetCommandBuffer(cmdBuff, 0);
-    vkxBeginCommandBufferOneOff(cmdBuff);
-    
     vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipeline);
     vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipelineLayout, 0, 1, &app->generatorDescr, 0, NULL);
-	//buffer to writable state
-	//vklBufferBarrierCSOutToVSIn
-	//
     vkCmdPushConstants(cmdBuff, app->generatorPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, app->generatorSetupLen, app->generatorSetup);
     vkCmdDispatch(cmdBuff, 1, 1, 1);
-	//buffer to VBO state
-    
-    vkxCmdClearColorImage(cmdBuffInfo, displayImg, VK_CLEAR_COLOR(0.f, 0.4f, 0.9f, 1.f));
-    vkxCmdPreparePresent(cmdBuffInfo, displayImg);
-    
-	vkEndCommandBuffer(cmdBuff);
-    VK_SUBMIT_INFO(submitInfo, cmdBuff, frameBegin, frameEnd);
-	vkQueueSubmit(gCmdQueue, 1, &submitInfo, gFence);
-    VK_PRESENT_INFO_KHR(presentInfo, imageIdx, frameEnd);
-	vkQueuePresentKHR(gCmdQueue, &presentInfo);
-    gFrameIdx = vkxNextFrame(gFrameIdx);
+
 #endif
-	//vk_EndFrame(vk, &frame);
 }
 
 void appOnShutdown(void* dataPtr)
@@ -274,7 +181,7 @@ void appOnShutdown(void* dataPtr)
     rnd_DestroyRenderer(app->renderer);
 }
 
-extern void appInitialize(HMemAlloc mem, const Options* opts, void* state);
+extern void appInitialize(MemAlloc mem, const Options* opts, void* state);
 
 extern bool appShouldKeepRunning(void);
 
