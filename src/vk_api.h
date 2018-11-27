@@ -65,7 +65,7 @@ typedef struct
 {
     uint32_t queueFamily;
     VkCommandBuffer commandBuffer;
-} VkCmdBufferInfo;
+} VkCommandBufferInfo;
 
 extern const VkAllocationCallbacks* gVkAlloc;
 extern VkDevice gVkDev;
@@ -84,9 +84,9 @@ void vkxCreateSemaphore(VkSemaphore** out, uint32_t count);
 void vkxDestroySemaphore(VkSemaphore* sem, uint32_t count);
 void vkxCreateFence(VkFence** out, uint32_t count);
 void vkxDestroyFence(VkFence* fen, uint32_t count);
-void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color);
+void vkxCmdClearColorImage(VkCommandBufferInfo info, VkImage img, VkClearColorValue* color);
 void vkxAcquireNextImage(VkSemaphore sem, uint32_t* image);
-void vkxCmdPreparePresent(VkCmdBufferInfo info, VkImage img);
+void vkxCmdPreparePresent(VkCommandBufferInfo info, VkImage img);
 uint32_t vkxNextFrame(uint32_t current);
 VkDeviceMemory vkxMallocBuffer(VkBuffer buff, VkMemoryPropertyFlags flags);
     

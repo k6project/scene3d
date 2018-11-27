@@ -84,23 +84,23 @@ struct VkContextImpl
 	} cmd;
 };
 
-extern const void* sysGetVkSurfaceInfo();
-static void vk_RequestQueue(HVkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam);
-static void vk_CreateAndInitInstance(HVkContext vk, const Options* opts);
+extern const void* sysGetVkSurfaceInfo(void);
+static void vk_RequestQueue(VkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam);
+static void vk_CreateAndInitInstance(VkContext vk, const Options* opts);
 static VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
-static void vk_GetGraphicsAdapter(HVkContext vk);
-static void vk_CreateDeviceAndSwapchain(HVkContext vk, const uint32_t* queueCount, uint32_t numFamilies);
-static VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(HVkContext vk);
-static VkPresentModeKHR vk_GetSwapchainPresentMode(HVkContext vk);
+static void vk_GetGraphicsAdapter(VkContext vk);
+static void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint32_t numFamilies);
+static VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext vk);
+static VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext vk);
 static uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps);
 
-void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkContext* vkPtr)
+void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, VkContext* vkPtr)
 {
 	ASSERT_Q(info->parent == NULL);
 	size_t memBytes = memSubAllocSize(VK_CPU_MEM_TOTAL);
 	void* parentMem = memForwdAlloc(mem, memBytes);
 	HMemAlloc local = memAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
-	HVkContext vk = memForwdAlloc(local, sizeof(struct VkContextImpl));
+	VkContext vk = memForwdAlloc(local, sizeof(struct VkContextImpl));
 	vk->mem = local;
 	vk->alloc = NULL;
 	vk->frameIdx = 0;
@@ -142,12 +142,12 @@ void vk_CreateRenderContext(HMemAlloc mem, const VkRenderContextInfo* info, HVkC
 	*vkPtr = vk;
 }
 
-void vk_DeviceWaitIdle(HVkContext vk)
+void vk_DeviceWaitIdle(VkContext vk)
 {
 	vk->DeviceWaitIdleImpl(vk->dev);
 }
 
-void vk_DestroyRenderContext(HVkContext vk)
+void vk_DestroyRenderContext(VkContext vk)
 {
 	vk->DeviceWaitIdleImpl(vk->dev);
     for (uint32_t i = 0; i < vk->scSize; i++)
@@ -169,12 +169,12 @@ void vk_DestroyRenderContext(HVkContext vk)
 	sysUnloadLibrary(vk->dll);
 }
 
-VkFormat vk_GetSwapchainImageFormat(HVkContext vk)
+VkFormat vk_GetSwapchainImageFormat(VkContext vk)
 {
 	return vk->surfFmt.format;
 }
 
-void vk_BeginFrame(HVkContext vk)
+void vk_BeginFrame(VkContext vk)
 {
 	vk->frame.image = INV_IDX;
 	vk->frame.fbOk = vk->frmFbOk[vk->frameIdx];
@@ -189,12 +189,22 @@ void vk_BeginFrame(HVkContext vk)
 	VKFN(vk->BeginCommandBufferImpl(vk->cmd.buffer[vk->frameIdx], &info));
 }
 
-VkCommandBuffer vk_GetPrimaryCommandBuffer(HVkContext vk)
+VkCommandBuffer vk_GetPrimaryCommandBuffer(VkContext vk)
 {
 	return vk->cmd.buffer[vk->frameIdx];
 }
 
-void vk_SubmitFrame(HVkContext vk, uint32_t queue)
+void vk_BeginCommandBuffer(VkContext vk, VkCommandBuffer cb, const VkCommandBufferBeginInfo* info)
+{
+    VKFN(vk->BeginCommandBufferImpl(cb, info));
+}
+
+void vk_EndCommandBuffer(VkContext vk, VkCommandBuffer cb)
+{
+    VKFN(vk->EndCommandBufferImpl(cb));
+}
+
+void vk_SubmitFrame(VkContext vk, uint32_t queue)
 {
 	VKFN(vk->EndCommandBufferImpl(vk->cmd.buffer[vk->frameIdx]));
 	VkSubmitInfo sInfo = {0};
@@ -219,13 +229,7 @@ void vk_SubmitFrame(HVkContext vk, uint32_t queue)
 	vk->frameIdx = (nextIndex == vk->scSize) ? 0 : nextIndex;
 }
 
-void vk_DestroyCommandRecorder(VkContext* vk, VkCommandRecorder* cr)
-{
-    vk->FreeCommandBuffersImpl(vk->dev, cr->pool, vk->scSize, cr->buffers);
-    vk->DestroyCommandPoolImpl(vk->dev, cr->pool, vk->alloc);
-}
-
-void vk_RequestQueue(HVkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
+void vk_RequestQueue(VkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam)
 {
 	uint32_t family = num;
 	for (uint32_t i = 0; i < num; i++)
@@ -249,7 +253,7 @@ void vk_RequestQueue(HVkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt,
 	++cnt[family];
 }
 
-void vk_CreateAndInitInstance(HVkContext vk, const Options* opts)
+void vk_CreateAndInitInstance(VkContext vk, const Options* opts)
 {
 	TEST(sysLoadLibrary(VK_LIBRARY, &vk->dll), "ERROR: %s", "Failed to load library");
 	memStackFramePush(vk->mem);
@@ -330,7 +334,7 @@ VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags,
 	return VK_FALSE;
 }
 
-void vk_GetGraphicsAdapter(HVkContext vk)
+void vk_GetGraphicsAdapter(VkContext vk)
 {
 	memStackFramePush(vk->mem);
 	vk->phdev = VK_NULL_HANDLE;
@@ -377,7 +381,7 @@ void vk_GetGraphicsAdapter(HVkContext vk)
 	vk->phdMask = 1 << idx;
 }
 
-void vk_CreateDeviceAndSwapchain(HVkContext vk, const uint32_t* queueCount, uint32_t numFamilies)
+void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint32_t numFamilies)
 {
 	uint32_t numQueues = 0;
 	memStackFramePush(vk->mem);
@@ -469,7 +473,7 @@ void vk_CreateDeviceAndSwapchain(HVkContext vk, const uint32_t* queueCount, uint
 	memStackFramePop(vk->mem);
 }
 
-VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(HVkContext vk)
+VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext vk)
 {
 	memStackFramePush(vk->mem);
 	VkSurfaceFormatKHR retVal =
@@ -492,7 +496,7 @@ VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(HVkContext vk)
 	return retVal;
 }
 
-VkPresentModeKHR vk_GetSwapchainPresentMode(HVkContext vk)
+VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext vk)
 {
 	memStackFramePush(vk->mem);
 	uint32_t numModes = 0;
@@ -525,7 +529,7 @@ struct VkTexture2DImpl
     VkImageView id;
 };
 
-struct VkRenderPassImpl
+struct VkDrawPassImpl
 {
     uint32_t numAttachments;
     struct
@@ -539,9 +543,9 @@ struct VkRenderPassImpl
     VkRenderPass id;
 };
 
-void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkRenderPass* pass)
+void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkDrawPass* pass)
 {
-    HVkRenderPass tmp = memForwdAlloc(vk->mem, sizeof(struct VkRenderPassImpl));
+    VkDrawPass tmp = memForwdAlloc(vk->mem, sizeof(struct VkDrawPassImpl));
     VKFN(vk->CreateRenderPassImpl(vk->dev, info, vk->alloc, &tmp->id));
     tmp->numAttachments = info->attachmentCount;
 	tmp->clearVal = memForwdAlloc(vk->mem, sizeof(VkClearValue) * tmp->numAttachments);
@@ -549,7 +553,7 @@ void vk_CreateRenderPass(HVkContext vk, const VkRenderPassCreateInfo* info, HVkR
     *pass = tmp;
 }
 
-void vk_SetClearColorValue(HVkRenderPass pass, uint32_t att, Vec4f value)
+void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, Vec4f value)
 {
 	pass->clearVal[att].color.float32[0] = value.r;
 	pass->clearVal[att].color.float32[1] = value.g;
@@ -557,14 +561,14 @@ void vk_SetClearColorValue(HVkRenderPass pass, uint32_t att, Vec4f value)
 	pass->clearVal[att].color.float32[3] = value.a;
 }
 
-void vk_DestroyRenderPass(HVkContext vk, HVkRenderPass pass)
+void vk_DestroyRenderPass(VkContext vk, VkDrawPass pass)
 {
     vk->DestroyRenderPassImpl(vk->dev, pass->id, vk->alloc);
     for (uint32_t i = 0; i < pass->fb.num; i++)
         vk->DestroyFramebufferImpl(vk->dev, pass->fb.id[i], vk->alloc);
 }
 
-void vk_CmdBeginRenderPass(HVkContext vk, VkCommandBuffer cb, HVkRenderPass pass)
+void vk_CmdBeginRenderPass(VkContext vk, VkCommandBuffer cb, VkDrawPass pass)
 {
     VkRenderPassBeginInfo info = {0};
     info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -577,12 +581,12 @@ void vk_CmdBeginRenderPass(HVkContext vk, VkCommandBuffer cb, HVkRenderPass pass
 	vk->CmdBeginRenderPassImpl(cb, &info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void vk_CmdEndRenderPass(HVkContext vk, VkCommandBuffer cb)
+void vk_CmdEndRenderPass(VkContext vk, VkCommandBuffer cb)
 {
 	vk->CmdEndRenderPassImpl(cb);
 }
 
-void vk_InitPassFramebuffer(HVkContext vk, HVkRenderPass pass, const HVkTexture2D* views)
+void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* views)
 {
     pass->fb.num = 1;
     memStackFramePush(vk->mem);

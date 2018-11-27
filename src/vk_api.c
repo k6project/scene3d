@@ -909,7 +909,7 @@ void vkxFinalize(void)
     free(gVkMemBuffer);
 }
 
-void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue* color)
+void vkxCmdClearColorImage(VkCommandBufferInfo info, VkImage img, VkClearColorValue* color)
 {
     VkCommandBuffer cmdBuff = info.commandBuffer;
     uint32_t queueFamily = info.queueFamily;
@@ -937,7 +937,7 @@ void vkxCmdClearColorImage(VkCmdBufferInfo info, VkImage img, VkClearColorValue*
     vkCmdClearColorImage(cmdBuff, img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, color, 1, &clearBarrier.subresourceRange);
 }
 
-void vkxCmdPreparePresent(VkCmdBufferInfo info, VkImage img)
+void vkxCmdPreparePresent(VkCommandBufferInfo info, VkImage img)
 {
     VkCommandBuffer cmdBuff = info.commandBuffer;
     uint32_t queueFamily = info.queueFamily;

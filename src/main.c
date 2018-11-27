@@ -52,11 +52,8 @@ static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t col
     };
     {
         memStackFramePush(app->memory);
-        VkShaderModuleCreateInfo info;
+        VkShaderModuleCreateInfo info = {0};
         info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        info.pNext = NULL;
-        info.flags = 0;
-        info.codeSize = 0;
         info.pCode = sysLoadFile("/shaders/cityget.comp.spv", &info.codeSize, app->memory, MEM_STACK);
         VK_ASSERT_Q(vkCreateShaderModule(gVkDev, &info, NULL, &app->generator));
         memStackFramePop(app->memory);
@@ -241,7 +238,7 @@ static void renderFrame(AppState* app)
 	VkImage displayImg = gDisplayImage[imageIdx];
     
     VkCommandBuffer cmdBuff = gCmdBuff[imageIdx];
-    VkCmdBufferInfo cmdBuffInfo = { gQueueFamily, cmdBuff };
+    VkCommandBufferInfo cmdBuffInfo = { gQueueFamily, cmdBuff };
     vkWaitForFences(gVkDev, 1, &gFence, VK_TRUE, UINT64_MAX);
 	gFence = gDrawFence[gFrameIdx];
 	vkResetFences(gVkDev, 1, &gFence);

@@ -2,9 +2,12 @@
 
 #include "render.h"
 
+#include "vk_context.h"
+
 enum
 {
-	RND_QUEUE_DEFAULT
+	RND_QUEUE_DEFAULT,
+    RND_NUM_QUEUES
 };
 
 enum
@@ -26,8 +29,8 @@ enum
 struct RendererImpl
 {
 	HMemAlloc mem;
-	HVkContext vk;
-	HVkRenderPass basePass;
+	VkContext vk;
+	VkDrawPass basePass;
 };
 
 void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rndPtr)
@@ -43,7 +46,7 @@ void rnd_CreateRenderer(HMemAlloc mem, const struct Options* opts, HRenderer* rn
     contextInfo.numQueueReq = 1;
     contextInfo.queueReq = &queueRequest;
 	memStackFramePush(rnd->mem);
-    HVkContext vk = NULL;
+    VkContext vk = NULL;
     vk_CreateRenderContext(mem, &contextInfo, &vk);
     VkAttachmentDescription attachments[BASE_PASS_NUM_ATTACHMENTS] = {0};
     {
@@ -101,8 +104,10 @@ void rnd_DestroyRenderer(HRenderer rnd)
 void rnd_RenderFrame(HRenderer rnd)
 {
 	vk_BeginFrame(rnd->vk);
+    //every pcg element has a secondary command buffer of its own
+    //if regeneration is needed, it runs before drawing
 	VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
-    //if needed, dispatch secondary command buffers for  content generation
+    //dispatch secondary command buffer for content generation
 	vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->basePass);
 	vk_CmdEndRenderPass(rnd->vk, pcb);
 	vk_SubmitFrame(rnd->vk, RND_QUEUE_DEFAULT);
