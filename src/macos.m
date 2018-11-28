@@ -118,7 +118,7 @@ void appGetName(char* buff, size_t max)
     memcpy(buff, [appName UTF8String], max);
 }
 
-void appInitialize(HMemAlloc mem, const Options* opts, void* state)
+void appInitialize(MemAlloc mem, const Options* opts, void* state)
 {
     gOpts = opts;
     gState = state;
@@ -193,7 +193,7 @@ const void* sysGetVkSurfaceInfo()
     return &info;
 }
 
-void* sysLoadFile(const char* path, size_t* size, HMemAlloc mem, MemAllocMode mode)
+void* sysLoadFile(const char* path, size_t* size, MemAlloc mem, MemAllocMode mode)
 {
     ASSERT_Q(*path == '/');
     if (!gRootDir && gRootDirLen == 0)

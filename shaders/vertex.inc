@@ -1,7 +1,7 @@
 #ifndef VERTEX_
 #define VERTEX_
 
-struct Vertex 
+struct VBOData 
 { 
     vec4 attr[2];
 };
@@ -13,14 +13,14 @@ struct VSInput
     vec3 normal;
 };
 
-void unpackVertex(in Vertex attrs, out VSInput vertex)
+void unpackVertex(in VBOData attrs, out VSInput vertex)
 {
     vertex.position = attrs.attr[0].xyz;
     vertex.color = unpackUnorm4x8(floatBitsToUint(attrs.attr[0].w));
     vertex.normal = attrs.attr[1].xyz;
 }
 
-void packVertex(in VSInput vertex, out Vertex attrs)
+void packVertex(in VSInput vertex, out VBOData attrs)
 {
     attrs.attr[0].xyz = vertex.position;
     attrs.attr[0].w = uintBitsToFloat(packUnorm4x8(vertex.color));
@@ -37,7 +37,7 @@ void vsMain(VSInput vertex);
 void main()
 {
     VSInput vertex;
-    Vertex inVertex = {{gAttr0, gAttr1}};
+    VBOData inVertex = {{gAttr0, gAttr1}};
     unpackVertex(inVertex, vertex);
     vsMain(vertex);
 }
@@ -46,7 +46,7 @@ void main()
 
 #ifdef STAGE_CS_
 
-#define VERTEX_DATA_BUFFER(n) buffer n##_ { Vertex n []; }
+#define VERTEX_DATA_BUFFER(n) buffer n##_ { VBOData n []; }
 
 #endif // STAGE_CS_
 

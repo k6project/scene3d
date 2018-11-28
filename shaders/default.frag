@@ -5,6 +5,7 @@
 layout(location=0)
 in VSOutput 
 { 
+    vec4 normal;
     vec4 color; 
 } gIn;
 
