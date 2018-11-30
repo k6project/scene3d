@@ -3,6 +3,7 @@
 #include "args.h"
 #include "render.h"
 #include "vk_api.h"
+#include "math_lib.h"
 
 #include <string.h>
 
@@ -160,12 +161,16 @@ void appOnStartup(void* dataPtr)
     Renderer rdr = NULL;
     AppState* app = dataPtr;
     rnd_CreateRenderer(app->memory, app->options, &rdr);
+    // stack geometry creation requests, schedule all transfers, wait until done
+    // create scene objects with geometry primitives
+    // assign animation
 	app->renderer = rdr;
 }
 
 static void renderFrame(AppState* app)
 {
-	rnd_RenderFrame(app->renderer);
+    //run scene updates, schedule transfers
+	rnd_RenderFrame(app->renderer); // build command list and, wait for transfers to complete, submit
 #if 0
     vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipeline);
     vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipelineLayout, 0, 1, &app->generatorDescr, 0, NULL);

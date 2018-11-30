@@ -572,12 +572,12 @@ void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkDra
     *pass = tmp;
 }
 
-void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, Vec4f value)
+void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, float value[4])
 {
-    pass->clearVal[att].color.float32[0] = value.r;
-    pass->clearVal[att].color.float32[1] = value.g;
-    pass->clearVal[att].color.float32[2] = value.b;
-    pass->clearVal[att].color.float32[3] = value.a;
+    pass->clearVal[att].color.float32[0] = value[0];
+    pass->clearVal[att].color.float32[1] = value[1];
+    pass->clearVal[att].color.float32[2] = value[2];
+    pass->clearVal[att].color.float32[3] = value[3];
 }
 
 void vk_DestroyRenderPass(VkContext vk, VkDrawPass pass)

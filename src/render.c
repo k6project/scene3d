@@ -3,6 +3,7 @@
 #include "render.h"
 
 #include "vk_api.h"
+#include "math_lib.h"
 
 enum
 {
@@ -22,6 +23,7 @@ enum
     BASE_PASS_NUM_SUBPASSES
 };
 
+#define RND_VBO_VECTORS   2u
 #define RND_DESCR_SET_MAX 16u
 #define RDR_CPU_MEM_TOTAL 65536u // 3/4 forward, 1/4 stack
 #define RDR_CPU_MEM_FORWD ((RDR_CPU_MEM_TOTAL >> 1) + (RDR_CPU_MEM_TOTAL >> 2))
@@ -41,6 +43,8 @@ struct RendererImpl
 
 static void rnd_CreateDescriptorPool(Renderer rnd);
 static void rnd_CreateRenderPasses(Renderer rnd);
+
+#include "cube.inl"
 
 void rnd_CreateRenderer(MemAlloc mem, const struct Options* opts, Renderer* rndPtr)
 {
@@ -137,7 +141,7 @@ void rnd_CreateRenderPasses(Renderer rnd)
     passInfo.subpassCount = BASE_PASS_NUM_SUBPASSES;
     passInfo.pSubpasses = subpasses;
     vk_CreateRenderPass(rnd->vk, &passInfo, &rnd->basePass);
-    vk_SetClearColorValue(rnd->basePass, 0, V4F(0.f, 0.4f, 0.9f, 1.f));
+    vk_SetClearColorValue(rnd->basePass, 0, (float[]){0.f, 0.4f, 0.9f, 1.f});
     vk_InitPassFramebuffer(rnd->vk, rnd->basePass, NULL);
     memStackFramePop(rnd->mem);
 }

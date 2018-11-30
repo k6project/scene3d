@@ -47,7 +47,7 @@ void vk_DestroyDescriptorPool(VkContext, VkDescriptorPool pool);
 void vk_MallocBuffer(VkContext vk, VkBuffer buff, VkMemoryPropertyFlags flags);
 
 void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkDrawPass* pass);
-void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, Vec4f value);
+void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, float value[4]);
 void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* textures);
 void vk_DestroyRenderPass(VkContext vk, VkDrawPass pass);
 

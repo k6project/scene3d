@@ -3,6 +3,7 @@
 #include "pcgen.h"
 
 #include "vk_api.h"
+#include "math_lib.h"
 
 #define PCG_DIRTY 0x0001
 
