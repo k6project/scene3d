@@ -1,5 +1,8 @@
 #include "global.h"
 
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+
 namespace Gfx
 {
     
@@ -8,12 +11,15 @@ namespace Gfx
     class CommandList
     {
     public:
-        explicit CommandList(const DeviceContext& dc);
         void BeginPass();
         void EndPass();
     protected:
+		explicit CommandList(const DeviceContext& dc);
+		void InitCommandList(bool isPrimary);
+		void DestroyCommandList();
         //handle command pool and buffers
-        //VkCommandBuffer CmdBuff; //handle of current buffer
+        VkCommandBuffer CmdBuff;
+		VkCommandPool CmdPool;
     private:
         const DeviceContext& DC;
     };
@@ -29,7 +35,12 @@ namespace Gfx
     private:
         friend class CommandList;
         //pointers to vulkan functions
+		PFN_vkCreateCommandPool vkCreateCommandPool;
+		PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
+		PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
         //handles for vulkan objects
+		const VkAllocationCallbacks* Alloc;
+		VkDevice Device;
     };
     
 }
@@ -41,15 +52,39 @@ Gfx::CommandList::CommandList(const Gfx::DeviceContext& dc)
 
 void Gfx::CommandList::BeginPass()
 {
-    //prepare structure
-    //DC.vkCmdBeginRenderPass(CmdBuff, &info, VK_SUBPASS_CONTENTS_INLINE);
+	VkRenderPassBeginInfo info = {};
+	info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	//TODO
+    DC.vkCmdBeginRenderPass(CmdBuff, &info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void Gfx::CommandList::EndPass()
 {
-    //prepare struct
-    //DC.vkEndRenderPass(CmdBuff);
+    DC.vkCmdEndRenderPass(CmdBuff);
 }
+
+void Gfx::CommandList::InitCommandList(bool isPrimary)
+{
+	{
+		VkCommandPoolCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		//queue family
+		DC.vkCreateCommandPool(DC.Device, &info, DC.Alloc, &CmdPool); // error? 
+	}
+	//vk->cmd.buffer = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
+	{
+		VkCommandBufferAllocateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		info.commandPool = CmdPool;
+		info.level = (isPrimary) ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		//info.commandBufferCount = vk->scSize;
+		//VKFN(vk->AllocateCommandBuffersImpl(vk->dev, &cbInfo, vk->cmd.buffer)); 
+	}
+}
+
+void Gfx::CommandList::DestroyCommandList()
+{}
 
 Gfx::DeviceContext::DeviceContext()
     : Gfx::CommandList(*this)

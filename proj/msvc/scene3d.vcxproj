@@ -147,6 +147,7 @@
     <ClCompile Include="..\..\src\pcgen.c" />
     <ClCompile Include="..\..\src\render.c" />
     <ClCompile Include="..\..\src\vk_api.c" />
+    <ClCompile Include="..\..\src\vk_api.cpp" />
     <ClCompile Include="..\..\src\win32.c" />
   </ItemGroup>
   <ItemGroup>
