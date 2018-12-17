@@ -5,7 +5,7 @@
 static const uint32_t CUBE_MESH_COLOR = 0xffffffffu;
 
 static const uint32_t CUBE_MESH_NUM_VERTICES = 24;
-static Vec4f CUBE_MESH_VERTICES[][RND_VBO_VECTORS] =
+static Vec4f CUBE_MESH_VERTICES[][VBO_UNIT_VECS] =
 {
     /* Z-positive oriented side */
     { { -1.f,  1.f, 1.f,  0 }, { 0.f, 0.f, 1.f,  0.f } },

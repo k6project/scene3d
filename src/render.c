@@ -23,11 +23,35 @@ enum
     BASE_PASS_NUM_SUBPASSES
 };
 
+enum
+{
+    UBO_UNIT_SIZE = 256,
+    MAX_UBO_UNITS = 1024,
+    VBO_UNIT_VECS = 2,
+    VBO_UNIT_SIZE = VBO_UNIT_VECS * sizeof(Vec4f),
+    MAX_VBO_UNITS = 1024,
+    IBO_UNIT_SIZE = sizeof(uint32_t),
+    IBO_MAX_UNITS = 1024
+};
+
 #define RND_VBO_VECTORS   2u
 #define RND_DESCR_SET_MAX 16u
 #define RDR_CPU_MEM_TOTAL 65536u // 3/4 forward, 1/4 stack
 #define RDR_CPU_MEM_FORWD ((RDR_CPU_MEM_TOTAL >> 1) + (RDR_CPU_MEM_TOTAL >> 2))
 #define RDR_CPU_MEM_STACK (RDR_CPU_MEM_TOTAL - RDR_CPU_MEM_FORWD)
+
+typedef struct
+{
+    VkBuffer buffer;
+    uint32_t offset;
+    uint32_t length : 31;
+    bool     owner  : 1;
+}  BufferRef;
+
+struct MeshImpl
+{
+    BufferRef vbo, ibo;
+};
 
 struct RendererImpl
 {
@@ -43,6 +67,7 @@ struct RendererImpl
 
 static void rnd_CreateDescriptorPool(Renderer rnd);
 static void rnd_CreateRenderPasses(Renderer rnd);
+static void rnd_CreateMemoryBuffers(Renderer rnd);
 
 #include "cube.inl"
 
@@ -61,6 +86,7 @@ void rnd_CreateRenderer(MemAlloc mem, const struct Options* opts, Renderer* rndP
     vk_CreateContext(mem, &contextInfo, &rnd->vk);
     rnd_CreateDescriptorPool(rnd);
     rnd_CreateRenderPasses(rnd);
+    rnd_CreateMemoryBuffers(rnd);
     *rndPtr = rnd;
 }
 
@@ -144,4 +170,17 @@ void rnd_CreateRenderPasses(Renderer rnd)
     vk_SetClearColorValue(rnd->basePass, 0, (float[]){0.f, 0.4f, 0.9f, 1.f});
     vk_InitPassFramebuffer(rnd->vk, rnd->basePass, NULL);
     memStackFramePop(rnd->mem);
+}
+
+void rnd_CreateMemoryBuffers(Renderer rnd)
+{
+    /*VkBufferCreateInfo buffInfo;
+    buffInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffInfo.pNext = NULL;
+    buffInfo.flags = 0;
+    buffInfo.size = VBO_UNIT_SIZE * MAX_VBO_UNITS;
+    buffInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    buffInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    buffInfo.queueFamilyIndexCount = 1;
+    buffInfo.pQueueFamilyIndices = &gQueueFamily;*/
 }
