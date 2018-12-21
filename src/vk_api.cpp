@@ -3,6 +3,15 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
+//device_context begin_frame() begins primary command list
+//device_context begin_command_list() starts thread-specific command list
+//command_list::begin_pass()
+//command_list::end_pass()
+//device_context end_frame() adds secondary command lists to primary and submits
+
+//renderer begin_frame() kicks off tasks to record command lists
+//renderer end_frame() waits for async tasks and does submit/present
+
 namespace Gfx
 {
     
