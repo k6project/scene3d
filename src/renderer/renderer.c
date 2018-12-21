@@ -51,18 +51,10 @@ void rnd_DestroyRenderer(Renderer rnd)
 void rnd_RenderFrame(Renderer rnd)
 {
 	mem_StackFramePush(rnd->mem);
-
 	vk_BeginFrame(rnd->vk);
-	//every pcg element has a secondary command buffer of its own
-	//if regeneration is needed, it runs before drawing
 	VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
-	//dispatch secondary command buffer for content generation
 	vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->passes.forwardBase);
 	vk_CmdEndRenderPass(rnd->vk, pcb);
 	vk_SubmitFrame(rnd->vk, 0);
-
-	//RenderState* subset = scn_GetSubsetToRender(scn, rnd->mem); //null-terminated list of render states to consider
-	//ExecuteComputePass(rnd, rnd->passes.pcGenerate, subset); // generate any procedural assets that needs to be re-generated
-	//ExecuteRenderPass(rnd, rnd->passes.forwardBase, subset); // draw all render states
 	mem_StackFramePop(rnd->mem);
 }

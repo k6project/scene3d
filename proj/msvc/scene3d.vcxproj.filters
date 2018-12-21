@@ -5,20 +5,44 @@
     <ClCompile Include="..\..\src\win32.c" />
     <ClCompile Include="..\..\src\args.c" />
     <ClCompile Include="..\..\src\memory.c" />
-    <ClCompile Include="..\..\src\vk_api.c" />
     <ClCompile Include="..\..\src\pcgen.c" />
-    <ClCompile Include="..\..\src\render.c" />
-    <ClCompile Include="..\..\src\vk_api.cpp" />
+    <ClCompile Include="..\..\src\scene.c" />
+    <ClCompile Include="..\..\src\math_lib.c" />
+    <ClCompile Include="..\..\src\renderer\renderer.c">
+      <Filter>renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\renderer\vk_api.c">
+      <Filter>renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\args.h" />
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\memory.h" />
-    <ClInclude Include="..\..\src\vk_api.h" />
     <ClInclude Include="..\..\src\pcgen.h" />
-    <ClInclude Include="..\..\src\render.h" />
+    <ClInclude Include="..\..\src\scene.h" />
+    <ClInclude Include="..\..\src\math_lib.h" />
+    <ClInclude Include="..\..\src\renderer\renderer.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\renderer\vk_api.h">
+      <Filter>renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\vk_api.inl" />
+    <None Include="..\..\src\renderer\render_pass.inl">
+      <Filter>renderer</Filter>
+    </None>
+    <None Include="..\..\src\renderer\render_init.inl">
+      <Filter>renderer</Filter>
+    </None>
+    <None Include="..\..\src\renderer\vk_api.inl">
+      <Filter>renderer</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="renderer">
+      <UniqueIdentifier>{c720e190-3551-4ad9-b32d-7fa2d518a2e5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
