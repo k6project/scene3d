@@ -5,13 +5,14 @@ extern "C"
 {
 #endif
 
-typedef struct MeshImpl* Mesh;
 typedef struct RendererImpl* Renderer;
 
-void rnd_CreateRenderer(MemAlloc mem, const struct Options* opts, Renderer* rdrPtr);
+Renderer rnd_CreateRenderer(MemAlloc mem, Options opts);
+
 void rnd_DestroyRenderer(Renderer rnd);
-void rnd_RenderFrame(Renderer rnd);
-    
+
+void rnd_RenderFrame(Renderer rnd); // pass scene pointer
+
 //create mesh
 //create object (mesh instance): allocate paged buffer region for uniforms
 

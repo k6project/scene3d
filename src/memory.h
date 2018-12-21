@@ -15,15 +15,23 @@ typedef enum
 
 typedef struct MemAllocImpl* MemAlloc;
 
-MemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
-void memAllocRelease(MemAlloc mem);
-void* memForwdAlloc(MemAlloc mem, size_t bytes);
-void* memStackAlloc(MemAlloc mem, size_t bytes);
-void memStackFramePush(MemAlloc mem);
-void memStackFramePop(MemAlloc mem);
-void* memHeapAlloc(MemAlloc mem, size_t bytes);
-void memHeapFree(MemAlloc mem, void* ptr);
-size_t memSubAllocSize(size_t bytes);
+MemAlloc mem_AllocCreate(size_t forwd, size_t stack, void* block, size_t max);
+
+void mem_AllocRelease(MemAlloc mem);
+
+void* mem_ForwdAlloc(MemAlloc mem, size_t bytes);
+
+void* mem_StackAlloc(MemAlloc mem, size_t bytes);
+
+void mem_StackFramePush(MemAlloc mem);
+
+void mem_StackFramePop(MemAlloc mem);
+
+void* mem_HeapAlloc(MemAlloc mem, size_t bytes);
+
+void mem_HeapFree(MemAlloc mem, void* ptr);
+
+size_t mem_SubAllocSize(size_t bytes);
 
 #ifdef __cplusplus
 }

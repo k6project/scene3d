@@ -13,7 +13,7 @@ struct MemAllocImpl
 	size_t posStack, maxStack, currFrame;
 };
 
-MemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
+MemAlloc mem_AllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 {
 	forwd = ALIGN16(forwd);
 	stack = ALIGN16(stack);
@@ -39,7 +39,7 @@ MemAlloc memAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 	return retval;
 }
 
-void* memForwdAlloc(MemAlloc mem, size_t bytes)
+void* mem_ForwdAlloc(MemAlloc mem, size_t bytes)
 {
 	bytes = ALIGN16(bytes);
 	ASSERT_Q(mem->maxForwd - mem->posForwd >= bytes);
@@ -48,7 +48,7 @@ void* memForwdAlloc(MemAlloc mem, size_t bytes)
 	return retval;
 }
 
-void* memStackAlloc(MemAlloc mem, size_t bytes)
+void* mem_StackAlloc(MemAlloc mem, size_t bytes)
 {
 	bytes = ALIGN16(bytes);
 	ASSERT_Q(mem->currFrame < mem->maxStack || mem->posStack == 0);
@@ -58,38 +58,38 @@ void* memStackAlloc(MemAlloc mem, size_t bytes)
 	return retval;
 }
 
-void memStackFramePush(MemAlloc mem)
+void mem_StackFramePush(MemAlloc mem)
 {
 	size_t pos = mem->posStack;
-	size_t* prev = memStackAlloc(mem, sizeof(size_t));
+	size_t* prev = mem_StackAlloc(mem, sizeof(size_t));
 	*prev = mem->currFrame;
 	mem->currFrame = pos;
 }
 
-void memStackFramePop(MemAlloc mem)
+void mem_StackFramePop(MemAlloc mem)
 {
 	ASSERT_Q(mem->currFrame < mem->maxStack);
     mem->posStack = mem->currFrame;
     mem->currFrame = *(size_t*)(mem->baseStack + mem->currFrame);
 }
 
-void memAllocRelease(MemAlloc mem)
+void mem_AllocRelease(MemAlloc mem)
 {
 	void* block = mem->memBlock;
 	free(block);
 }
 
-void* memHeapAlloc(MemAlloc mem, size_t bytes)
+void* mem_HeapAlloc(MemAlloc mem, size_t bytes)
 {
 	return malloc(bytes);
 }
 
-void memHeapFree(MemAlloc mem, void* ptr)
+void mem_HeapFree(MemAlloc mem, void* ptr)
 {
 	free(ptr);
 }
 
-size_t memSubAllocSize(size_t bytes)
+size_t mem_SubAllocSize(size_t bytes)
 {
 	return (bytes + sizeof(struct MemAllocImpl));
 }

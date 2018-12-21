@@ -62,7 +62,7 @@ bool appShouldKeepRunning(void)
 	return gState.keepRunning;
 }
 
-void appInitialize(MemAlloc mem, const Options* opts, void* state)
+void appInitialize(MemAlloc mem, Options opts, void* state)
 {
 	gState.appState = state;
 	WNDCLASS wndClass;
@@ -176,9 +176,9 @@ void* sysLoadFile(const char* path, size_t* size, MemAlloc mem, MemAllocMode mod
 	size_t bytes = fSize.LowPart;
 	switch (mode)
 	{
-		case MEM_FORWD: retVal = memForwdAlloc(mem, bytes);
-		case MEM_STACK: retVal = memStackAlloc(mem, bytes);
-		case MEM_HEAP: retVal = memHeapAlloc(mem, bytes);
+		case MEM_FORWD: retVal = mem_ForwdAlloc(mem, bytes);
+		case MEM_STACK: retVal = mem_StackAlloc(mem, bytes);
+		case MEM_HEAP: retVal = mem_HeapAlloc(mem, bytes);
 	}
 	TEST_Q(ReadFile(fp, retVal, bytes & UINT32_MAX, NULL, NULL));
 	CloseHandle(fp);

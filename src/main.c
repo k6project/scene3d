@@ -1,9 +1,8 @@
 #include "global.h"
 
 #include "args.h"
-#include "render.h"
-#include "vk_api.h"
 #include "math_lib.h"
+#include "renderer/renderer.h"
 
 #include <string.h>
 
@@ -20,7 +19,7 @@
 typedef struct
 {
 	MemAlloc memory;
-    const Options* options;
+    Options options;
     Renderer renderer;
 } AppState;
 
@@ -160,11 +159,10 @@ void appOnStartup(void* dataPtr)
 {
     Renderer rdr = NULL;
     AppState* app = dataPtr;
-    rnd_CreateRenderer(app->memory, app->options, &rdr);
     // stack geometry creation requests, schedule all transfers, wait until done
     // create scene objects with geometry primitives
     // assign animation
-	app->renderer = rdr;
+	app->renderer = rnd_CreateRenderer(app->memory, app->options);
 }
 
 static void renderFrame(AppState* app)
@@ -186,15 +184,15 @@ void appOnShutdown(void* dataPtr)
     rnd_DestroyRenderer(app->renderer);
 }
 
-extern void appInitialize(MemAlloc mem, const Options* opts, void* state);
+extern void appInitialize(MemAlloc mem, Options opts, void* state);
 
 extern bool appShouldKeepRunning(void);
 
 int appMain(int argc, const char** argv)
 {
 	AppState appState = {0};
-    appState.memory = memAllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
-    appState.options = argParse(argc, argv, appState.memory);
+    appState.memory = mem_AllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
+    appState.options = arg_ParseCmdLine(argc, argv, appState.memory);
 	appInitialize(appState.memory, appState.options, &appState);
 	while (appShouldKeepRunning())
         renderFrame(&appState);

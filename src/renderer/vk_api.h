@@ -15,8 +15,8 @@ extern "C"
 #endif
 
 typedef struct VkContextImpl* VkContext;
-typedef struct VkDrawPassImpl* VkDrawPass;
 typedef struct VkTexture2DImpl* VkTexture2D;
+typedef struct VkRenderPassDataImpl* VkRenderPassData;
 
 typedef struct
 {
@@ -27,7 +27,7 @@ typedef struct
 typedef struct
 {
     VkContext parent;
-    const struct Options* options;
+    Options options;
     uint32_t numQueueReq;
     VkQueueRequest* queueReq;
 } VkContextInfo;
@@ -46,12 +46,12 @@ void vk_DestroyDescriptorPool(VkContext, VkDescriptorPool pool);
 
 void vk_MallocBuffer(VkContext vk, VkBuffer buff, VkMemoryPropertyFlags flags);
 
-void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkDrawPass* pass);
-void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, float value[4]);
-void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* textures);
-void vk_DestroyRenderPass(VkContext vk, VkDrawPass pass);
+void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkRenderPassData* pass);
+void vk_SetClearColorValue(VkRenderPassData pass, uint32_t att, float value[4]);
+void vk_InitPassFramebuffer(VkContext vk, VkRenderPassData pass, const VkTexture2D* textures);
+void vk_DestroyRenderPass(VkContext vk, VkRenderPassData pass);
 
-void vk_CmdBeginRenderPass(VkContext vk, VkCommandBuffer cb, VkDrawPass pass);
+void vk_CmdBeginRenderPass(VkContext vk, VkCommandBuffer cb, VkRenderPassData pass);
 void vk_CmdEndRenderPass(VkContext vk, VkCommandBuffer cb); 
 
 VkFormat vk_GetSwapchainImageFormat(VkContext vk);

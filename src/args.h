@@ -5,7 +5,7 @@
 #define APP_NAME_LEN 64
 #define APP_NAME_MAX (APP_NAME_LEN+1)
 
-struct Options
+struct OptionsImpl
 {
     int windowWidth;
     int windowHeight;
@@ -19,10 +19,6 @@ struct Options
 	uint32_t numLayers;
 };
 
-typedef struct Options Options;
+typedef const struct OptionsImpl* Options;
 
-const Options* argParse(int argc, const char** argv, MemAlloc mem);
-
-//void vkUseExtensionsAPP(const char* names[], uint32_t count);
-
-//void vkUseLayersAPP(const char* names[], uint32_t count);
+Options arg_ParseCmdLine(int argc, const char** argv, MemAlloc mem);

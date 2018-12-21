@@ -1,7 +1,7 @@
-#include "global.h"
+#include "../global.h"
+#include "../args.h"
 
 #include "vk_api.h"
-#include "args.h"
 
 #include <string.h>
 
@@ -32,7 +32,7 @@ static const char* VK_REQUIRED_DEVICE_EXTENSIONS[] = { "VK_KHR_swapchain" };
 static const uint32_t VK_NUM_REQUIRED_DEVICE_EXTENSIONS = sizeof(VK_REQUIRED_DEVICE_EXTENSIONS) / sizeof(const char*);
 
 #define VK_SWAPCHAIN_MIN_SIZE 3
-#define VK_CPU_MEM_TOTAL 65536u // 3/4 forward, 1/4 stack
+#define VK_CPU_MEM_TOTAL 16384u // 3/4 forward, 1/4 stack
 #define VK_CPU_MEM_FORWD ((VK_CPU_MEM_TOTAL >> 1) + (VK_CPU_MEM_TOTAL >> 2))
 #define VK_CPU_MEM_STACK (VK_CPU_MEM_TOTAL - VK_CPU_MEM_FORWD)
 
@@ -95,7 +95,7 @@ struct VkContextImpl
 
 extern const void* sysGetVkSurfaceInfo(void);
 static void vk_RequestQueue(VkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, uint32_t num, VkQueueRequest* req, uint32_t* fam);
-static void vk_CreateAndInitInstance(VkContext vk, const Options* opts);
+static void vk_CreateAndInitInstance(VkContext vk, Options opts);
 static VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
 static void vk_GetGraphicsAdapter(VkContext vk);
 static void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint32_t numFamilies);
@@ -106,14 +106,14 @@ static uint32_t vk_GetSwapchainSize(VkSurfaceCapabilitiesKHR* caps);
 void vk_CreateContext(MemAlloc mem, const VkContextInfo* info, VkContext* vkPtr)
 {
     ASSERT_Q(info->parent == NULL);
-    size_t memBytes = memSubAllocSize(VK_CPU_MEM_TOTAL);
-    void* parentMem = memForwdAlloc(mem, memBytes);
-    MemAlloc local = memAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
-    VkContext vk = memForwdAlloc(local, sizeof(struct VkContextImpl));
+    size_t memBytes = mem_SubAllocSize(VK_CPU_MEM_TOTAL);
+    void* parentMem = mem_ForwdAlloc(mem, memBytes);
+    MemAlloc local = mem_AllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
+    VkContext vk = mem_ForwdAlloc(local, sizeof(struct VkContextImpl));
     vk->mem = local;
     vk->alloc = NULL;
     vk->frameIdx = 0;
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     vk_CreateAndInitInstance(vk, info->options);
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
     VKFN(vk->CreateMacOSSurfaceMVKImpl(vk->inst, sysGetVkSurfaceInfo(), vk->alloc, &vk->surf));
@@ -123,9 +123,9 @@ void vk_CreateContext(MemAlloc mem, const VkContextInfo* info, VkContext* vkPtr)
     vk_GetGraphicsAdapter(vk);
     uint32_t numQueueFamilies = 0;
     vk->GetPhysicalDeviceQueueFamilyPropertiesImpl(vk->phdev, &numQueueFamilies, NULL);
-    VkQueueFamilyProperties* qProps = memStackAlloc(vk->mem, numQueueFamilies * sizeof(VkQueueFamilyProperties));
-    uint32_t* qCount = memStackAlloc(vk->mem, numQueueFamilies * sizeof(uint32_t));
-    vk->queues = memForwdAlloc(vk->mem, info->numQueueReq * sizeof(VkQueueInfo));
+    VkQueueFamilyProperties* qProps = mem_StackAlloc(vk->mem, numQueueFamilies * sizeof(VkQueueFamilyProperties));
+    uint32_t* qCount = mem_StackAlloc(vk->mem, numQueueFamilies * sizeof(uint32_t));
+    vk->queues = mem_ForwdAlloc(vk->mem, info->numQueueReq * sizeof(VkQueueInfo));
     vk->GetPhysicalDeviceQueueFamilyPropertiesImpl(vk->phdev, &numQueueFamilies, qProps);
     memset(qCount, 0, (numQueueFamilies * sizeof(uint32_t)));
     for (uint32_t i = 0; i < info->numQueueReq; i++)
@@ -140,14 +140,14 @@ void vk_CreateContext(MemAlloc mem, const VkContextInfo* info, VkContext* vkPtr)
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     VKFN(vk->CreateCommandPoolImpl(vk->dev, &poolInfo, vk->alloc, &vk->cmd.pool));
-    vk->cmd.buffer = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
+    vk->cmd.buffer = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkCommandBuffer));
     VkCommandBufferAllocateInfo cbInfo = { 0 };
     cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cbInfo.commandPool = vk->cmd.pool;
     cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cbInfo.commandBufferCount = vk->scSize;
     VKFN(vk->AllocateCommandBuffersImpl(vk->dev, &cbInfo, vk->cmd.buffer));
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
     *vkPtr = vk;
 }
 
@@ -272,10 +272,10 @@ void vk_RequestQueue(VkContext vk, VkQueueFamilyProperties* qfp, uint32_t* cnt, 
     ++cnt[family];
 }
 
-void vk_CreateAndInitInstance(VkContext vk, const Options* opts)
+void vk_CreateAndInitInstance(VkContext vk, Options opts)
 {
     TEST(sysLoadLibrary(VK_LIBRARY, &vk->dll), "ERROR: %s", "Failed to load library");
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     vk->GetInstanceProcAddrImpl = sysGetLibraryProc(vk->dll, "vkGetInstanceProcAddr");
     ASSERT(vk->GetInstanceProcAddrImpl, "ERROR: Failed to get pointer to %s", "vkGetInstanceProcAddr");
 #define VULKAN_API_GOBAL(proc) \
@@ -295,7 +295,7 @@ void vk_CreateAndInitInstance(VkContext vk, const Options* opts)
     createInfo.enabledLayerCount = VK_NUM_REQUIRED_LAYERS + opts->numLayers;
     if (createInfo.enabledLayerCount > VK_NUM_REQUIRED_LAYERS)
     {
-        char** layers = memStackAlloc(vk->mem, createInfo.enabledLayerCount * sizeof(const char*));
+        char** layers = mem_StackAlloc(vk->mem, createInfo.enabledLayerCount * sizeof(const char*));
         memcpy(layers, VK_REQUIRED_LAYERS, VK_NUM_REQUIRED_LAYERS * sizeof(const char*));
         memcpy(layers + VK_NUM_REQUIRED_LAYERS, opts->layers, opts->numLayers * sizeof(const char*));
         createInfo.ppEnabledLayerNames = (const char**)layers;
@@ -308,7 +308,7 @@ void vk_CreateAndInitInstance(VkContext vk, const Options* opts)
     createInfo.enabledExtensionCount = VK_NUM_REQUIRED_EXTENSIONS + opts->numExtensions;
     if (createInfo.enabledExtensionCount > VK_NUM_REQUIRED_EXTENSIONS)
     {
-        char** ext = memStackAlloc(vk->mem, createInfo.enabledExtensionCount * sizeof(const char*));
+        char** ext = mem_StackAlloc(vk->mem, createInfo.enabledExtensionCount * sizeof(const char*));
         memcpy(ext, VK_REQUIRED_EXTENSIONS, VK_NUM_REQUIRED_EXTENSIONS * sizeof(const char*));
         memcpy(ext + VK_NUM_REQUIRED_EXTENSIONS, opts->extensions, opts->numExtensions * sizeof(const char*));
         createInfo.ppEnabledExtensionNames = (const char**)ext;
@@ -337,7 +337,7 @@ void vk_CreateAndInitInstance(VkContext vk, const Options* opts)
     }
     else
         ASSERT(false, "ERROR: %s", "Failed to create Vulkan instance");
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
 }
 
 VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags,
@@ -355,12 +355,12 @@ VkBool32 vk_DebugFn(VkDebugReportFlagsEXT flags,
 
 void vk_GetGraphicsAdapter(VkContext vk)
 {
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     vk->phdev = VK_NULL_HANDLE;
     uint32_t num = 0, idx = INV_IDX, fallback = INV_IDX;
     if (vk->EnumeratePhysicalDevicesImpl(vk->inst, &num, NULL) == VK_SUCCESS && num)
     {
-        VkPhysicalDevice* adapters = memStackAlloc(vk->mem, sizeof(VkPhysicalDevice) * num);
+        VkPhysicalDevice* adapters = mem_StackAlloc(vk->mem, sizeof(VkPhysicalDevice) * num);
         if (vk->EnumeratePhysicalDevicesImpl(vk->inst, &num, adapters) == VK_SUCCESS)
         {
             for (uint32_t i = 0; i < num; i++)
@@ -396,16 +396,16 @@ void vk_GetGraphicsAdapter(VkContext vk)
     ASSERT(vk->phdev, "ERROR: %s", "Failed to choose graphics adapter");
     vk->GetPhysicalDeviceMemoryPropertiesImpl(vk->phdev, &vk->memProps);
     sysPrintf("Using adapter %u\n", idx);
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
     vk->phdMask = 1 << idx;
 }
 
 void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint32_t numFamilies)
 {
     uint32_t numQueues = 0;
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     VkDeviceCreateInfo info = { 0 };
-    VkDeviceQueueCreateInfo* qInfo = memStackAlloc(vk->mem, numFamilies * sizeof(VkDeviceQueueCreateInfo));
+    VkDeviceQueueCreateInfo* qInfo = mem_StackAlloc(vk->mem, numFamilies * sizeof(VkDeviceQueueCreateInfo));
     for (uint32_t i = 0; i < numFamilies; i++)
     {
         if (queueCount[i] > 0)
@@ -415,7 +415,7 @@ void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint3
             qInfo[i].flags = 0;
             qInfo[i].queueFamilyIndex = i;
             qInfo[i].queueCount = queueCount[i];
-            float* prios = memStackAlloc(vk->mem, queueCount[i] * sizeof(float));
+            float* prios = mem_StackAlloc(vk->mem, queueCount[i] * sizeof(float));
             for (uint32_t j = 0; j < queueCount[i]; j++)
                 prios[j] = 1.f;
             qInfo[i].pQueuePriorities = prios;
@@ -460,11 +460,11 @@ void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint3
     VKFN(vk->CreateSwapchainKHRImpl(vk->dev, &swapchainInfo, vk->alloc, &vk->swapchain));
     VKFN(vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, NULL));
     vk->fbSize = surfCaps.currentExtent;
-    vk->fbImage = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImage));
-    vk->fbView = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkImageView));
-    vk->frmFbOk = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
-    vk->frmFinished = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
-    vk->frmFence = memForwdAlloc(vk->mem, vk->scSize * sizeof(VkFence));
+    vk->fbImage = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkImage));
+    vk->fbView = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkImageView));
+    vk->frmFbOk = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
+    vk->frmFinished = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkSemaphore));
+    vk->frmFence = mem_ForwdAlloc(vk->mem, vk->scSize * sizeof(VkFence));
     vk->GetSwapchainImagesKHRImpl(vk->dev, vk->swapchain, &vk->scSize, vk->fbImage);
     for (uint32_t i = 0; i < vk->scSize; i++)
     {
@@ -489,19 +489,19 @@ void vk_CreateDeviceAndSwapchain(VkContext vk, const uint32_t* queueCount, uint3
         ivInfo.subresourceRange.layerCount = 1;
         VKFN(vk->CreateImageViewImpl(vk->dev, &ivInfo, vk->alloc, &vk->fbView[i]));
     }
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
 }
 
 VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext vk)
 {
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     VkSurfaceFormatKHR retVal =
     {
         VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
     };
     uint32_t numFormats = 0;
     VKFN(vk->GetPhysicalDeviceSurfaceFormatsKHRImpl(vk->phdev, vk->surf, &numFormats, NULL));
-    VkSurfaceFormatKHR* formats = memStackAlloc(vk->mem, numFormats * sizeof(VkSurfaceFormatKHR));
+    VkSurfaceFormatKHR* formats = mem_StackAlloc(vk->mem, numFormats * sizeof(VkSurfaceFormatKHR));
     vk->GetPhysicalDeviceSurfaceFormatsKHRImpl(vk->phdev, vk->surf, &numFormats, formats);
     for (uint32_t i = 0; i < numFormats; i++)
     {
@@ -511,17 +511,17 @@ VkSurfaceFormatKHR vk_GetSwapchainSurfaceFormat(VkContext vk)
             break;
         }
     }
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
     return retVal;
 }
 
 VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext vk)
 {
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     uint32_t numModes = 0;
     VkPresentModeKHR retVal = VK_PRESENT_MODE_FIFO_KHR;
     VKFN(vk->GetPhysicalDeviceSurfacePresentModesKHRImpl(vk->phdev, vk->surf, &numModes, NULL));
-    VkPresentModeKHR* modes = memStackAlloc(vk->mem, numModes * sizeof(VkPresentModeKHR));
+    VkPresentModeKHR* modes = mem_StackAlloc(vk->mem, numModes * sizeof(VkPresentModeKHR));
     vk->GetPhysicalDeviceSurfacePresentModesKHRImpl(vk->phdev, vk->surf, &numModes, modes);
     for (uint32_t i = 0; i < numModes; i++)
         if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
@@ -529,7 +529,7 @@ VkPresentModeKHR vk_GetSwapchainPresentMode(VkContext vk)
             retVal = modes[i];
             break;
         }
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
     return retVal;
 }
 
@@ -548,7 +548,7 @@ struct VkTexture2DImpl
     VkImageView id;
 };
 
-struct VkDrawPassImpl
+struct VkRenderPassDataImpl
 {
     uint32_t numAttachments;
     struct
@@ -562,17 +562,17 @@ struct VkDrawPassImpl
     VkRenderPass id;
 };
 
-void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkDrawPass* pass)
+void vk_CreateRenderPass(VkContext vk, const VkRenderPassCreateInfo* info, VkRenderPassData* pass)
 {
-    VkDrawPass tmp = memForwdAlloc(vk->mem, sizeof(struct VkDrawPassImpl));
+    VkRenderPassData tmp = mem_ForwdAlloc(vk->mem, sizeof(struct VkRenderPassDataImpl));
     VKFN(vk->CreateRenderPassImpl(vk->dev, info, vk->alloc, &tmp->id));
     tmp->numAttachments = info->attachmentCount;
-    tmp->clearVal = memForwdAlloc(vk->mem, sizeof(VkClearValue) * tmp->numAttachments);
+    tmp->clearVal = mem_ForwdAlloc(vk->mem, sizeof(VkClearValue) * tmp->numAttachments);
     memset(tmp->clearVal, 0, sizeof(VkClearValue) * tmp->numAttachments);
     *pass = tmp;
 }
 
-void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, float value[4])
+void vk_SetClearColorValue(VkRenderPassData pass, uint32_t att, float value[4])
 {
     pass->clearVal[att].color.float32[0] = value[0];
     pass->clearVal[att].color.float32[1] = value[1];
@@ -580,14 +580,14 @@ void vk_SetClearColorValue(VkDrawPass pass, uint32_t att, float value[4])
     pass->clearVal[att].color.float32[3] = value[3];
 }
 
-void vk_DestroyRenderPass(VkContext vk, VkDrawPass pass)
+void vk_DestroyRenderPass(VkContext vk, VkRenderPassData pass)
 {
     vk->DestroyRenderPassImpl(vk->dev, pass->id, vk->alloc);
     for (uint32_t i = 0; i < pass->fb.num; i++)
         vk->DestroyFramebufferImpl(vk->dev, pass->fb.id[i], vk->alloc);
 }
 
-void vk_CmdBeginRenderPass(VkContext vk, VkCommandBuffer cb, VkDrawPass pass)
+void vk_CmdBeginRenderPass(VkContext vk, VkCommandBuffer cb, VkRenderPassData pass)
 {
     VkRenderPassBeginInfo info = { 0 };
     info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -605,13 +605,13 @@ void vk_CmdEndRenderPass(VkContext vk, VkCommandBuffer cb)
     vk->CmdEndRenderPassImpl(cb);
 }
 
-void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* views)
+void vk_InitPassFramebuffer(VkContext vk, VkRenderPassData pass, const VkTexture2D* views)
 {
     pass->fb.num = 1;
-    memStackFramePush(vk->mem);
+    mem_StackFramePush(vk->mem);
     ASSERT_Q((views) || (pass->numAttachments == 1));
     uint32_t scImageIndex = INV_IDX, fbWidth = UINT32_MAX, fbHeight = UINT32_MAX;
-    VkImageView* copy = memStackAlloc(vk->mem, pass->numAttachments * sizeof(VkImageView));
+    VkImageView* copy = mem_StackAlloc(vk->mem, pass->numAttachments * sizeof(VkImageView));
     for (uint32_t i = 0; i < pass->numAttachments; i++)
     {
         copy[i] = (views && views[i]) ? views[i]->id : VK_NULL_HANDLE;
@@ -627,7 +627,7 @@ void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* vi
     }
     pass->fb.width = fbWidth;
     pass->fb.height = fbHeight;
-    pass->fb.id = memForwdAlloc(vk->mem, sizeof(VkFramebuffer) * pass->fb.num);
+    pass->fb.id = mem_ForwdAlloc(vk->mem, sizeof(VkFramebuffer) * pass->fb.num);
     VkFramebufferCreateInfo info = { 0 };
     info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     info.renderPass = pass->id;
@@ -642,7 +642,7 @@ void vk_InitPassFramebuffer(VkContext vk, VkDrawPass pass, const VkTexture2D* vi
             copy[scImageIndex] = vk->fbView[i];
         VKFN(vk->CreateFramebufferImpl(vk->dev, &info, vk->alloc, &pass->fb.id[i]));
     }
-    memStackFramePop(vk->mem);
+    mem_StackFramePop(vk->mem);
 }
 
 void vk_MallocBuffer(VkContext vk, VkBuffer buff, VkMemoryPropertyFlags flags)

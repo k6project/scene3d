@@ -5,14 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int argParseBool(const char* arg, void* val)
+static int ParseBool(const char* arg, void* val)
 {
     int* ptr = val;
     *ptr = 1;
     return 0;
 }
 
-static int argParseStr(const char* arg, void* val)
+static int ParseStr(const char* arg, void* val)
 {
 	const char** ptr = val;
     if (!ptr)
@@ -21,7 +21,7 @@ static int argParseStr(const char* arg, void* val)
     return 0;
 }
 
-static int argParseInt(const char* arg, void* val)
+static int ParseInt(const char* arg, void* val)
 {
     int* ptr = val;
     if (!ptr)
@@ -32,9 +32,9 @@ static int argParseInt(const char* arg, void* val)
 
 extern void appGetName(char* buff, size_t max);
 
-static inline void argInitOptions(Options* opts)
+static inline void InitOptions(struct OptionsImpl* opts)
 {
-    memset(opts, 0, sizeof(Options));
+    memset(opts, 0, sizeof(struct OptionsImpl));
     opts->windowWidth = 512;
     opts->windowHeight = 512;
     opts->isFullscreen = 0;
@@ -42,9 +42,9 @@ static inline void argInitOptions(Options* opts)
     appGetName(opts->appName, APP_NAME_MAX);
 }
 
-const Options* argParse(int argc, const char** argv, MemAlloc mem)
+Options arg_ParseCmdLine(int argc, const char** argv, MemAlloc mem)
 {
-    Options* opts = memForwdAlloc(mem, sizeof(Options));
+    struct OptionsImpl* opts = mem_ForwdAlloc(mem, sizeof(struct OptionsImpl));
     struct Argument
     {
         int key, values;
@@ -52,14 +52,14 @@ const Options* argParse(int argc, const char** argv, MemAlloc mem)
         void* val;
     } argMap[] =
     {
-        {'w', 1, &argParseInt, &opts->windowWidth},
-        {'h', 1, &argParseInt, &opts->windowHeight},
-        {'i', 1, &argParseStr, (void*)&opts->inputFile},
-        {'t', 1, &argParseStr, (void*)&opts->windowTitle },
-        {'f', 0, &argParseBool, &opts->isFullscreen},
+        {'w', 1, &ParseInt, &opts->windowWidth},
+        {'h', 1, &ParseInt, &opts->windowHeight},
+        {'i', 1, &ParseStr, (void*)&opts->inputFile},
+        {'t', 1, &ParseStr, (void*)&opts->windowTitle },
+        {'f', 0, &ParseBool, &opts->isFullscreen},
         { 0 , 0, NULL, NULL }
     };
-    argInitOptions(opts);
+    InitOptions(opts);
     for (int i = 0; i < argc; i++)
     {
         const char* arg = argv[i];
