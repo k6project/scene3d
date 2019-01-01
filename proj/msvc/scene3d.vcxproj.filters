@@ -21,8 +21,8 @@
     <ClCompile Include="..\..\src\common\scene.c">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\platform\args.c">
-      <Filter>platform</Filter>
+    <ClCompile Include="..\..\src\common\args.c">
+      <Filter>common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,8 +43,8 @@
     <ClInclude Include="..\..\src\common\scene.h">
       <Filter>common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\platform\args.h">
-      <Filter>platform</Filter>
+    <ClInclude Include="..\..\src\common\args.h">
+      <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

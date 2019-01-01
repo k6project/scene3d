@@ -141,23 +141,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\common\args.c" />
     <ClCompile Include="..\..\src\common\memory.c" />
     <ClCompile Include="..\..\src\common\scene.c" />
     <ClCompile Include="..\..\src\common\vecmath.c" />
     <ClCompile Include="..\..\src\main.c" />
     <ClCompile Include="..\..\src\pcgen.c" />
-    <ClCompile Include="..\..\src\platform\args.c" />
     <ClCompile Include="..\..\src\platform\win32.c" />
     <ClCompile Include="..\..\src\renderer\renderer.c" />
     <ClCompile Include="..\..\src\renderer\vk_api.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\common\args.h" />
     <ClInclude Include="..\..\src\common\memory.h" />
     <ClInclude Include="..\..\src\common\scene.h" />
     <ClInclude Include="..\..\src\common\vecmath.h" />
     <ClInclude Include="..\..\src\global.h" />
     <ClInclude Include="..\..\src\pcgen.h" />
-    <ClInclude Include="..\..\src\platform\args.h" />
     <ClInclude Include="..\..\src\renderer\renderer.h" />
     <ClInclude Include="..\..\src\renderer\vk_api.h" />
   </ItemGroup>
