@@ -5,16 +5,15 @@ extern "C"
 {
 #endif
 
+typedef struct SceneImpl* Scene;
+
 typedef struct RendererImpl* Renderer;
 
-Renderer rnd_CreateRenderer(MemAlloc mem, Options opts);
+Renderer GfxCreateRenderer(MemAlloc mem, Options opts);
 
-void rnd_DestroyRenderer(Renderer rnd);
+void GfxRenderFrame(Renderer rnd, Scene scene);
 
-void rnd_RenderFrame(Renderer rnd); // pass scene pointer
-
-//create mesh
-//create object (mesh instance): allocate paged buffer region for uniforms
+void GfxDestroyRenderer(Renderer rnd);
 
 #ifdef __cplusplus
 }

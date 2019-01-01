@@ -13,7 +13,7 @@ struct MemAllocImpl
 	size_t posStack, maxStack, currFrame;
 };
 
-MemAlloc mem_AllocCreate(size_t forwd, size_t stack, void* block, size_t max)
+MemAlloc MemAllocCreate(size_t forwd, size_t stack, void* block, size_t max)
 {
 	forwd = ALIGN16(forwd);
 	stack = ALIGN16(stack);

@@ -6,195 +6,44 @@
 
 #include <string.h>
 
-/* 256k stack allocator */
-#define MAX_STACK (1<<18)
-
-/* 768k forward allocator */
-#define MAX_FORWD ((1<<19)+MAX_STACK)
-
-#define MAX_DESC_BUFFER 8
-#define MAX_DESC_IMAGE  0
-#define MAX_DESC_SETS   8
+#define APP_CPU_MEM_TOTAL (1u<<22) // 3/4 forward, 1/4 stack
+#define APP_CPU_MEM_FORWD ((APP_CPU_MEM_TOTAL >> 1) + (APP_CPU_MEM_TOTAL >> 2))
+#define APP_CPU_MEM_STACK (APP_CPU_MEM_TOTAL - APP_CPU_MEM_FORWD)
 
 typedef struct
 {
-	MemAlloc memory;
     Options options;
+	MemAlloc memory;
     Renderer renderer;
 } AppState;
 
-static void initGenerator(AppState* app, Vec2f size, uint32_t rows, uint32_t cols)
-{
-#if 0
-    struct {
-        Vec3f gridStep;
-        uint32_t numVerts;
-        Vec2f gridRange;
-        uint32_t minHeight;
-        uint32_t maxHeight;
-    } genParams =
-    {
-        {size.x / ((float)cols), size.y / ((float)rows), 0.0f},
-        6, {size.x * 0.5f, size.y * 0.5f}, 2, 9
-    };
-    {
-        memStackFramePush(app->memory);
-        VkShaderModuleCreateInfo info = {0};
-        info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        info.pCode = sysLoadFile("/shaders/cityget.comp.spv", &info.codeSize, app->memory, MEM_STACK);
-        VK_ASSERT_Q(vkCreateShaderModule(gVkDev, &info, NULL, &app->generator));
-        memStackFramePop(app->memory);
-    }
-    {
-        VkDescriptorSetLayoutBinding outBinding;
-        outBinding.binding = 0;
-        outBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        outBinding.descriptorCount = 1; // array size
-        outBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        outBinding.pImmutableSamplers = NULL;
-        // can be shared - only a relatively small number of layouts will be used
-        VkDescriptorSetLayoutCreateInfo layoutInfo;
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.pNext = NULL;
-        layoutInfo.flags = 0;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &outBinding;
-        VK_ASSERT_Q(vkCreateDescriptorSetLayout(gVkDev, &layoutInfo, NULL, &app->generatorSetLayout));
-    }
-    {
-        // multiple pipelines can have identical layout
-        VkPushConstantRange constRange;
-        constRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        constRange.offset = 0;
-        constRange.size = sizeof(genParams);
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.pNext = NULL;
-        pipelineLayoutInfo.flags = 0;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &app->generatorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 1;
-        pipelineLayoutInfo.pPushConstantRanges = &constRange;
-        VK_ASSERT_Q(vkCreatePipelineLayout(gVkDev, &pipelineLayoutInfo, NULL, &app->generatorPipelineLayout));
-    }
-    {
-        uint32_t localSize[] = { cols, rows };
-        VkSpecializationMapEntry specMap[2];
-        specMap[0].constantID = 0;
-        specMap[0].offset = 0;
-        specMap[0].size = sizeof(uint32_t);
-        specMap[1].constantID = 1;
-        specMap[1].offset = specMap[0].size & UINT32_MAX;
-        specMap[1].size = sizeof(uint32_t);
-        VkSpecializationInfo specInfo;
-        specInfo.mapEntryCount = 2;
-        specInfo.pMapEntries = specMap;
-        specInfo.dataSize = sizeof(localSize);
-        specInfo.pData = localSize;
-        VkComputePipelineCreateInfo createInfo;
-        createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        createInfo.pNext = NULL;
-        createInfo.flags = 0;
-        createInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        createInfo.stage.pNext = NULL;
-        createInfo.stage.flags = 0;
-        createInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-        createInfo.stage.module = app->generator;
-        createInfo.stage.pName = VK_SHADER_MAIN;
-        createInfo.stage.pSpecializationInfo = &specInfo;
-        createInfo.layout = app->generatorPipelineLayout;
-        createInfo.basePipelineHandle = VK_NULL_HANDLE;
-        createInfo.basePipelineIndex = -1;
-        VK_ASSERT_Q(vkCreateComputePipelines(gVkDev, VK_NULL_HANDLE, 1, &createInfo, NULL, &app->generatorPipeline));
-    }
-    {
-        VkBufferCreateInfo buffInfo;
-        buffInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        buffInfo.pNext = NULL;
-        buffInfo.flags = 0;
-        buffInfo.size = (2 * sizeof(Vec4f)) * 6 * cols * rows;
-        buffInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        buffInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        buffInfo.queueFamilyIndexCount = 1;
-        buffInfo.pQueueFamilyIndices = &gQueueFamily;
-        VK_ASSERT_Q(vkCreateBuffer(gVkDev, &buffInfo, NULL, &app->generatorOutput));
-        app->generatorMemory = vkxMallocBuffer(app->generatorOutput, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-    {
-        VkDescriptorSetAllocateInfo info;
-        info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        info.pNext = NULL;
-        info.descriptorPool = app->descPool;
-        info.descriptorSetCount = 1;
-        info.pSetLayouts = &app->generatorSetLayout;
-        VK_ASSERT_Q(vkAllocateDescriptorSets(gVkDev, &info, &app->generatorDescr));
-    }
-    {
-        VkDescriptorBufferInfo info;
-        info.buffer = app->generatorOutput;
-        info.offset = 0;
-        info.range = (2 * sizeof(Vec4f)) * genParams.numVerts * cols * rows;
-        VkWriteDescriptorSet update;
-        update.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        update.pNext = NULL;
-        update.dstSet = app->generatorDescr;
-        update.dstBinding = 0;
-        update.dstArrayElement = 0;
-        update.descriptorCount = 1;
-        update.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        update.pImageInfo = NULL;
-        update.pBufferInfo = &info;
-        update.pTexelBufferView = NULL;
-        vkUpdateDescriptorSets(gVkDev, 1, &update, 0, NULL);
-    }
-    {
-        app->generatorSetupLen = sizeof(genParams);
-        app->generatorSetup = memForwdAlloc(app->memory, sizeof(genParams));
-        memcpy(app->generatorSetup, &genParams, sizeof(genParams));
-    }
-#endif
-}
-
-void appOnStartup(void* dataPtr)
+void AppOnStartup(void* dataPtr)
 {
     Renderer rdr = NULL;
     AppState* app = dataPtr;
-    // stack geometry creation requests, schedule all transfers, wait until done
-    // create scene objects with geometry primitives
-    // assign animation
-	app->renderer = rnd_CreateRenderer(app->memory, app->options);
+	//app->renderer = GfxCreateRenderer(app->memory, app->options);
 }
 
-static void renderFrame(AppState* app)
-{
-    //run scene updates, schedule transfers
-	rnd_RenderFrame(app->renderer); // build command list and, wait for transfers to complete, submit
-#if 0
-    vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipeline);
-    vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_COMPUTE, app->generatorPipelineLayout, 0, 1, &app->generatorDescr, 0, NULL);
-    vkCmdPushConstants(cmdBuff, app->generatorPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, app->generatorSetupLen, app->generatorSetup);
-    vkCmdDispatch(cmdBuff, 1, 1, 1);
-
-#endif
-}
-
-void appOnShutdown(void* dataPtr)
+void AppOnShutdown(void* dataPtr)
 {
 	AppState* app = dataPtr;
-    rnd_DestroyRenderer(app->renderer);
+    //GfxDestroyRenderer(app->renderer);
 }
 
-extern void appInitialize(MemAlloc mem, Options opts, void* state);
+extern void AppInitialize(MemAlloc mem, Options opts, void* state);
 
-extern bool appShouldKeepRunning(void);
+extern bool AppShouldKeepRunning(void);
 
-int appMain(int argc, const char** argv)
+int AppMain(int argc, const char** argv)
 {
 	AppState appState = {0};
-    appState.memory = mem_AllocCreate(MAX_FORWD, MAX_STACK, NULL, 0);
-    appState.options = arg_ParseCmdLine(argc, argv, appState.memory);
-	appInitialize(appState.memory, appState.options, &appState);
-	while (appShouldKeepRunning())
-        renderFrame(&appState);
+    appState.memory = MemAllocCreate(APP_CPU_MEM_FORWD, APP_CPU_MEM_STACK, NULL, 0);
+    appState.options = ArgParseCmdLine(argc, argv, appState.memory);
+	AppInitialize(appState.memory, appState.options, &appState);
+    while (AppShouldKeepRunning())
+    {
+        //ScnTickUpdate
+        //GfxRenderFrame(appState.renderer, NULL);
+    }
 	return 0;
 }

@@ -29,11 +29,11 @@ struct RenderStateImpl
 #include "render_init.inl"
 #include "render_pass.inl"
 
-Renderer rnd_CreateRenderer(MemAlloc mem, Options opts)
+Renderer GfxCreateRenderer(MemAlloc mem, Options opts)
 {
 	size_t memBytes = mem_SubAllocSize(RDR_CPU_MEM_TOTAL);
 	void* parentMem = mem_ForwdAlloc(mem, memBytes);
-	MemAlloc local = mem_AllocCreate(RDR_CPU_MEM_FORWD, RDR_CPU_MEM_STACK, parentMem, memBytes);
+	MemAlloc local = MemAllocCreate(RDR_CPU_MEM_FORWD, RDR_CPU_MEM_STACK, parentMem, memBytes);
 	Renderer rnd = mem_ForwdAlloc(local, sizeof(struct RendererImpl));
 	rnd->mem = local;
 	CreateGraphicsContext(rnd, opts);
@@ -43,18 +43,18 @@ Renderer rnd_CreateRenderer(MemAlloc mem, Options opts)
 	return rnd;
 }
 
-void rnd_DestroyRenderer(Renderer rnd)
+void GfxDestroyRenderer(Renderer rnd)
 {
 	DestroyGraphicsContext(rnd);
 }
 
-void rnd_RenderFrame(Renderer rnd)
+void GfxRenderFrame(Renderer rnd, Scene scene)
 {
-	mem_StackFramePush(rnd->mem);
-	vk_BeginFrame(rnd->vk);
-	VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
-	vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->passes.forwardBase);
-	vk_CmdEndRenderPass(rnd->vk, pcb);
-	vk_SubmitFrame(rnd->vk, 0);
-	mem_StackFramePop(rnd->mem);
+    mem_StackFramePush(rnd->mem);
+    vk_BeginFrame(rnd->vk);
+    VkCommandBuffer pcb = vk_GetPrimaryCommandBuffer(rnd->vk);
+    vk_CmdBeginRenderPass(rnd->vk, pcb, rnd->passes.forwardBase);
+    vk_CmdEndRenderPass(rnd->vk, pcb);
+    vk_SubmitFrame(rnd->vk, 0);
+    mem_StackFramePop(rnd->mem);
 }

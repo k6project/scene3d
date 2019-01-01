@@ -21,4 +21,4 @@ struct OptionsImpl
 
 typedef const struct OptionsImpl* Options;
 
-Options arg_ParseCmdLine(int argc, const char** argv, MemAlloc mem);
+Options ArgParseCmdLine(int argc, const char** argv, MemAlloc mem);

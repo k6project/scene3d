@@ -15,7 +15,7 @@ typedef enum
 
 typedef struct MemAllocImpl* MemAlloc;
 
-MemAlloc mem_AllocCreate(size_t forwd, size_t stack, void* block, size_t max);
+MemAlloc MemAllocCreate(size_t forwd, size_t stack, void* block, size_t max);
 
 void mem_AllocRelease(MemAlloc mem);
 

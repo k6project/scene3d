@@ -2,31 +2,49 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\src\main.c" />
-    <ClCompile Include="..\..\src\win32.c" />
-    <ClCompile Include="..\..\src\args.c" />
-    <ClCompile Include="..\..\src\memory.c" />
     <ClCompile Include="..\..\src\pcgen.c" />
-    <ClCompile Include="..\..\src\scene.c" />
-    <ClCompile Include="..\..\src\math_lib.c" />
     <ClCompile Include="..\..\src\renderer\renderer.c">
       <Filter>renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\renderer\vk_api.c">
       <Filter>renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\platform\win32.c">
+      <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\vecmath.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\memory.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\common\scene.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\platform\args.c">
+      <Filter>platform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\args.h" />
     <ClInclude Include="..\..\src\global.h" />
-    <ClInclude Include="..\..\src\memory.h" />
     <ClInclude Include="..\..\src\pcgen.h" />
-    <ClInclude Include="..\..\src\scene.h" />
-    <ClInclude Include="..\..\src\math_lib.h" />
     <ClInclude Include="..\..\src\renderer\renderer.h">
       <Filter>renderer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\renderer\vk_api.h">
       <Filter>renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\vecmath.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\memory.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\common\scene.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\platform\args.h">
+      <Filter>platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +61,12 @@
   <ItemGroup>
     <Filter Include="renderer">
       <UniqueIdentifier>{c720e190-3551-4ad9-b32d-7fa2d518a2e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="platform">
+      <UniqueIdentifier>{b2c9d255-3c33-4b8a-85cb-a1776db34814}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{ac28d6a7-c85f-4b7e-b2ec-95e6f0836e2c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

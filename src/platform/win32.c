@@ -22,9 +22,9 @@ static struct
 	NULL
 };
 
-extern void appOnStartup(void* dataPtr);
+extern void AppOnStartup(void* dataPtr);
 
-extern void appOnShutdown(void* dataPtr);
+extern void AppOnShutdown(void* dataPtr);
 
 static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 {
@@ -34,14 +34,14 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	case WM_CREATE:
 		gState.keepRunning = true;
 		gState.window = wnd;
-		appOnStartup(gState.appState);
+		AppOnStartup(gState.appState);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		gState.keepRunning = false;
 		break;
 	case WM_CLOSE:
-		appOnShutdown(gState.appState);
+		AppOnShutdown(gState.appState);
 		DestroyWindow(wnd);
 		break;
 	default:
@@ -51,7 +51,7 @@ static LRESULT WINAPI appWndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 	return retval;
 }
 
-bool appShouldKeepRunning(void)
+bool AppShouldKeepRunning(void)
 {
 	MSG msg;
 	while (PeekMessage(&msg, gState.window, 0, 0, PM_REMOVE))
@@ -62,7 +62,7 @@ bool appShouldKeepRunning(void)
 	return gState.keepRunning;
 }
 
-void appInitialize(MemAlloc mem, Options opts, void* state)
+void AppInitialize(MemAlloc mem, Options opts, void* state)
 {
 	gState.appState = state;
 	WNDCLASS wndClass;
@@ -186,7 +186,7 @@ void* sysLoadFile(const char* path, size_t* size, MemAlloc mem, MemAllocMode mod
 	return retVal;
 }
 
-extern int appMain(int argc, const char** argv);
+extern int AppMain(int argc, const char** argv);
 
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
@@ -222,6 +222,6 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 		}
 		prev = *pos;
 	}
-	appMain(argc, argv);
+	AppMain(argc, argv);
 	return show;
 }

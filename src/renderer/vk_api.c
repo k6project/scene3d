@@ -50,7 +50,6 @@ struct VkContextImpl
 #define VULKAN_API_INSTANCE(proc) PFN_vk ## proc proc ## Impl;
 #define VULKAN_API_DEVICE(proc) PFN_vk ## proc proc ## Impl;
 #include "vk_api.inl"
-
     MemAlloc mem;
     void* dll;
     VkAllocationCallbacks* alloc;
@@ -108,7 +107,7 @@ void vk_CreateContext(MemAlloc mem, const VkContextInfo* info, VkContext* vkPtr)
     ASSERT_Q(info->parent == NULL);
     size_t memBytes = mem_SubAllocSize(VK_CPU_MEM_TOTAL);
     void* parentMem = mem_ForwdAlloc(mem, memBytes);
-    MemAlloc local = mem_AllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
+    MemAlloc local = MemAllocCreate(VK_CPU_MEM_FORWD, VK_CPU_MEM_STACK, parentMem, memBytes);
     VkContext vk = mem_ForwdAlloc(local, sizeof(struct VkContextImpl));
     vk->mem = local;
     vk->alloc = NULL;

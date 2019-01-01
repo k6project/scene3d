@@ -42,7 +42,7 @@ static inline void InitOptions(struct OptionsImpl* opts)
     appGetName(opts->appName, APP_NAME_MAX);
 }
 
-Options arg_ParseCmdLine(int argc, const char** argv, MemAlloc mem)
+Options ArgParseCmdLine(int argc, const char** argv, MemAlloc mem)
 {
     struct OptionsImpl* opts = mem_ForwdAlloc(mem, sizeof(struct OptionsImpl));
     struct Argument
