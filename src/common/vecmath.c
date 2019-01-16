@@ -1,8 +1,8 @@
-#include "global.h"
-
-#include "math_lib.h"
+#include <global.h>
 
 #include <math.h>
+
+#include "vecmath.h"
 
 #define M4ROW(m, v, i) \
 do {v.x=m->ptr[0][i];v.y=m->ptr[1][i];v.z=m->ptr[2][i];v.w=m->ptr[3][i];} while (0)
@@ -52,7 +52,7 @@ Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b)
     return dst;
 }
 
-Vec4f* vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
+Vec4f* Vec4fRQuat(Vec4f* dst, const Vec3f* axis, float angle)
 {
     float half = 0.5f * angle;
     float cosA = cosf(half);

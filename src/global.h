@@ -32,7 +32,7 @@
 #define TEST(c,m,...) (c)
 #endif
 
-#include "common/memory.h"
+#include <common/memory.h>
 
 #ifdef __cplusplus
 extern "C"

@@ -1,5 +1,5 @@
-#include "../global.h"
-#include "../platform/args.h"
+#include <global.h>
+#include <common/args.h>
 
 #include "vk_api.h"
 #include "renderer.h"

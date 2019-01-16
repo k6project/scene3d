@@ -1,6 +1,6 @@
 #include "global.h"
 
-#include "args.h"
+#include <common/args.h>
 #include "pcgen.h"
 
 #include "renderer/vk_api.h"

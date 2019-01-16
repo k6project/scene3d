@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math_lib.h"
+#include <common/vecmath.h>
 
 static const uint32_t CUBE_MESH_COLOR = 0xffffffffu;
 

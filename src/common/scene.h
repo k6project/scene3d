@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math_lib.h"
+#include <common/vecmath.h>
 
 #define VBO_UNIT_VECS 2
 

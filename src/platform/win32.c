@@ -1,6 +1,6 @@
 #include "global.h"
 
-#include "args.h"
+#include <common/args.h>
 
 #include <stdio.h>
 #include <shlwapi.h>

@@ -1,10 +1,7 @@
-#include "global.h"
-
-#include "args.h"
-#include "math_lib.h"
-#include "renderer/renderer.h"
-
-#include <string.h>
+#include <global.h>
+#include <common/args.h>
+#include <common/vecmath.h>
+#include <renderer/renderer.h>
 
 #define APP_CPU_MEM_TOTAL (1u<<22) // 3/4 forward, 1/4 stack
 #define APP_CPU_MEM_FORWD ((APP_CPU_MEM_TOTAL >> 1) + (APP_CPU_MEM_TOTAL >> 2))
@@ -19,9 +16,14 @@ typedef struct
 
 void AppOnStartup(void* dataPtr)
 {
-    Renderer rdr = NULL;
     AppState* app = dataPtr;
+    //app->scene = ScnCreateScene();
 	//app->renderer = GfxCreateRenderer(app->memory, app->options);
+    //Material cubeMaterial = GfxCreateMaterial(?????);
+    //Mesh cubeMesh = GfxCreateMesh(CUBE_MESH_NUM_VERTICES, CUBE_MESH_NUM_INDICES, CUBE_MESH_VERTICES, CUBE_MESH_INDICES);
+    //ScnSetCamera(????);
+    //SceneNode cube = ScnAddNode(app->scene, NULL, cubeMesh, cubeMaterial);
+    //ScnNodeTranslate()
 }
 
 void AppOnShutdown(void* dataPtr)
@@ -42,8 +44,8 @@ int AppMain(int argc, const char** argv)
 	AppInitialize(appState.memory, appState.options, &appState);
     while (AppShouldKeepRunning())
     {
-        //ScnTickUpdate
-        //GfxRenderFrame(appState.renderer, NULL);
+        //ScnRotateNode(cube, rQuat);
+        //GfxRenderFrame(appState.renderer, appState.scene);
     }
 	return 0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#define MATH_EPSILON      0.000001f               /* Very small, almost 0      */
 #define MATH_PI           3.14159265358979323846f /* PI number                 */
 #define MATH_PI_RCP       0.31830988618379067154f /* 1 over PI                 */
 #define MATH_DEG_RAD      0.01745329251994329577f /* Degrees per radian        */
@@ -65,7 +66,7 @@ Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b);
 
 float vec4f_Dot(const Vec4f* a, const Vec4f* b);
 
-Vec4f* vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
+Vec4f* Vec4fRQuat(Vec4f* dst, const Vec3f* axis, float angle);
 
 /* Matrix init functions */
 
