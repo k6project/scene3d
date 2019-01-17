@@ -2,20 +2,19 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\..\src\scene3dx\main.cpp" />
+    <ClCompile Include="..\..\..\src\scene3dx\renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="vk_api">
-      <UniqueIdentifier>{cc532670-bb7d-4926-908d-00451ad275c4}</UniqueIdentifier>
+    <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{851592d7-9638-485b-816d-4d501d598d7b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\scene3dx\vk_api\vulkan_cxx.hpp">
-      <Filter>vk_api</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\src\scene3dx\vk_api\vulkan.inl">
-      <Filter>vk_api</Filter>
-    </None>
+    <FxCompile Include="..\..\..\assets\shaders\OverlayVertexShader.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
