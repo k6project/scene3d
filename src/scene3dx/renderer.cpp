@@ -18,6 +18,10 @@
 	unsigned int DrawOffset = 0;
 };*/
 
+struct D3D11Material
+{
+};
+
 struct D3D11Primitive
 {
 	void DrawPrimitive(ID3D11DeviceContext* context) { DrawPrimitiveImpl(this, context); }
@@ -41,6 +45,7 @@ struct TD3D11Primitive : public D3D11Primitive
 // Full-screen overlay primitive
 struct D3D11OverlayPrimitive : public TD3D11Primitive<D3D11OverlayPrimitive>
 {
+	D3D11Material* Material = nullptr;
 	void Draw(ID3D11DeviceContext* context)
 	{
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -54,7 +59,7 @@ class D3D11Renderer : public IRenderer
 public:
 	virtual void Initialize(void* window) override;
 	virtual void RenderScene(const Scene* scene) override;
-	virtual OverlayRef CreateOverlay() override;
+	virtual OverlayRef CreateOverlay(MaterialRef material) override;
 	virtual void Finalize() override;
 private:
 	void AddPrimitive(D3D11Primitive* primitive);
@@ -128,9 +133,10 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 	SwapChain->Present(0, 0);
 }
 
-IRenderer::OverlayRef D3D11Renderer::CreateOverlay()
+IRenderer::OverlayRef D3D11Renderer::CreateOverlay(MaterialRef material)
 {
 	D3D11OverlayPrimitive* retval = new D3D11OverlayPrimitive();
+	retval->Material = static_cast<D3D11Material*>(material);
 	AddPrimitive(retval);
 	return retval;
 }

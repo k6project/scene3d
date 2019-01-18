@@ -23,7 +23,7 @@ void Scene3DXApp::Initialize(HWND window)
 {
 	Renderer = IRenderer::Get();
 	Renderer->Initialize(window);
-	Renderer->CreateOverlay();
+	//Renderer->CreateOverlay();
 	KeepRunning = true;
 }
 
