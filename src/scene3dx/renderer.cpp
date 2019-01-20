@@ -1,32 +1,24 @@
-#include "renderer.hpp"
-
-#include <windows.h>
 #include <dxgi.h>
 #include <d3d11.h>
+#include <windows.h>
+
+#include <common.hpp>
+#include <renderer.hpp>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
-/*struct D3D11Mesh
+struct D3D11Material : public IMaterial, public LinkedListNode<D3D11Material>
 {
-	ID3D11Buffer* Buffer;
-	unsigned int VBOffset;
-	unsigned int VBStride;
-	DXGI_FORMAT IBFormat = DXGI_FORMAT_R32_UINT;
-	unsigned int IBOffset;
-	unsigned int DrawCount;
-	unsigned int DrawOffset = 0;
-};*/
-
-struct D3D11Material
-{
+    ID3D11VertexShader* VertexShader = nullptr;
+    ID3D11PixelShader* PixelShader = nullptr;
+    ID3D11RasterizerState* RasterizerState = nullptr;
 };
 
-struct D3D11Primitive
+struct D3D11Primitive : public LinkedListNode<D3D11Primitive>
 {
 	void DrawPrimitive(ID3D11DeviceContext* context) { DrawPrimitiveImpl(this, context); }
 	void(*DrawPrimitiveImpl)(void*, ID3D11DeviceContext*) = nullptr;
-	D3D11Primitive* Next = nullptr;
 };
 
 template <typename T>
@@ -42,34 +34,48 @@ struct TD3D11Primitive : public D3D11Primitive
 	TD3D11Primitive() { DrawPrimitiveImpl = &D3D11DrawPrimitive<T>; }
 };
 
-// Full-screen overlay primitive
-struct D3D11OverlayPrimitive : public TD3D11Primitive<D3D11OverlayPrimitive>
+struct D3D11MaterialInfo : public IMaterialInfo
 {
-	D3D11Material* Material = nullptr;
-	void Draw(ID3D11DeviceContext* context)
-	{
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		
-		//context->Draw(4, 0);
-	}
+    virtual void SetVertexShader(const char* name) override;
+    virtual void SetPixelShader(const char* name) override;
+    virtual void SetBackfaceCulling(bool value) override;
+    ScopedPtr<char> VSCode, PSCode;
+    size_t VSSize = 0, PSSize = 0;
+    D3D11_RASTERIZER_DESC RSDesc;
 };
+
+void D3D11MaterialInfo::SetVertexShader(const char* name)
+{
+    VSCode = LoadFileIntoMemory(name, &VSSize);
+}
+
+void D3D11MaterialInfo::SetPixelShader(const char* name)
+{
+    PSCode = LoadFileIntoMemory(name, &PSSize);
+}
+
+void D3D11MaterialInfo::SetBackfaceCulling(bool value)
+{
+    RSDesc.CullMode = D3D11_CULL_NONE;
+}
 
 class D3D11Renderer : public IRenderer
 {
 public:
 	virtual void Initialize(void* window) override;
 	virtual void RenderScene(const Scene* scene) override;
-	virtual OverlayRef CreateOverlay(MaterialRef material) override;
+    virtual IMaterialInfo* NewMaterialInfo() override;
+    virtual IMaterial* CreateMaterial(const IMaterialInfo* info) override;
 	virtual void Finalize() override;
 private:
-	void AddPrimitive(D3D11Primitive* primitive);
 	IDXGISwapChain* SwapChain;
 	ID3D11Device* Device;
 	ID3D11DeviceContext* Context;
 	ID3D11RenderTargetView* RenderTarget;
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_9_1;
 	float ClearColor[4] = { 0.f, 0.4f, 0.9f, 1.f };
-	D3D11Primitive* FirstPrimitive;
+    D3D11Material* Materials = nullptr;
+	D3D11Primitive* Primitives = nullptr;
 	ID3D11InputLayout* VBOLayout;
 	HWND Window;
 };
@@ -93,7 +99,7 @@ void D3D11Renderer::Initialize(void* window)
 	swapChainDesc.Windowed = TRUE;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, 
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, nullptr, 0, D3D11_SDK_VERSION,
 		&swapChainDesc, &SwapChain, &Device, &FeatureLevel, &Context
 	);
 	if (FAILED(hr))
@@ -121,44 +127,74 @@ void D3D11Renderer::Initialize(void* window)
 	}
 	Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	Context->OMSetRenderTargets(1, &RenderTarget, nullptr);
+    D3D11_VIEWPORT viewport = {};
+    viewport.Width = swapChainDesc.BufferDesc.Width;
+    viewport.Height = swapChainDesc.BufferDesc.Height;
+    Context->RSSetViewports(1, &viewport);
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
 {
 	Context->ClearRenderTargetView(RenderTarget, ClearColor);
-	for (D3D11Primitive* primitive = FirstPrimitive; primitive != nullptr; primitive = primitive->Next)
+    for (D3D11Material* m = Materials; m != nullptr; m = m->Next)
+    {
+        Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        Context->VSSetShader(m->VertexShader, nullptr, 0);
+        Context->PSSetShader(m->PixelShader, nullptr, 0);
+        Context->RSSetState(m->RasterizerState);
+        Context->Draw(4, 0);
+    }
+    /*for (D3D11Primitive* primitive = Primitives; primitive != nullptr; primitive = primitive->Next)
 	{
 		primitive->DrawPrimitive(Context);
-	}
+	}*/
 	SwapChain->Present(0, 0);
 }
 
-IRenderer::OverlayRef D3D11Renderer::CreateOverlay(MaterialRef material)
+IMaterialInfo* D3D11Renderer::NewMaterialInfo()
 {
-	D3D11OverlayPrimitive* retval = new D3D11OverlayPrimitive();
-	retval->Material = static_cast<D3D11Material*>(material);
-	AddPrimitive(retval);
-	return retval;
+    D3D11MaterialInfo* info = new D3D11MaterialInfo();
+    info->RSDesc.FillMode = D3D11_FILL_SOLID;
+    info->RSDesc.CullMode = D3D11_CULL_BACK;
+    info->RSDesc.FrontCounterClockwise = FALSE;
+    info->RSDesc.DepthBias = 0;
+    info->RSDesc.SlopeScaledDepthBias = 0.f;
+    info->RSDesc.DepthBiasClamp = 0.f;
+    info->RSDesc.DepthClipEnable = true;
+    info->RSDesc.ScissorEnable = false;
+    info->RSDesc.MultisampleEnable = false;
+    info->RSDesc.AntialiasedLineEnable = false;
+    return info;
+}
+
+IMaterial* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
+{
+    D3D11Material* material = new D3D11Material();
+    const D3D11MaterialInfo* mInfo = static_cast<const D3D11MaterialInfo*>(info);
+    Device->CreateVertexShader(mInfo->VSCode, mInfo->VSSize, nullptr, &material->VertexShader);
+    Device->CreatePixelShader(mInfo->PSCode, mInfo->PSSize, nullptr, &material->PixelShader);
+    Device->CreateRasterizerState(&mInfo->RSDesc, &material->RasterizerState);
+    material->Next = Materials;
+    Materials = material;
+    delete info;
+    return material;
 }
 
 void D3D11Renderer::Finalize()
 {
+    for (D3D11Material* m = Materials; m != nullptr;)
+    {
+        D3D11Material* ptr = m;
+        ptr->VertexShader->Release();
+        ptr->PixelShader->Release();
+        ptr->RasterizerState->Release();
+        m = ptr->Next;
+        delete ptr;
+    }
 	RenderTarget->Release();
 	SwapChain->Release();
 	Device->Release();
 	Context->Release();
-}
-
-void D3D11Renderer::AddPrimitive(D3D11Primitive* primitive)
-{
-	if (FirstPrimitive)
-	{
-		FirstPrimitive->Next = primitive;
-	}
-	else
-	{
-		FirstPrimitive = primitive;
-	}
 }
 
 IRenderer* IRenderer::Get()

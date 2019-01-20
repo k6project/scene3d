@@ -3,9 +3,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\scene3dx\main.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\renderer.cpp" />
+    <ClCompile Include="..\..\..\src\scene3dx\common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
+    <ClInclude Include="..\..\..\src\scene3dx\common.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -14,6 +16,9 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\..\assets\shaders\OverlayVertexShader.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\..\shaders\OverlayPixelShader.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>

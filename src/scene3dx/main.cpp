@@ -1,5 +1,6 @@
 #include <windows.h>
 
+#include <common.hpp>
 #include <renderer.hpp>
 
 class Scene3DXApp
@@ -23,7 +24,11 @@ void Scene3DXApp::Initialize(HWND window)
 {
 	Renderer = IRenderer::Get();
 	Renderer->Initialize(window);
-	//Renderer->CreateOverlay();
+    IMaterialInfo* mInfo = Renderer->NewMaterialInfo();
+    mInfo->SetVertexShader("OverlayVertexShader.cso");
+    mInfo->SetPixelShader("OverlayPixelShader.cso");
+    mInfo->SetBackfaceCulling(false);
+    IMaterial* material = Renderer->CreateMaterial(mInfo);
 	KeepRunning = true;
 }
 
