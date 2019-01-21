@@ -27,8 +27,12 @@ void Scene3DXApp::Initialize(HWND window)
     IMaterialInfo* mInfo = Renderer->NewMaterialInfo();
     mInfo->SetVertexShader("OverlayVertexShader.cso");
     mInfo->SetPixelShader("OverlayPixelShader.cso");
-    mInfo->SetBackfaceCulling(false);
     IMaterial* material = Renderer->CreateMaterial(mInfo);
+	//IPrimitiveInfo* pInfo = Renderer->NewPrimitiveInfo();
+	//pInfo->SetVertexBufferData(void*, size_t);
+	//pInfo->SetTopology(TRIANGLE_STRIP);
+	//pInfo->SetMaterial(material);
+	//IPrimitive* primitive = Renderer->CreatePrimitive(pInfo);
 	KeepRunning = true;
 }
 

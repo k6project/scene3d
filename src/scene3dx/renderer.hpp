@@ -6,8 +6,14 @@ typedef void* Mesh;
 typedef void* Overlay;
 typedef void* Material;
 
-struct IMaterial
-{};
+struct IBuffer {};
+
+struct IBufferInfo
+{
+	virtual void InitForParameterBuffer(size_t bytes) = 0;
+};
+
+struct IMaterial {};
 
 struct IMaterialInfo
 {
@@ -22,7 +28,12 @@ public:
 	static IRenderer* Get();
 	virtual void Initialize(void* window) = 0;
 	virtual void RenderScene(const Scene* scene) = 0;
+
     virtual IMaterialInfo* NewMaterialInfo() = 0;
     virtual IMaterial* CreateMaterial(const IMaterialInfo* info) = 0;
+	
+	virtual IBufferInfo* NewBufferInfo() = 0;
+	virtual IBuffer* CreateBuffer(const IBufferInfo* info) = 0;
+	
 	virtual void Finalize() = 0;
 };

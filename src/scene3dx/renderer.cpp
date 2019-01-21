@@ -8,14 +8,39 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
-struct D3D11Material : public IMaterial, public LinkedListNode<D3D11Material>
+#define RELEASE(o) if((o)){o->Release();o=nullptr;}
+
+struct D3D11Buffer : public IBuffer, public TLinkedListNode<D3D11Buffer>
+{
+	ID3D11Buffer* Buffer = nullptr;
+	~D3D11Buffer();
+};
+
+D3D11Buffer::~D3D11Buffer()
+{
+	RELEASE(Buffer);
+}
+
+struct D3D11Material : public IMaterial, public TLinkedListNode<D3D11Material>
 {
     ID3D11VertexShader* VertexShader = nullptr;
     ID3D11PixelShader* PixelShader = nullptr;
     ID3D11RasterizerState* RasterizerState = nullptr;
+	ID3D11BlendState* BlendState = nullptr;
+	ID3D11DepthStencilState* DepthState = nullptr;
+	~D3D11Material();
 };
 
-struct D3D11Primitive : public LinkedListNode<D3D11Primitive>
+D3D11Material::~D3D11Material()
+{
+	RELEASE(VertexShader);
+	RELEASE(PixelShader);
+	RELEASE(RasterizerState);
+	RELEASE(BlendState);
+	RELEASE(DepthState);
+}
+
+struct D3D11Primitive : public TLinkedListNode<D3D11Primitive>
 {
 	void DrawPrimitive(ID3D11DeviceContext* context) { DrawPrimitiveImpl(this, context); }
 	void(*DrawPrimitiveImpl)(void*, ID3D11DeviceContext*) = nullptr;
@@ -39,7 +64,7 @@ struct D3D11MaterialInfo : public IMaterialInfo
     virtual void SetVertexShader(const char* name) override;
     virtual void SetPixelShader(const char* name) override;
     virtual void SetBackfaceCulling(bool value) override;
-    ScopedPtr<char> VSCode, PSCode;
+    TScopedPtr<char> VSCode, PSCode;
     size_t VSSize = 0, PSSize = 0;
     D3D11_RASTERIZER_DESC RSDesc;
 };
@@ -56,7 +81,23 @@ void D3D11MaterialInfo::SetPixelShader(const char* name)
 
 void D3D11MaterialInfo::SetBackfaceCulling(bool value)
 {
-    RSDesc.CullMode = D3D11_CULL_NONE;
+    RSDesc.CullMode = (value) ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+}
+
+struct D3D11BufferInfo : public IBufferInfo
+{
+	virtual void InitForParameterBuffer(size_t bytes) override;
+	D3D11_BUFFER_DESC Desc;
+};
+
+void D3D11BufferInfo::InitForParameterBuffer(size_t bytes)
+{
+	Desc.ByteWidth = bytes & UINT_MAX;
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	Desc.MiscFlags = 0;
+	Desc.StructureByteStride = 0;
 }
 
 class D3D11Renderer : public IRenderer
@@ -66,6 +107,8 @@ public:
 	virtual void RenderScene(const Scene* scene) override;
     virtual IMaterialInfo* NewMaterialInfo() override;
     virtual IMaterial* CreateMaterial(const IMaterialInfo* info) override;
+	virtual IBufferInfo* NewBufferInfo() override;
+	virtual IBuffer* CreateBuffer(const IBufferInfo* info) override;
 	virtual void Finalize() override;
 private:
 	IDXGISwapChain* SwapChain;
@@ -76,7 +119,9 @@ private:
 	float ClearColor[4] = { 0.f, 0.4f, 0.9f, 1.f };
     D3D11Material* Materials = nullptr;
 	D3D11Primitive* Primitives = nullptr;
+	D3D11Buffer* Buffers = nullptr;
 	ID3D11InputLayout* VBOLayout;
+	D3D11_VIEWPORT Viewport;
 	HWND Window;
 };
 
@@ -127,10 +172,11 @@ void D3D11Renderer::Initialize(void* window)
 	}
 	Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	Context->OMSetRenderTargets(1, &RenderTarget, nullptr);
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = swapChainDesc.BufferDesc.Width;
-    viewport.Height = swapChainDesc.BufferDesc.Height;
-    Context->RSSetViewports(1, &viewport);
+	Viewport.TopLeftX = static_cast<float>(windowRect.left);
+	Viewport.TopLeftY = static_cast<float>(windowRect.top);
+    Viewport.Width = static_cast<float>(windowRect.right - windowRect.left);
+    Viewport.Height = static_cast<float>(windowRect.bottom - windowRect.top);
+    Context->RSSetViewports(1, &Viewport);
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
@@ -144,10 +190,6 @@ void D3D11Renderer::RenderScene(const Scene* scene)
         Context->RSSetState(m->RasterizerState);
         Context->Draw(4, 0);
     }
-    /*for (D3D11Primitive* primitive = Primitives; primitive != nullptr; primitive = primitive->Next)
-	{
-		primitive->DrawPrimitive(Context);
-	}*/
 	SwapChain->Present(0, 0);
 }
 
@@ -156,7 +198,7 @@ IMaterialInfo* D3D11Renderer::NewMaterialInfo()
     D3D11MaterialInfo* info = new D3D11MaterialInfo();
     info->RSDesc.FillMode = D3D11_FILL_SOLID;
     info->RSDesc.CullMode = D3D11_CULL_BACK;
-    info->RSDesc.FrontCounterClockwise = FALSE;
+    info->RSDesc.FrontCounterClockwise = TRUE;
     info->RSDesc.DepthBias = 0;
     info->RSDesc.SlopeScaledDepthBias = 0.f;
     info->RSDesc.DepthBiasClamp = 0.f;
@@ -180,17 +222,27 @@ IMaterial* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
     return material;
 }
 
+IBufferInfo* D3D11Renderer::NewBufferInfo()
+{
+	D3D11BufferInfo* info = new D3D11BufferInfo();
+	return info;
+}
+
+IBuffer* D3D11Renderer::CreateBuffer(const IBufferInfo* info)
+{
+	D3D11Buffer* buffer = new D3D11Buffer();
+	const D3D11BufferInfo* bInfo = static_cast<const D3D11BufferInfo*>(info);
+	Device->CreateBuffer(&bInfo->Desc, nullptr, &buffer->Buffer);
+	buffer->Next = Buffers;
+	Buffers = buffer;
+	delete bInfo;
+	return buffer;
+}
+
 void D3D11Renderer::Finalize()
 {
-    for (D3D11Material* m = Materials; m != nullptr;)
-    {
-        D3D11Material* ptr = m;
-        ptr->VertexShader->Release();
-        ptr->PixelShader->Release();
-        ptr->RasterizerState->Release();
-        m = ptr->Next;
-        delete ptr;
-    }
+	DeleteAll(Materials);
+	DeleteAll(Buffers);
 	RenderTarget->Release();
 	SwapChain->Release();
 	Device->Release();

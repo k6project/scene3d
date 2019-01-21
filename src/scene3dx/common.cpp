@@ -27,3 +27,9 @@ void* LoadFileIntoMemory(const char* name, size_t* size)
     DWORD err = GetLastError();
     return nullptr;
 }
+
+float MakeColorRGB(uint32_t r, uint32_t g, uint32_t b)
+{
+	uint32_t tmp = (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff);
+	return *(reinterpret_cast<float*>(&tmp));
+}
