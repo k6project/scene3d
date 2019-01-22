@@ -8,12 +8,12 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
-#define PBUFFER_ALIGN 256
-#define PBUFFER_CHUNK (PBUFFER_ALIGN << 8)
+#define PBUFFER_ALIGN 16
 #define RELEASE(o) if((o)){o->Release();o=nullptr;}
 
-struct D3D11Buffer : public IBuffer, public TLinkedListNode<D3D11Buffer>
+struct D3D11Buffer : public TLinkedListNode<D3D11Buffer>
 {
+    size_t Size;
 	ID3D11Buffer* Buffer = nullptr;
 	~D3D11Buffer();
 };
@@ -21,6 +21,22 @@ struct D3D11Buffer : public IBuffer, public TLinkedListNode<D3D11Buffer>
 D3D11Buffer::~D3D11Buffer()
 {
 	RELEASE(Buffer);
+}
+
+struct D3D11ParameterBuffer : public D3D11Buffer, public RendererAPI::ParameterBuffer
+{
+    ID3D11DeviceContext* Context = nullptr;
+    virtual void Update(const void* data, size_t size) override;
+};
+
+void D3D11ParameterBuffer::Update(const void* data, size_t size)
+{
+    D3D11_MAPPED_SUBRESOURCE sRes = {};
+    if (SUCCEEDED(Context->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sRes)))
+    {
+        memcpy_s(sRes.pData, Size, data, size);
+        Context->Unmap(Buffer, 0);
+    }
 }
 
 struct D3D11Material : public RendererAPI::Material, public TLinkedListNode<D3D11Material>
@@ -61,45 +77,33 @@ struct TD3D11Primitive : public D3D11Primitive
 	TD3D11Primitive() { DrawPrimitiveImpl = &D3D11DrawPrimitive<T>; }
 };
 
-struct D3D11MaterialInfo : public IMaterialInfo
+struct D3D11MaterialDesc : public RendererAPI::MaterialDesc
 {
-    virtual void SetVertexShader(const char* name) override;
-    virtual void SetPixelShader(const char* name) override;
+    virtual void SetShader(RendererAPI::ShaderStage stage, const char* name) override;
     virtual void SetBackfaceCulling(bool value) override;
     TScopedPtr<char> VSCode, PSCode;
     size_t VSSize = 0, PSSize = 0;
     D3D11_RASTERIZER_DESC RSDesc;
 };
 
-void D3D11MaterialInfo::SetVertexShader(const char* name)
+void D3D11MaterialDesc::SetShader(RendererAPI::ShaderStage stage, const char* name)
 {
-    VSCode = LoadFileIntoMemory(name, &VSSize);
+    switch (stage)
+    {
+    case RendererAPI::VertexShader:
+        VSCode = LoadFileIntoMemory(name, &VSSize);
+        break;
+    case RendererAPI::PixelShader:
+        PSCode = LoadFileIntoMemory(name, &PSSize);
+        break;
+    default:
+        break;
+    }
 }
 
-void D3D11MaterialInfo::SetPixelShader(const char* name)
-{
-    PSCode = LoadFileIntoMemory(name, &PSSize);
-}
-
-void D3D11MaterialInfo::SetBackfaceCulling(bool value)
+void D3D11MaterialDesc::SetBackfaceCulling(bool value)
 {
     RSDesc.CullMode = (value) ? D3D11_CULL_BACK : D3D11_CULL_NONE;
-}
-
-struct D3D11BufferInfo : public IBufferInfo
-{
-	virtual void InitForParameterBuffer(size_t bytes) override;
-	D3D11_BUFFER_DESC Desc;
-};
-
-void D3D11BufferInfo::InitForParameterBuffer(size_t bytes)
-{
-	Desc.ByteWidth = bytes & UINT_MAX;
-	Desc.Usage = D3D11_USAGE_DYNAMIC;
-	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	Desc.MiscFlags = 0;
-	Desc.StructureByteStride = 0;
 }
 
 class D3D11Renderer : public RendererAPI
@@ -108,18 +112,10 @@ public:
 	virtual void Initialize(void* window) override;
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
-	virtual void AllocateParameterBlock(size_t size, ParameterBlock** block) override;
-	virtual void UpdateParameterBlock(const ParameterBlock* block, const void* data, size_t size) override;
-	virtual void BeginParameterBufferUpdate(PBUpdateType type) override;
-	virtual void CommitParameterBufferUpdate() override;
-    virtual MaterialDesc* NewMaterialInfo() override;
-    virtual Material* CreateMaterial(const IMaterialInfo* info) override;
+	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) override;
+    virtual void CreateMaterialDescriptor(MaterialDesc** desc) override;
+    virtual void CreateMaterial(const MaterialDesc* info, Material** material) override;
 private:
-	struct
-	{
-		size_t RemainingBlocks = 0;
-		D3D11Buffer* Chunks = nullptr;
-	} ParameterBuffer;
 	IDXGISwapChain* SwapChain;
 	ID3D11Device* Device;
 	ID3D11DeviceContext* Context;
@@ -202,52 +198,6 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 	SwapChain->Present(0, 0);
 }
 
-IMaterialInfo* D3D11Renderer::NewMaterialInfo()
-{
-    D3D11MaterialInfo* info = new D3D11MaterialInfo();
-    info->RSDesc.FillMode = D3D11_FILL_SOLID;
-    info->RSDesc.CullMode = D3D11_CULL_BACK;
-    info->RSDesc.FrontCounterClockwise = TRUE;
-    info->RSDesc.DepthBias = 0;
-    info->RSDesc.SlopeScaledDepthBias = 0.f;
-    info->RSDesc.DepthBiasClamp = 0.f;
-    info->RSDesc.DepthClipEnable = true;
-    info->RSDesc.ScissorEnable = false;
-    info->RSDesc.MultisampleEnable = false;
-    info->RSDesc.AntialiasedLineEnable = false;
-    return info;
-}
-
-RendererAPI::Material* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
-{
-    D3D11Material* material = new D3D11Material();
-    const D3D11MaterialInfo* mInfo = static_cast<const D3D11MaterialInfo*>(info);
-    Device->CreateVertexShader(mInfo->VSCode, mInfo->VSSize, nullptr, &material->VertexShader);
-    Device->CreatePixelShader(mInfo->PSCode, mInfo->PSSize, nullptr, &material->PixelShader);
-    Device->CreateRasterizerState(&mInfo->RSDesc, &material->RasterizerState);
-    material->Next = Materials;
-    Materials = material;
-    delete info;
-    return material;
-}
-
-/*IBufferInfo* D3D11Renderer::NewBufferInfo()
-{
-	D3D11BufferInfo* info = new D3D11BufferInfo();
-	return info;
-}
-
-IBuffer* D3D11Renderer::CreateBuffer(const IBufferInfo* info)
-{
-	D3D11Buffer* buffer = new D3D11Buffer();
-	const D3D11BufferInfo* bInfo = static_cast<const D3D11BufferInfo*>(info);
-	Device->CreateBuffer(&bInfo->Desc, nullptr, &buffer->Buffer);
-	buffer->Next = Buffers;
-	Buffers = buffer;
-	delete bInfo;
-	return buffer;
-}*/
-
 void D3D11Renderer::Finalize()
 {
 	DeleteAll(Materials);
@@ -258,28 +208,54 @@ void D3D11Renderer::Finalize()
 	Context->Release();
 }
 
-void D3D11Renderer::AllocateParameterBlock(size_t size, ParameterBlock** block)
+void D3D11Renderer::CreateParameterBuffer(size_t size, RendererAPI::ParameterBuffer** bufferPtr)
 {
-	*block = nullptr;
+	*bufferPtr = nullptr;
 	if (size > 0)
 	{
-		size_t numChunks = ((size - 1) / PBUFFER_ALIGN) + 1;
-		if (numChunks < ParameterBuffer.RemainingBlocks)
-		{
-			D3D11_BUFFER_DESC desc = {};
-			desc.ByteWidth = PBUFFER_CHUNK;
-			desc.Usage = D3D11_USAGE_DYNAMIC;
-			desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-			D3D11Buffer* buffer = new D3D11Buffer();
-			Device->CreateBuffer(&desc, nullptr, &buffer->Buffer);
-			buffer->Next = ParameterBuffer.Chunks;
-			ParameterBuffer.Chunks = buffer;
-		}
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.ElementOffset
-	}
+		size = (((size - 1) / PBUFFER_ALIGN) + 1) * PBUFFER_ALIGN;
+        D3D11_BUFFER_DESC desc = {};
+        desc.ByteWidth = size & UINT_MAX;
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        D3D11ParameterBuffer* buffer = new D3D11ParameterBuffer();
+        Device->CreateBuffer(&desc, nullptr, &buffer->Buffer);
+        buffer->Context = Context;
+        buffer->Size = size;
+        buffer->Next = Buffers;
+        Buffers = buffer;
+        *bufferPtr = buffer;
+    }
+}
+
+void D3D11Renderer::CreateMaterialDescriptor(MaterialDesc** mDesc)
+{
+    D3D11MaterialDesc* desc = new D3D11MaterialDesc();
+    desc->RSDesc.FillMode = D3D11_FILL_SOLID;
+    desc->RSDesc.CullMode = D3D11_CULL_BACK;
+    desc->RSDesc.FrontCounterClockwise = TRUE;
+    desc->RSDesc.DepthBias = 0;
+    desc->RSDesc.SlopeScaledDepthBias = 0.f;
+    desc->RSDesc.DepthBiasClamp = 0.f;
+    desc->RSDesc.DepthClipEnable = true;
+    desc->RSDesc.ScissorEnable = false;
+    desc->RSDesc.MultisampleEnable = false;
+    desc->RSDesc.AntialiasedLineEnable = false;
+    *mDesc = desc;
+}
+
+void D3D11Renderer::CreateMaterial(const MaterialDesc* desc, Material** materialPtr)
+{
+    D3D11Material* material = new D3D11Material();
+    const D3D11MaterialDesc* mInfo = static_cast<const D3D11MaterialDesc*>(desc);
+    Device->CreateVertexShader(mInfo->VSCode, mInfo->VSSize, nullptr, &material->VertexShader);
+    Device->CreatePixelShader(mInfo->PSCode, mInfo->PSSize, nullptr, &material->PixelShader);
+    Device->CreateRasterizerState(&mInfo->RSDesc, &material->RasterizerState);
+    material->Next = Materials;
+    Materials = material;
+    delete desc;
+    *materialPtr = material;
 }
 
 RendererAPI* RendererAPI::Get()
