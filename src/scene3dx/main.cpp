@@ -12,7 +12,10 @@ public:
 	void Finalize();
 private:
 	bool KeepRunning = false;
-	IRenderer* Renderer;
+	//struct {...} GlobalParameters;
+	//ParameterBlock GlobalsBlock;//opaque pointer
+	//MeshPrimitive
+	RendererAPI* Renderer;
 };
 
 bool Scene3DXApp::ShouldKeepRunning() const
@@ -22,7 +25,7 @@ bool Scene3DXApp::ShouldKeepRunning() const
 
 void Scene3DXApp::Initialize(HWND window)
 {
-	Renderer = IRenderer::Get();
+	Renderer = RendererAPI::Get();
 	Renderer->Initialize(window);
     IMaterialInfo* mInfo = Renderer->NewMaterialInfo();
     mInfo->SetVertexShader("OverlayVertexShader.cso");
@@ -33,11 +36,19 @@ void Scene3DXApp::Initialize(HWND window)
 	//pInfo->SetTopology(TRIANGLE_STRIP);
 	//pInfo->SetMaterial(material);
 	//IPrimitive* primitive = Renderer->CreatePrimitive(pInfo);
+
+	//Uniforms:
+	//Renderer->AllocateParameterBlock(size, params); // allocate a block within parameter buffer
+	
 	KeepRunning = true;
 }
 
 void Scene3DXApp::Update(float deltaT)
 {
+	void *pBuffer = nullptr;
+	//Renderer->InitParameterBuffer(); //map
+	//Renderer->UpdateParameterBlock(GlobalsBlock, &GlobalParameters, sizeof(GlobalParameters));
+	//Renderer->CommitParameterBuffer(); //unmap/flush
 	Renderer->RenderScene(nullptr);
 }
 

@@ -8,6 +8,8 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 
+#define PBUFFER_ALIGN 256
+#define PBUFFER_CHUNK (PBUFFER_ALIGN << 8)
 #define RELEASE(o) if((o)){o->Release();o=nullptr;}
 
 struct D3D11Buffer : public IBuffer, public TLinkedListNode<D3D11Buffer>
@@ -21,7 +23,7 @@ D3D11Buffer::~D3D11Buffer()
 	RELEASE(Buffer);
 }
 
-struct D3D11Material : public IMaterial, public TLinkedListNode<D3D11Material>
+struct D3D11Material : public RendererAPI::Material, public TLinkedListNode<D3D11Material>
 {
     ID3D11VertexShader* VertexShader = nullptr;
     ID3D11PixelShader* PixelShader = nullptr;
@@ -100,17 +102,24 @@ void D3D11BufferInfo::InitForParameterBuffer(size_t bytes)
 	Desc.StructureByteStride = 0;
 }
 
-class D3D11Renderer : public IRenderer
+class D3D11Renderer : public RendererAPI
 {
 public:
 	virtual void Initialize(void* window) override;
 	virtual void RenderScene(const Scene* scene) override;
-    virtual IMaterialInfo* NewMaterialInfo() override;
-    virtual IMaterial* CreateMaterial(const IMaterialInfo* info) override;
-	virtual IBufferInfo* NewBufferInfo() override;
-	virtual IBuffer* CreateBuffer(const IBufferInfo* info) override;
 	virtual void Finalize() override;
+	virtual void AllocateParameterBlock(size_t size, ParameterBlock** block) override;
+	virtual void UpdateParameterBlock(const ParameterBlock* block, const void* data, size_t size) override;
+	virtual void BeginParameterBufferUpdate(PBUpdateType type) override;
+	virtual void CommitParameterBufferUpdate() override;
+    virtual MaterialDesc* NewMaterialInfo() override;
+    virtual Material* CreateMaterial(const IMaterialInfo* info) override;
 private:
+	struct
+	{
+		size_t RemainingBlocks = 0;
+		D3D11Buffer* Chunks = nullptr;
+	} ParameterBuffer;
 	IDXGISwapChain* SwapChain;
 	ID3D11Device* Device;
 	ID3D11DeviceContext* Context;
@@ -209,7 +218,7 @@ IMaterialInfo* D3D11Renderer::NewMaterialInfo()
     return info;
 }
 
-IMaterial* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
+RendererAPI::Material* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
 {
     D3D11Material* material = new D3D11Material();
     const D3D11MaterialInfo* mInfo = static_cast<const D3D11MaterialInfo*>(info);
@@ -222,7 +231,7 @@ IMaterial* D3D11Renderer::CreateMaterial(const IMaterialInfo* info)
     return material;
 }
 
-IBufferInfo* D3D11Renderer::NewBufferInfo()
+/*IBufferInfo* D3D11Renderer::NewBufferInfo()
 {
 	D3D11BufferInfo* info = new D3D11BufferInfo();
 	return info;
@@ -237,7 +246,7 @@ IBuffer* D3D11Renderer::CreateBuffer(const IBufferInfo* info)
 	Buffers = buffer;
 	delete bInfo;
 	return buffer;
-}
+}*/
 
 void D3D11Renderer::Finalize()
 {
@@ -249,7 +258,31 @@ void D3D11Renderer::Finalize()
 	Context->Release();
 }
 
-IRenderer* IRenderer::Get()
+void D3D11Renderer::AllocateParameterBlock(size_t size, ParameterBlock** block)
+{
+	*block = nullptr;
+	if (size > 0)
+	{
+		size_t numChunks = ((size - 1) / PBUFFER_ALIGN) + 1;
+		if (numChunks < ParameterBuffer.RemainingBlocks)
+		{
+			D3D11_BUFFER_DESC desc = {};
+			desc.ByteWidth = PBUFFER_CHUNK;
+			desc.Usage = D3D11_USAGE_DYNAMIC;
+			desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			D3D11Buffer* buffer = new D3D11Buffer();
+			Device->CreateBuffer(&desc, nullptr, &buffer->Buffer);
+			buffer->Next = ParameterBuffer.Chunks;
+			ParameterBuffer.Chunks = buffer;
+		}
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.ElementOffset
+	}
+}
+
+RendererAPI* RendererAPI::Get()
 {
 	static D3D11Renderer impl = {};
 	return &impl;
