@@ -51,5 +51,5 @@ public:
 };
 
 typedef RendererAPI::MaterialDescriptor MaterialDescriptor;
-typedef RendererAPI::ParameterBuffer* ParameterBuffer;
-typedef RendererAPI::Material* Material;
+typedef RendererAPI::ParameterBuffer ParameterBuffer;
+typedef RendererAPI::Material Material;

@@ -28,7 +28,7 @@ struct TScopedPtr
     T* Pointer = nullptr;
     void operator=(void* ptr) { Pointer = static_cast<T*>(ptr); }
     operator T*() const { return Pointer; }
-    ~TScopedPtr() { delete Pointer; }
+    ~TScopedPtr() { delete[] Pointer; }
 };
 
 void* LoadFileIntoMemory(const char* name, size_t* size);

@@ -149,10 +149,12 @@
     <ClCompile Include="..\..\..\src\scene3dx\common.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\scene3dx.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\renderer.cpp" />
+    <ClCompile Include="..\..\..\src\scene3dx\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\common.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
+    <ClInclude Include="..\..\..\src\scene3dx\scene3dx.hpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\..\assets\shaders\OverlayVertexShader.hlsl">
