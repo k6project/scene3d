@@ -1,3 +1,5 @@
+#define RENDERER_IMPL public
+
 #include <dxgi.h>
 #include <d3d11.h>
 #include <windows.h>
@@ -77,33 +79,24 @@ struct TD3D11Primitive : public D3D11Primitive
 	TD3D11Primitive() { DrawPrimitiveImpl = &D3D11DrawPrimitive<T>; }
 };
 
-struct D3D11MaterialDesc : public RendererAPI::MaterialDesc
+void RendererAPI::MaterialDescriptor::SetShader(ShaderStage stage, const char* name)
 {
-    virtual void SetShader(RendererAPI::ShaderStage stage, const char* name) override;
-    virtual void SetBackfaceCulling(bool value) override;
-    TScopedPtr<char> VSCode, PSCode;
-    size_t VSSize = 0, PSSize = 0;
-    D3D11_RASTERIZER_DESC RSDesc;
-};
-
-void D3D11MaterialDesc::SetShader(RendererAPI::ShaderStage stage, const char* name)
-{
-    switch (stage)
-    {
-    case RendererAPI::VertexShader:
-        VSCode = LoadFileIntoMemory(name, &VSSize);
-        break;
-    case RendererAPI::PixelShader:
-        PSCode = LoadFileIntoMemory(name, &PSSize);
-        break;
-    default:
-        break;
-    }
+	switch (stage)
+	{
+	case RendererAPI::VertexShader:
+		VSCode = LoadFileIntoMemory(name, &VSSize);
+		break;
+	case RendererAPI::PixelShader:
+		PSCode = LoadFileIntoMemory(name, &PSSize);
+		break;
+	default:
+		break;
+	}
 }
 
-void D3D11MaterialDesc::SetBackfaceCulling(bool value)
+void RendererAPI::MaterialDescriptor::SetCulling(FaceCulling value)
 {
-    RSDesc.CullMode = (value) ? D3D11_CULL_BACK : D3D11_CULL_NONE;
+	Culling = value;
 }
 
 class D3D11Renderer : public RendererAPI
@@ -113,8 +106,7 @@ public:
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
 	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) override;
-    virtual void CreateMaterialDescriptor(MaterialDesc** desc) override;
-    virtual void CreateMaterial(const MaterialDesc* info, Material** material) override;
+	virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) override;
 private:
 	IDXGISwapChain* SwapChain;
 	ID3D11Device* Device;
@@ -229,33 +221,32 @@ void D3D11Renderer::CreateParameterBuffer(size_t size, RendererAPI::ParameterBuf
     }
 }
 
-void D3D11Renderer::CreateMaterialDescriptor(MaterialDesc** mDesc)
+void D3D11Renderer::CreateMaterial(const MaterialDescriptor& info, Material** materialPtr)
 {
-    D3D11MaterialDesc* desc = new D3D11MaterialDesc();
-    desc->RSDesc.FillMode = D3D11_FILL_SOLID;
-    desc->RSDesc.CullMode = D3D11_CULL_BACK;
-    desc->RSDesc.FrontCounterClockwise = TRUE;
-    desc->RSDesc.DepthBias = 0;
-    desc->RSDesc.SlopeScaledDepthBias = 0.f;
-    desc->RSDesc.DepthBiasClamp = 0.f;
-    desc->RSDesc.DepthClipEnable = true;
-    desc->RSDesc.ScissorEnable = false;
-    desc->RSDesc.MultisampleEnable = false;
-    desc->RSDesc.AntialiasedLineEnable = false;
-    *mDesc = desc;
-}
-
-void D3D11Renderer::CreateMaterial(const MaterialDesc* desc, Material** materialPtr)
-{
-    D3D11Material* material = new D3D11Material();
-    const D3D11MaterialDesc* mInfo = static_cast<const D3D11MaterialDesc*>(desc);
-    Device->CreateVertexShader(mInfo->VSCode, mInfo->VSSize, nullptr, &material->VertexShader);
-    Device->CreatePixelShader(mInfo->PSCode, mInfo->PSSize, nullptr, &material->PixelShader);
-    Device->CreateRasterizerState(&mInfo->RSDesc, &material->RasterizerState);
-    material->Next = Materials;
-    Materials = material;
-    delete desc;
-    *materialPtr = material;
+	D3D11Material* material = new D3D11Material();
+	Device->CreateVertexShader(info.VSCode, info.VSSize, nullptr, &material->VertexShader);
+	Device->CreatePixelShader(info.PSCode, info.PSSize, nullptr, &material->PixelShader);
+	D3D11_RASTERIZER_DESC rsDesc = {};
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	switch (info.Culling)
+	{
+	case RendererAPI::NoCulling:
+		rsDesc.CullMode = D3D11_CULL_NONE;
+		break;
+	case RendererAPI::BackFaceCW:
+		rsDesc.CullMode = D3D11_CULL_BACK;
+		rsDesc.FrontCounterClockwise = FALSE;
+		break;
+	case RendererAPI::BackFaceCCW:
+	default:
+		rsDesc.CullMode = D3D11_CULL_BACK;
+		rsDesc.FrontCounterClockwise = TRUE;
+		break;
+	}
+	Device->CreateRasterizerState(&rsDesc, &material->RasterizerState);
+	material->Next = Materials;
+	Materials = material;
+	*materialPtr = material;
 }
 
 RendererAPI* RendererAPI::Get()

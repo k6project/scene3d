@@ -27,10 +27,9 @@ void Scene3DXApp::Initialize(HWND window)
 {
 	Renderer = RendererAPI::Get();
 	Renderer->Initialize(window);
-    MaterialDesc mInfo;
-    Renderer->CreateMaterialDescriptor(&mInfo);
-    mInfo->SetShader(RendererAPI::VertexShader, "OverlayVertexShader.cso");
-    mInfo->SetShader(RendererAPI::PixelShader, "OverlayPixelShader.cso");
+	MaterialDescriptor mInfo;
+    mInfo.SetShader(RendererAPI::VertexShader, "OverlayVertexShader.cso");
+    mInfo.SetShader(RendererAPI::PixelShader, "OverlayPixelShader.cso");
     Material material;
     Renderer->CreateMaterial(mInfo, &material);
 	//IPrimitiveInfo* pInfo = Renderer->NewPrimitiveInfo();

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef RENDERER_IMPL
+#define RENDERER_IMPL private
+#endif
+
 class Scene;
 
 class RendererAPI
@@ -12,10 +16,22 @@ public:
 		NumShaderStages
 	};
 
-	struct MaterialDesc
+	enum FaceCulling
 	{
-		virtual void SetShader(ShaderStage stage, const char* name) = 0;
-		virtual void SetBackfaceCulling(bool value) = 0;
+		NoCulling,
+		BackFaceCW,
+		BackFaceCCW
+	};
+
+	class MaterialDescriptor
+	{
+	public:
+		void SetShader(ShaderStage stage, const char* name);
+		void SetCulling(FaceCulling value);
+	RENDERER_IMPL:
+		TScopedPtr<char> VSCode, PSCode;
+		size_t VSSize = 0, PSSize = 0;
+		FaceCulling Culling = BackFaceCCW;
 	};
 
 	struct Material 
@@ -31,10 +47,9 @@ public:
 	virtual void RenderScene(const Scene* scene) = 0;
 	virtual void Finalize() = 0;
 	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) = 0;
-    virtual void CreateMaterialDescriptor(MaterialDesc** desc) = 0;
-    virtual void CreateMaterial(const MaterialDesc* info, Material** materialPtr) = 0;
+    virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) = 0;
 };
 
+typedef RendererAPI::MaterialDescriptor MaterialDescriptor;
 typedef RendererAPI::ParameterBuffer* ParameterBuffer;
-typedef RendererAPI::MaterialDesc* MaterialDesc;
 typedef RendererAPI::Material* Material;
