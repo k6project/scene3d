@@ -41,6 +41,17 @@ void D3D11ParameterBuffer::Update(const void* data, size_t size)
     }
 }
 
+struct D3D11Texture : public RendererAPI::Texture, public TLinkedListNode<D3D11Texture>
+{
+	ID3D11Texture2D* Texture = nullptr;
+	~D3D11Texture();
+};
+
+D3D11Texture::~D3D11Texture()
+{
+	RELEASE(Texture);
+}
+
 struct D3D11Material : public RendererAPI::Material, public TLinkedListNode<D3D11Material>
 {
     ID3D11VertexShader* VertexShader = nullptr;
@@ -106,6 +117,7 @@ public:
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
 	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) override;
+	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) override;
 	virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) override;
 private:
 	IDXGISwapChain* SwapChain;
@@ -114,6 +126,7 @@ private:
 	ID3D11RenderTargetView* RenderTarget;
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_9_1;
 	float ClearColor[4] = { 0.f, 0.4f, 0.9f, 1.f };
+	D3D11Texture* Textures = nullptr;
     D3D11Material* Materials = nullptr;
 	D3D11Primitive* Primitives = nullptr;
 	D3D11Buffer* Buffers = nullptr;
@@ -192,6 +205,7 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 
 void D3D11Renderer::Finalize()
 {
+	DeleteAll(Textures);
 	DeleteAll(Materials);
 	DeleteAll(Buffers);
 	RenderTarget->Release();
@@ -221,14 +235,44 @@ void D3D11Renderer::CreateParameterBuffer(size_t size, RendererAPI::ParameterBuf
     }
 }
 
-void D3D11Renderer::CreateMaterial(const MaterialDescriptor& info, Material** materialPtr)
+void D3D11Renderer::CreateTexture(const TextureDescriptor& desc, Texture** texturePtr)
+{
+	D3D11Texture* texture = new D3D11Texture();
+	D3D11_TEXTURE2D_DESC tDesc = {};
+	tDesc.Width = desc.Width;
+	tDesc.Height = desc.Height;
+	switch (desc.Format)
+	{
+	case RendererAPI::FormatBGRA8Unorm:
+		tDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		break;
+	case RendererAPI::FormatD24UnormS8Uint:
+		tDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		break;
+	}
+	tDesc.ArraySize = 1;
+	tDesc.MipLevels = 1;
+	tDesc.SampleDesc.Count = 1;
+	tDesc.SampleDesc.Quality = 0;
+	tDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	tDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	D3D11_SUBRESOURCE_DATA data = {};
+	data.pSysMem = desc.Data;
+	data.SysMemPitch = desc.Width;
+	Device->CreateTexture2D(&tDesc, &data, &texture->Texture);
+	texture->Next = Textures;
+	Textures = texture;
+	*texturePtr = texture;
+}
+
+void D3D11Renderer::CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr)
 {
 	D3D11Material* material = new D3D11Material();
-	Device->CreateVertexShader(info.VSCode, info.VSSize, nullptr, &material->VertexShader);
-	Device->CreatePixelShader(info.PSCode, info.PSSize, nullptr, &material->PixelShader);
+	Device->CreateVertexShader(desc.VSCode, desc.VSSize, nullptr, &material->VertexShader);
+	Device->CreatePixelShader(desc.PSCode, desc.PSSize, nullptr, &material->PixelShader);
 	D3D11_RASTERIZER_DESC rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
-	switch (info.Culling)
+	switch (desc.Culling)
 	{
 	case RendererAPI::NoCulling:
 		rsDesc.CullMode = D3D11_CULL_NONE;

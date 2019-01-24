@@ -23,6 +23,19 @@ public:
 		BackFaceCCW
 	};
 
+	enum DataFormat
+	{
+		FormatBGRA8Unorm,
+		FormatD24UnormS8Uint
+	};
+
+	struct TextureDescriptor
+	{
+		uint32_t Width = 0, Height = 0;
+		DataFormat Format;
+		TScopedPtr<uint32_t> Data;
+	};
+
 	class MaterialDescriptor
 	{
 	public:
@@ -33,6 +46,9 @@ public:
 		size_t VSSize = 0, PSSize = 0;
 		FaceCulling Culling = BackFaceCCW;
 	};
+
+	struct Texture
+	{};
 
 	struct Material 
 	{};
@@ -47,9 +63,12 @@ public:
 	virtual void RenderScene(const Scene* scene) = 0;
 	virtual void Finalize() = 0;
 	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) = 0;
-    virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) = 0;
+	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) = 0;
+    virtual void CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr) = 0;
 };
 
+typedef RendererAPI::TextureDescriptor TextureDescriptor;
 typedef RendererAPI::MaterialDescriptor MaterialDescriptor;
 typedef RendererAPI::ParameterBuffer ParameterBuffer;
+typedef RendererAPI::Texture Texture;
 typedef RendererAPI::Material Material;

@@ -34,29 +34,32 @@ void Scene3DXApp::Initialize(void* window)
 
 void Scene3DXApp::CreateTextures()
 {
-	static const uint32_t defColorRGBA[] = 
+	static const uint32_t defColorBGRA[] = 
 	{	
-		0xFF0000FFu, 0x00FF00FFu, 0x0000FFFFu, 0xFFFF00FFu
+		0x0000FFFFu, 0x00FF00FFu, 0xFF0000FFu, // RGB
+		0xFFFF00FFu, 0xFF00FFFFu, 0x00FFFFFFu, // CMY
+		0x000000FFu, 0xFFFFFFFFu			   // BW
 	};
-	static const int size = 64;
-	static const int count = sizeof(defColorRGBA) / sizeof(defColorRGBA[0]);
-	uint32_t* bytes = new uint32_t[size * size * count];
+	static const uint32_t size = 64;
+	static const int count = sizeof(defColorBGRA) / sizeof(defColorBGRA[0]);
+	TextureDescriptor tDesc = {};
+	tDesc.Width = size;
+	tDesc.Height = size;
+	tDesc.Format = RendererAPI::FormatBGRA8Unorm;
+	tDesc.Data = new uint32_t[size * size];
 	for (int i = 0; i < count; i++)
 	{
-		//TextureDescriptor tDesc;
-		uint32_t* ptr = bytes + (i * size * size);
-		for (int y = 0; y < size; y++)
+		for (uint32_t y = 0; y < size; y++)
 		{
-			int scanline = y * size;
-			for (int x = 0; x < size; x++)
+			uint32_t scanline = y * size;
+			for (uint32_t x = 0; x < size; x++)
 			{
-
+				tDesc.Data[scanline + x] = defColorBGRA[i];
 			}
 		}
-		// init tDesc;
-		// create texture;
+		Texture* texture;
+		Renderer->CreateTexture(tDesc, &texture);
 	}
-	delete[] bytes;
 }
 
 void Scene3DXApp::CreateMaterials()
