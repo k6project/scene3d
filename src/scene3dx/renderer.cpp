@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <common.hpp>
+#include <memory.hpp>
 #include <renderer.hpp>
 
 #pragma comment(lib, "dxgi.lib")
@@ -120,6 +121,7 @@ public:
 	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) override;
 	virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) override;
 private:
+	MemAllocLinear LocalMemory;
 	IDXGISwapChain* SwapChain;
 	ID3D11Device* Device;
 	ID3D11DeviceContext* Context;

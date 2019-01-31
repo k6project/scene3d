@@ -1,6 +1,9 @@
 static const float3 Vertex[] =
 {
-	float3(-1, 1, 0), float3(-1, -1, 0), float3(1, 1, 0), float3(1, -1, 0)
+	float3(-1,  1,  0), 
+    float3(-1, -1,  0), 
+    float3( 1,  1,  0), 
+    float3( 1, -1,  0)
 };
 
 struct VSOutput

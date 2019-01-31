@@ -60,11 +60,11 @@ public:
 
 	static RendererAPI* Get();
 	virtual void Initialize(void* window) = 0;
-	virtual void RenderScene(const Scene* scene) = 0;
-	virtual void Finalize() = 0;
 	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) = 0;
 	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) = 0;
-    virtual void CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr) = 0;
+	virtual void CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr) = 0;
+	virtual void RenderScene(const Scene* scene) = 0;
+	virtual void Finalize() = 0;
 };
 
 typedef RendererAPI::TextureDescriptor TextureDescriptor;

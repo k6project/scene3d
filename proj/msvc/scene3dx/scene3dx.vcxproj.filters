@@ -5,11 +5,13 @@
     <ClCompile Include="..\..\..\src\scene3dx\common.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\scene3dx.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\winmain.cpp" />
+    <ClCompile Include="..\..\..\src\scene3dx\memory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\common.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\scene3dx.hpp" />
+    <ClInclude Include="..\..\..\src\scene3dx\memory.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
