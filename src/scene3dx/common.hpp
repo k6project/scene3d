@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <memory.hpp>
+
 template <typename T>
 struct TLinkedListNode
 {
@@ -29,6 +31,17 @@ struct TScopedPtr
     void operator=(void* ptr) { Pointer = static_cast<T*>(ptr); }
     operator T*() const { return Pointer; }
     ~TScopedPtr() { delete[] Pointer; }
+};
+
+class IOBuffer
+{
+public:
+	void LoadFromFile(const char* name, const MemAlloc& mem = *MemAllocBase::Default());
+	operator void*() const { return Data; }
+	size_t Size() const { return Bytes; }
+private:
+	void* Data;
+	size_t Bytes;
 };
 
 void* LoadFileIntoMemory(const char* name, size_t* size);
