@@ -30,7 +30,7 @@ static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	static const char* clsName = "SCENE3DX_APP_WND";
-	Scene3DXApp state = {};
+	Scene3DXApp app;
 	WNDCLASS wndClass = {};
 	wndClass.style = CS_OWNDC;
 	wndClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW);
@@ -50,11 +50,11 @@ int CALLBACK WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 	int cols = windowRect.right - windowRect.left;
 	int left = ((monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) - cols) >> 1;
 	int top = ((monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) - rows) >> 1;
-	HWND hwnd = CreateWindow(clsName, nullptr, wStyle, left, top, cols, rows, NULL, NULL, GetModuleHandle(NULL), &state);
-	while (state.ShouldKeepRunning())
+	HWND hwnd = CreateWindow(clsName, nullptr, wStyle, left, top, cols, rows, NULL, NULL, GetModuleHandle(NULL), &app);
+	while (app.ShouldKeepRunning())
 	{
 		MSG msg;
-		state.Update(0.f);
+		app.Update(0.f);
 		while (PeekMessage(&msg, hwnd, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);

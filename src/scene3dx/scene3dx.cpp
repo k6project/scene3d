@@ -4,6 +4,16 @@
 #include <renderer.hpp>
 #include <scene3dx.hpp>
 
+void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
+{
+
+}
+
+const ScenePrimitive* Scene3DXApp::GetPrimitives() const
+{
+	return nullptr;
+}
+
 bool Scene3DXApp::ShouldKeepRunning() const
 {
 	return KeepRunning;
@@ -12,11 +22,11 @@ bool Scene3DXApp::ShouldKeepRunning() const
 void Scene3DXApp::Initialize(void* window)
 {
 	Renderer = RendererAPI::Get();
-	Renderer->Initialize(window);
+	Renderer->Initialize(window, 65536);
 	MaterialDescriptor mInfo;
-    mInfo.SetShader(RendererAPI::VertexShader, "OverlayVertexShader.cso");
-    mInfo.SetShader(RendererAPI::PixelShader, "OverlayPixelShader.cso");
-    Material* material;
+	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
+	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
+    Material* material = nullptr;
     Renderer->CreateMaterial(mInfo, &material);
 	//IPrimitiveInfo* pInfo = Renderer->NewPrimitiveInfo();
 	//pInfo->SetVertexBufferData(void*, size_t);
@@ -27,6 +37,7 @@ void Scene3DXApp::Initialize(void* window)
 	//Uniforms:
 	//Renderer->AllocateParameterBlock(size, params); // allocate a block within parameter buffer
 	
+	//Renderer->InitParameterBuffer();
 	CreateTextures();
 	CreateMaterials();
 	KeepRunning = true;
@@ -46,7 +57,7 @@ void Scene3DXApp::CreateTextures()
 	tDesc.Width = size;
 	tDesc.Height = size;
 	tDesc.Format = RendererAPI::FormatBGRA8Unorm;
-	tDesc.Data = new uint32_t[size * size];
+	/*tDesc.Data = new uint32_t[size * size];
 	for (int i = 0; i < count; i++)
 	{
 		for (uint32_t y = 0; y < size; y++)
@@ -59,7 +70,7 @@ void Scene3DXApp::CreateTextures()
 		}
 		Texture* texture;
 		Renderer->CreateTexture(tDesc, &texture);
-	}
+	}*/
 }
 
 void Scene3DXApp::CreateMaterials()
@@ -75,11 +86,7 @@ void Scene3DXApp::CreateMaterials()
 
 void Scene3DXApp::Update(float deltaT)
 {
-	void *pBuffer = nullptr;
-	//Renderer->InitParameterBuffer(); //map
-	//Renderer->UpdateParameterBlock(GlobalsBlock, &GlobalParameters, sizeof(GlobalParameters));
-	//Renderer->CommitParameterBuffer(); //unmap/flush
-	Renderer->RenderScene(nullptr);
+	Renderer->RenderScene(this);
 }
 
 void Scene3DXApp::Finalize()

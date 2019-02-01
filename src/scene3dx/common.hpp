@@ -24,26 +24,25 @@ void DeleteAll(T*& listHead)
 	listHead = nullptr;
 }
 
-template <typename T>
-struct TScopedPtr
-{
-    T* Pointer = nullptr;
-    void operator=(void* ptr) { Pointer = static_cast<T*>(ptr); }
-    operator T*() const { return Pointer; }
-    ~TScopedPtr() { delete[] Pointer; }
-};
-
 class IOBuffer
 {
 public:
 	void LoadFromFile(const char* name, const MemAlloc& mem = *MemAllocBase::Default());
 	operator void*() const { return Data; }
 	size_t Size() const { return Bytes; }
+	~IOBuffer() { Memory->Free(Data); Bytes = 0; }
 private:
-	void* Data;
-	size_t Bytes;
+	const MemAlloc* Memory = nullptr;
+	void* Data = nullptr;
+	size_t Bytes = 0;
 };
 
-void* LoadFileIntoMemory(const char* name, size_t* size);
-
 float MakeColorRGB(uint32_t r, uint32_t g, uint32_t b);
+
+struct ScenePrimitive;
+
+struct Scene
+{
+	virtual void CommitParameters(void* buffer, size_t max) const = 0;
+	virtual const ScenePrimitive* GetPrimitives() const = 0;
+};

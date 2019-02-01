@@ -1,7 +1,5 @@
-#define RENDERER_IMPL public
-
 #include <dxgi.h>
-#include <d3d11.h>
+#include <d3d11_1.h>
 #include <windows.h>
 
 #include <common.hpp>
@@ -24,22 +22,6 @@ struct D3D11Buffer : public TLinkedListNode<D3D11Buffer>
 D3D11Buffer::~D3D11Buffer()
 {
 	RELEASE(Buffer);
-}
-
-struct D3D11ParameterBuffer : public D3D11Buffer, public RendererAPI::ParameterBuffer
-{
-    ID3D11DeviceContext* Context = nullptr;
-    virtual void Update(const void* data, size_t size) override;
-};
-
-void D3D11ParameterBuffer::Update(const void* data, size_t size)
-{
-    D3D11_MAPPED_SUBRESOURCE sRes = {};
-    if (SUCCEEDED(Context->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sRes)))
-    {
-        memcpy_s(sRes.pData, Size, data, size);
-        Context->Unmap(Buffer, 0);
-    }
 }
 
 struct D3D11Texture : public RendererAPI::Texture, public TLinkedListNode<D3D11Texture>
@@ -91,40 +73,23 @@ struct TD3D11Primitive : public D3D11Primitive
 	TD3D11Primitive() { DrawPrimitiveImpl = &D3D11DrawPrimitive<T>; }
 };
 
-void RendererAPI::MaterialDescriptor::SetShader(ShaderStage stage, const char* name)
-{
-	switch (stage)
-	{
-	case RendererAPI::VertexShader:
-		VSCode = LoadFileIntoMemory(name, &VSSize);
-		break;
-	case RendererAPI::PixelShader:
-		PSCode = LoadFileIntoMemory(name, &PSSize);
-		break;
-	default:
-		break;
-	}
-}
-
-void RendererAPI::MaterialDescriptor::SetCulling(FaceCulling value)
-{
-	Culling = value;
-}
-
 class D3D11Renderer : public RendererAPI
 {
 public:
-	virtual void Initialize(void* window) override;
+	virtual void Initialize(void* window, size_t pbSize) override;
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
-	virtual void CreateParameterBuffer(size_t size, ParameterBuffer** bufferPtr) override;
 	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) override;
 	virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) override;
+protected:
+	void CreateBuffer(const D3D11_BUFFER_DESC& desc, D3D11Buffer*& buffer);
+	D3D11Buffer* Parameters = nullptr;
 private:
+	static const D3D_FEATURE_LEVEL REQUIRED_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
 	MemAllocLinear LocalMemory;
 	IDXGISwapChain* SwapChain;
-	ID3D11Device* Device;
-	ID3D11DeviceContext* Context;
+	ID3D11Device1* Device;
+	ID3D11DeviceContext1* Context;
 	ID3D11RenderTargetView* RenderTarget;
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_9_1;
 	float ClearColor[4] = { 0.f, 0.4f, 0.9f, 1.f };
@@ -137,7 +102,7 @@ private:
 	HWND Window;
 };
 
-void D3D11Renderer::Initialize(void* window)
+void D3D11Renderer::Initialize(void* window, size_t pbSize)
 {
 	RECT windowRect;
 	Window = static_cast<HWND>(window);
@@ -155,18 +120,40 @@ void D3D11Renderer::Initialize(void* window)
 	swapChainDesc.OutputWindow = Window;
 	swapChainDesc.Windowed = TRUE;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	ID3D11Device* TmpDevice = nullptr;
+	ID3D11DeviceContext* TmpContext = nullptr;
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
-		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, nullptr, 0, D3D11_SDK_VERSION,
-		&swapChainDesc, &SwapChain, &Device, &FeatureLevel, &Context
+		nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 
+		D3D11_CREATE_DEVICE_DEBUG, &REQUIRED_FEATURE_LEVEL, 1, D3D11_SDK_VERSION,
+		&swapChainDesc, &SwapChain, &TmpDevice, &FeatureLevel, &TmpContext
 	);
 	if (FAILED(hr))
 	{
 		MessageBox(Window, "Failed to initialize D3D11", "Fatal", MB_OK);
 		return;
 	}
-	else if (FeatureLevel < D3D_FEATURE_LEVEL_11_0)
+	else if (FeatureLevel < REQUIRED_FEATURE_LEVEL)
 	{
-		MessageBox(Window, "Graphics context uses feature level below Direct3D 11", "Warning", MB_OK);
+		MessageBox(Window, "Graphics context uses feature level below Direct3D 11.1", "Fatal", MB_OK);
+		return;
+	}
+	else
+	{
+		void *devPtr = nullptr, *ctxPtr = nullptr;
+		if (FAILED(TmpDevice->QueryInterface(__uuidof(ID3D11Device1), &devPtr)))
+		{
+			MessageBox(Window, "Failed to retrieve Direct3D 11.1 interface", "Fatal", MB_OK);
+			return;
+		}
+		if (FAILED(TmpContext->QueryInterface(__uuidof(ID3D11DeviceContext1), &ctxPtr)))
+		{
+			MessageBox(Window, "Failed to retrieve Direct3D 11.1 interface", "Fatal", MB_OK);
+			return;
+		}
+		Context = reinterpret_cast<ID3D11DeviceContext1*>(ctxPtr);
+		Device = reinterpret_cast<ID3D11Device1*>(devPtr);
+		TmpContext->Release();
+		TmpDevice->Release();
 	}
 	ID3D11Texture2D* SwapChainImage = nullptr;
 	hr = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&SwapChainImage));
@@ -189,19 +176,42 @@ void D3D11Renderer::Initialize(void* window)
     Viewport.Width = static_cast<float>(windowRect.right - windowRect.left);
     Viewport.Height = static_cast<float>(windowRect.bottom - windowRect.top);
     Context->RSSetViewports(1, &Viewport);
+	D3D11_BUFFER_DESC desc = {};
+	desc.ByteWidth = pbSize & UINT_MAX;
+	desc.Usage = D3D11_USAGE_DYNAMIC;
+	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	CreateBuffer(desc, Parameters);
+	MemRange range = { 0, 16 };
+	Context->VSSetConstantBuffers1(0, 1, &Parameters->Buffer, &range.offset, &range.size);
+	Context->PSSetConstantBuffers1(0, 1, &Parameters->Buffer, &range.offset, &range.size);
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
 {
+	D3D11_MAPPED_SUBRESOURCE mappedBuff;
+	Context->Map(Parameters->Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuff);
+	scene->CommitParameters(mappedBuff.pData, Parameters->Size);
+	Context->Unmap(Parameters->Buffer, 0);
 	Context->ClearRenderTargetView(RenderTarget, ClearColor);
-    for (D3D11Material* m = Materials; m != nullptr; m = m->Next)
+	for (const ScenePrimitive* ptr = scene->GetPrimitives(); ptr != nullptr; ptr += 1)
+	{
+		const ScenePrimitive& primitive = *ptr;
+		const D3D11Material* material = static_cast<D3D11Material*>(primitive.MaterialPtr);
+		Context->VSSetShader(material->VertexShader, nullptr, 0);
+		Context->PSSetShader(material->PixelShader, nullptr, 0);
+		Context->RSSetState(material->RasterizerState);
+		//set vertex buffer
+	}
+
+    /*for (D3D11Material* m = Materials; m != nullptr; m = m->Next)
     {
         Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
         Context->VSSetShader(m->VertexShader, nullptr, 0);
         Context->PSSetShader(m->PixelShader, nullptr, 0);
         Context->RSSetState(m->RasterizerState);
         Context->Draw(4, 0);
-    }
+    }*/
 	SwapChain->Present(0, 0);
 }
 
@@ -216,25 +226,14 @@ void D3D11Renderer::Finalize()
 	Context->Release();
 }
 
-void D3D11Renderer::CreateParameterBuffer(size_t size, RendererAPI::ParameterBuffer** bufferPtr)
+void D3D11Renderer::CreateBuffer(const D3D11_BUFFER_DESC& desc, D3D11Buffer*& buffer)
 {
-	*bufferPtr = nullptr;
-	if (size > 0)
-	{
-		size = (((size - 1) / PBUFFER_ALIGN) + 1) * PBUFFER_ALIGN;
-        D3D11_BUFFER_DESC desc = {};
-        desc.ByteWidth = size & UINT_MAX;
-        desc.Usage = D3D11_USAGE_DYNAMIC;
-        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        D3D11ParameterBuffer* buffer = new D3D11ParameterBuffer();
-        Device->CreateBuffer(&desc, nullptr, &buffer->Buffer);
-        buffer->Context = Context;
-        buffer->Size = size;
-        buffer->Next = Buffers;
-        Buffers = buffer;
-        *bufferPtr = buffer;
-    }
+	D3D11Buffer* buff = new D3D11Buffer();
+    Device->CreateBuffer(&desc, nullptr, &buff->Buffer);
+    buff->Size = desc.ByteWidth;
+    buff->Next = Buffers;
+    Buffers = buff;
+    buffer = buff;
 }
 
 void D3D11Renderer::CreateTexture(const TextureDescriptor& desc, Texture** texturePtr)
@@ -259,9 +258,9 @@ void D3D11Renderer::CreateTexture(const TextureDescriptor& desc, Texture** textu
 	tDesc.Usage = D3D11_USAGE_IMMUTABLE;
 	tDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	D3D11_SUBRESOURCE_DATA data = {};
-	data.pSysMem = desc.Data;
+	/*data.pSysMem = desc.Data;
 	data.SysMemPitch = desc.Width;
-	Device->CreateTexture2D(&tDesc, &data, &texture->Texture);
+	Device->CreateTexture2D(&tDesc, &data, &texture->Texture);*/
 	texture->Next = Textures;
 	Textures = texture;
 	*texturePtr = texture;
@@ -270,8 +269,8 @@ void D3D11Renderer::CreateTexture(const TextureDescriptor& desc, Texture** textu
 void D3D11Renderer::CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr)
 {
 	D3D11Material* material = new D3D11Material();
-	Device->CreateVertexShader(desc.VSCode, desc.VSSize, nullptr, &material->VertexShader);
-	Device->CreatePixelShader(desc.PSCode, desc.PSSize, nullptr, &material->PixelShader);
+	Device->CreateVertexShader(desc.VertexShader, desc.VertexShader.Size(), nullptr, &material->VertexShader);
+	Device->CreatePixelShader(desc.PixelShader, desc.PixelShader.Size(), nullptr, &material->PixelShader);
 	D3D11_RASTERIZER_DESC rsDesc = {};
 	rsDesc.FillMode = D3D11_FILL_SOLID;
 	switch (desc.Culling)

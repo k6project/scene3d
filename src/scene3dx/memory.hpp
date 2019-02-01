@@ -2,6 +2,12 @@
 
 #include <stdint.h>
 
+struct MemRange
+{
+	uint32_t offset;
+	uint32_t size;
+};
+
 struct MemAlloc
 {
 	static const size_t DEFAULT_ALIGN = 16u;
