@@ -1,5 +1,3 @@
-#include <global.h>
-
 #include <math.h>
 
 #include "vecmath.h"
@@ -15,7 +13,7 @@ do {m->ptr[0][0]=_11; m->ptr[0][1]=_21; m->ptr[0][2]=_31; m->ptr[0][3]=_41; \
 const Mat4f MAT4F_IDENTITY = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
 
 
-float vec3f_Dot(const Vec3f* a, const Vec3f* b)
+float Vec3f_Dot(const Vec3f* a, const Vec3f* b)
 {
     float result = a->x * b->x + a->y * b->y + a->z * b->z;
     return result;
@@ -29,7 +27,7 @@ float vec4f_Dot(const Vec4f* a, const Vec4f* b)
 
 Vec3f* vec3f_Normalize(Vec3f* dst, const Vec3f* src)
 {
-    float divisor = 1.f / sqrtf(vec3f_Dot(src, src));
+    float divisor = 1.f / sqrtf(Vec3f_Dot(src, src));
     dst->x *= divisor;
     dst->y *= divisor;
     dst->z *= divisor;
@@ -52,7 +50,7 @@ Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b)
     return dst;
 }
 
-Vec4f* Vec4fRQuat(Vec4f* dst, const Vec3f* axis, float angle)
+Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
 {
     float half = 0.5f * angle;
     float cosA = cosf(half);
@@ -78,27 +76,33 @@ Mat4f* mat4f_Perspective(Mat4f* dst, float fov, float aspect, float near, float 
     return dst;
 }
 
-Mat4f* mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up)
+Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up)
 {
-    Vec3f newZ, newX, newY;
-    vec3f_Normalize(&newZ, vec3f_Sub(&newZ, eye, dir));
-    vec3f_Cross(&newX, up, &newZ);
-    vec3f_Cross(&newY, &newZ, &newX);
+	Vec3f dir;
+	vec3f_Normalize(&dir, vec3f_Sub(&dir, target, eye));
+	return Mat4f_LookDir(dst, eye, &dir, up);
+}
+
+Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up)
+{
+    Vec3f newX, newY;
+    vec3f_Cross(&newX, up, dir);
+    vec3f_Cross(&newY, dir, &newX);
     dst->ptr[0][0] = newX.x;
     dst->ptr[0][1] = newY.x;
-    dst->ptr[0][2] = newZ.x;
+    dst->ptr[0][2] = dir->x;
     dst->ptr[0][3] = 0.f;
     dst->ptr[1][0] = newX.y;
     dst->ptr[1][1] = newY.y;
-    dst->ptr[1][2] = newZ.y;
+    dst->ptr[1][2] = dir->y;
     dst->ptr[1][3] = 0.f;
     dst->ptr[2][0] = newX.z;
     dst->ptr[2][1] = newY.z;
-    dst->ptr[2][2] = newZ.z;
+    dst->ptr[2][2] = dir->z;
     dst->ptr[2][3] = 0.f;
-    dst->ptr[3][0] = -vec3f_Dot(eye, &newX);
-    dst->ptr[3][1] = -vec3f_Dot(eye, &newY);
-    dst->ptr[3][2] = -vec3f_Dot(eye, &newZ);
+    dst->ptr[3][0] = -Vec3f_Dot(eye, &newX);
+    dst->ptr[3][1] = -Vec3f_Dot(eye, &newY);
+    dst->ptr[3][2] = -Vec3f_Dot(eye, dir);
     dst->ptr[3][3] = 1.f;
     return dst;
 }

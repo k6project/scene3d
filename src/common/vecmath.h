@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #define MATH_EPSILON      0.000001f               /* Very small, almost 0      */
 #define MATH_PI           3.14159265358979323846f /* PI number                 */
 #define MATH_PI_RCP       0.31830988618379067154f /* 1 over PI                 */
@@ -56,7 +58,7 @@ typedef union
 
 /* Vector manipulations */
 
-float vec3f_Dot(const Vec3f* a, const Vec3f* b);
+float Vec3f_Dot(const Vec3f* a, const Vec3f* b);
 
 Vec3f* vec3f_Normalize(Vec3f* dst, const Vec3f* src);
 
@@ -66,13 +68,15 @@ Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b);
 
 float vec4f_Dot(const Vec4f* a, const Vec4f* b);
 
-Vec4f* Vec4fRQuat(Vec4f* dst, const Vec3f* axis, float angle);
+Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
 
 /* Matrix init functions */
 
 Mat4f* mat4f_Perspective(Mat4f* dst, float fov, float aspect, float near, float far);
 
-Mat4f* mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up);
+Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up);
+
+Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up);
 
 Mat4f* mat4f_Rotation(Mat4f* dst, const Vec4f* quat);
 

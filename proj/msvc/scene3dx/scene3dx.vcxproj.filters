@@ -6,16 +6,26 @@
     <ClCompile Include="..\..\..\src\scene3dx\scene3dx.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\winmain.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\memory.cpp" />
+    <ClCompile Include="..\..\..\src\common\vecmath.c">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\common.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\scene3dx.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\memory.hpp" />
+    <ClInclude Include="..\..\..\src\common\vecmath.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\scene3dx\vecmath.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
       <UniqueIdentifier>{851592d7-9638-485b-816d-4d501d598d7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{b0c36912-037b-4a70-90c0-06dfd13c0105}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
