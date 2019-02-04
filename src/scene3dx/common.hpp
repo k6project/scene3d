@@ -5,6 +5,8 @@
 
 #include <memory.hpp>
 
+typedef float Matrix4f[16];
+
 template <typename T>
 struct TLinkedListNode
 {

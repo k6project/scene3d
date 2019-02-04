@@ -41,7 +41,7 @@ public:
 	{};
 
 	static RendererAPI* Get();
-	virtual void Initialize(void* window, size_t pbSize) = 0;
+	virtual void Initialize(void* window, size_t pbSize, size_t gpSize) = 0;
 	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) = 0;
 	virtual void CreateMaterial(const MaterialDescriptor& desc, Material** materialPtr) = 0;
 	virtual void RenderScene(const Scene* scene) = 0;
@@ -55,6 +55,7 @@ typedef RendererAPI::Material Material;
 
 struct ScenePrimitive
 {
-	uint32_t ParamOffset, GParams, VParams, PParams;
+    uint32_t ParamOffset[3];
+    uint32_t ParamLength[3];
 	Material* MaterialPtr;
 };

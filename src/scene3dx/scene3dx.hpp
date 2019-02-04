@@ -17,7 +17,7 @@ private:
 	void CreateTextures();
 	void CreateMaterials();
 	bool KeepRunning = false;
-	//Material SpriteMaterial;
+    MemAllocLinear Parameters;
 	RendererAPI* Renderer;
 };
 
