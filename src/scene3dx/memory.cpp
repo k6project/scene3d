@@ -17,7 +17,7 @@ struct DefaultMemAlloc : public MemAlloc
 	}
 };
 
-const MemAlloc* MemAllocBase::Default()
+const MemAlloc* MemAlloc::Default()
 {
 	static const DefaultMemAlloc defMAlloc;
 	return &defMAlloc;
@@ -57,7 +57,7 @@ void MemAllocBase::Destroy()
 
 void* MemAllocLinear::Alloc(size_t size, size_t align) const
 {
-	size_t alignedOffset = ALIGN(Offset, align);
+	size_t alignedOffset = (Offset > 0) ? ALIGN(Offset, align) : 0;
 	void* retval = BasePtr + alignedOffset;
 	Offset = alignedOffset + ALIGN(size, align);
 	return retval;

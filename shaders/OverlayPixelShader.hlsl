@@ -1,3 +1,9 @@
+cbuffer GlobalParameters : register(b0)
+{
+    float4x4 Projection;
+    float4x4 ViewTransform;
+}
+
 struct VSOutput
 {
     float4 Position : SV_POSITION;

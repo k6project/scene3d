@@ -12,19 +12,20 @@ struct MemRange
 
 struct MemAlloc
 {
-	static const size_t DEFAULT_ALIGN = 16u;
+	static const size_t DEFAULT_ALIGN = 1u;
+	template <typename T> T* TAlloc(size_t count = 1, size_t align = 1) const
+	{
+		size_t itemSize = ALIGN(sizeof(T), align);
+		return static_cast<T*>(Alloc(itemSize * count));
+	}
 	virtual void* Alloc(size_t size, size_t align = DEFAULT_ALIGN) const = 0;
 	virtual void Free(void* ptr) const = 0;
+	static const MemAlloc* Default();
 };
 
 class MemAllocBase : public MemAlloc
 {
 public:
-	static const MemAlloc* Default();
-	template <typename T> T* TAlloc(size_t count = 1, size_t align = sizeof(T)) const
-	{ 
-		return static_cast<T*>(Alloc(sizeof(T)*count, align)); 
-	}
 	void Init(size_t capacity, const MemAlloc* parent = Default());
     size_t GetCapacity() const { return Capacity; }
 	void Destroy();

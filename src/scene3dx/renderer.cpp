@@ -76,6 +76,8 @@ struct TD3D11Primitive : public D3D11Primitive
 class D3D11Renderer : public RendererAPI
 {
 public:
+	virtual bool HasRHClipSpace() const override { return false; }
+	virtual float GetAspectRatio() const override { return (Viewport.Width / Viewport.Height); }
 	virtual void Initialize(void* window, size_t pbSize, size_t gpSize) override;
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
@@ -84,7 +86,6 @@ public:
 protected:
 	void CreateBuffer(const D3D11_BUFFER_DESC& desc, D3D11Buffer*& buffer);
 	D3D11Buffer* Parameters = nullptr;
-    MemRange GlobalParams;
 private:
 	static const D3D_FEATURE_LEVEL REQUIRED_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
 	MemAllocLinear LocalMemory;
@@ -182,10 +183,12 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 	desc.Usage = D3D11_USAGE_DYNAMIC;
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	CreateBuffer(desc, Parameters);
-    GlobalParams.Size = gpSize & UINT32_MAX;
-	Context->VSSetConstantBuffers1(0, 1, &Parameters->Buffer, &GlobalParams.Offset, &GlobalParams.Size);
-	Context->PSSetConstantBuffers1(0, 1, &Parameters->Buffer, &GlobalParams.Offset, &GlobalParams.Size);
+	D3D11Buffer* pBuff = nullptr;
+	CreateBuffer(desc, pBuff);
+	uint32_t pOffset = 0, pSize = ALIGN(gpSize, 256) & UINT_MAX;
+	Context->VSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
+	Context->PSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
+	Parameters = pBuff;
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
@@ -195,22 +198,25 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 	scene->CommitParameters(mappedBuff.pData, Parameters->Size);
 	Context->Unmap(Parameters->Buffer, 0);
 	Context->ClearRenderTargetView(RenderTarget, ClearColor);
-	for (const ScenePrimitive* ptr = scene->GetPrimitives(); ptr != nullptr; ptr += 1)
+	for (const ScenePrimitive* ptr = scene->GetPrimitives(); ptr != nullptr; ptr = ptr->Next)
 	{
 		const ScenePrimitive& primitive = *ptr;
 		const D3D11Material* material = static_cast<D3D11Material*>(primitive.MaterialPtr);
-        ID3D11Buffer* cBuffer[] = { Parameters->Buffer, Parameters->Buffer };
+        /*
+		ID3D11Buffer* cBuffer[] = { Parameters->Buffer, Parameters->Buffer };
         uint32_t vsOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[1] };
         uint32_t vsLength[] = { primitive.ParamLength[0], primitive.ParamLength[1] };
         Context->VSSetConstantBuffers1(1, 2, cBuffer, vsOffset, vsLength);
         uint32_t psOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[2] };
         uint32_t psLength[] = { primitive.ParamLength[0], primitive.ParamLength[2] };
         Context->PSSetConstantBuffers1(1, 2, cBuffer, psOffset, psLength);
+		*/
         Context->VSSetShader(material->VertexShader, nullptr, 0);
         Context->PSSetShader(material->PixelShader, nullptr, 0);
         Context->RSSetState(material->RasterizerState);
 		//set vertex buffer
-        //draw
+		Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		Context->Draw(4, 0);
 	}
 
     /*for (D3D11Material* m = Materials; m != nullptr; m = m->Next)

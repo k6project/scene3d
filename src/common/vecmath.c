@@ -2,6 +2,8 @@
 
 #include "vecmath.h"
 
+#include <string.h>
+
 #define M4ROW(m, v, i) \
 do {v.x=m->ptr[0][i];v.y=m->ptr[1][i];v.z=m->ptr[2][i];v.w=m->ptr[3][i];} while (0)
 #define M4SET(m, _11, _12, _13, _14, _21, _22, _23, _24, _31, _32, _33, _34, _41, _42, _43, _44) \
@@ -62,18 +64,55 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
     return dst;
 }
 
-Mat4f* mat4f_Perspective(Mat4f* dst, float fov, float aspect, float near, float far)
+Mat4f* Mat4_From3DBasis(Mat4f* dst, const Vec3f* x, const Vec3f* y, const Vec3f* z)
+{
+	dst->ptr[0][0] = x->x;
+	dst->ptr[0][1] = y->x;
+	dst->ptr[0][2] = z->x;
+	dst->ptr[0][3] = 0.f;
+	dst->ptr[1][0] = x->y;
+	dst->ptr[1][1] = y->y;
+	dst->ptr[1][2] = z->y;
+	dst->ptr[1][3] = 0.f;
+	dst->ptr[2][0] = x->z;
+	dst->ptr[2][1] = y->z;
+	dst->ptr[2][2] = z->z;
+	dst->ptr[2][3] = 0.f;
+	dst->ptr[3][0] = 0.f;
+	dst->ptr[3][1] = 0.f;
+	dst->ptr[3][2] = 0.f;
+	dst->ptr[3][3] = 1.f;
+	return dst;
+}
+
+Mat4f* Mat4f_PerspectiveRH(Mat4f* dst, float fov, float aspect, float near, float far)
 {
     float ar = 1.f / aspect;
     float angle = 0.5f * fov;
     float divisor = 1.f / (far - near);
     float ctg = cosf(angle) / sinf(angle);
+	memset(dst, 0, sizeof(*dst));
     dst->ptr[0][0] = ar * ctg;
     dst->ptr[1][1] = ctg;
-    dst->ptr[2][2] = -(far + near) * divisor;
+    dst->ptr[2][2] = -(far + near) * divisor; // first "-" for right, "+" for left
     dst->ptr[3][2] = -2.f * far * near * divisor;
-    dst->ptr[2][3] = -1.f;
+    dst->ptr[2][3] = -1.f; // -1 right, 1 left
     return dst;
+}
+
+Mat4f* Mat4f_PerspectiveLH(Mat4f* dst, float fov, float aspect, float near, float far)
+{
+	float ar = 1.f / aspect;
+	float angle = 0.5f * fov;
+	float divisor = 1.f / (far - near);
+	float ctg = cosf(angle) / sinf(angle);
+	memset(dst, 0, sizeof(*dst));
+	dst->ptr[0][0] = ar * ctg;
+	dst->ptr[1][1] = ctg;
+	dst->ptr[2][2] = (far + near) * divisor;
+	dst->ptr[3][2] = -2.f * far * near * divisor;
+	dst->ptr[2][3] = 1.f;
+	return dst;
 }
 
 Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up)
@@ -141,4 +180,17 @@ Mat4f* mat4f_Mul(Mat4f* dst, const Mat4f* a, const Mat4f* b)
         vec4f_Dot(&r3,&(b->col[0])),vec4f_Dot(&r3,&(b->col[1])),vec4f_Dot(&r3,&(b->col[2])),vec4f_Dot(&r3,&(b->col[3]))
     );
     return dst;
+}
+
+Mat4f* Mat4f_Translate(Mat4f* dst, const Vec3f* delta)
+{
+	dst->col[3].x = delta->x;
+	dst->col[3].y = delta->y;
+	dst->col[3].z = delta->z;
+	return dst;
+}
+
+Mat4fRow* Mat4f_GetRow(Mat4f* src, unsigned int r)
+{
+	return (Mat4fRow*)(&src->ptr[0][(r & 3u)]);
 }

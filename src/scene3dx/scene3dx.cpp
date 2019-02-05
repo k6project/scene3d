@@ -8,29 +8,50 @@
 
 struct GlobalParameters
 {
-    Matrix4f Projection;
-    Matrix4f ViewTransform;
+    Mat4f Projection;
+    Mat4f ViewTransform;
 };
 
 struct LocalParameters
 {
-    Matrix4f ModelTransform;
+    Mat4f ModelTransform;
 };
+
+Scene3DXApp::Scene3DXApp()
+	: VerticalFOV(MATH_DEG_2_RAD(90.f))
+	, ClipDistance(1000.f)
+	, CameraPosition({0.f, 0.f, -10.f})
+	, ViewDirection({0.f, 0.f, 1.f})
+	, UpVector({0.f, 1.f, 0.f})
+	, RightVector({1.f, 0.f, 0.f})
+{
+}
 
 void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 {
     Parameters.Reset();
     GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
-    //build globals->Projection from camera settings
-    //build globals->ViewTransform from camera settings
-    //create linear allocator, allocating with 16 byte granularity
+	if (Renderer->HasRHClipSpace())
+	{
+		Mat4f_PerspectiveRH(&globals->Projection, VerticalFOV, Renderer->GetAspectRatio(), 0.001f, ClipDistance);
+	}
+	else
+	{
+		Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, Renderer->GetAspectRatio(), 0.001f, ClipDistance);
+	}
+	Vec3f ViewOrigin = { -CameraPosition.x, -CameraPosition.y, -CameraPosition.z };
+	Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
+	//math test
+	//Vec3f test = {0};
+	//Mat4fRow* ptr = Mat4f_GetRow(&globals->ViewTransform, 2);
+	//Vec3f* test0 = Vec3f_Copy(&test, Mat4f_GetRow(&globals->ViewTransform, 0));
     //allocate globals, allocate object-specifics
     Parameters.CopyTo(buffer, max);
 }
 
 const ScenePrimitive* Scene3DXApp::GetPrimitives() const
 {
-	return nullptr;
+	return Primitives;
 }
 
 bool Scene3DXApp::ShouldKeepRunning() const
@@ -45,15 +66,13 @@ void Scene3DXApp::Initialize(void* window)
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
-
-	MaterialDescriptor mInfo;
+	MaterialDescriptor mInfo = {};
+	ScenePrimitive* test = MemAllocBase::Default()->TAlloc<ScenePrimitive>();
 	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
-    Material* material = nullptr;
-    Renderer->CreateMaterial(mInfo, &material);
-	CreateTextures();
-	CreateMaterials();
-
+    Renderer->CreateMaterial(mInfo, &test->MaterialPtr);
+	test->Next = nullptr;
+	Primitives = test;
 	KeepRunning = true;
 }
 

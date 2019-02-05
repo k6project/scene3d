@@ -6,7 +6,7 @@
 #define MATH_PI           3.14159265358979323846f /* PI number                 */
 #define MATH_PI_RCP       0.31830988618379067154f /* 1 over PI                 */
 #define MATH_DEG_RAD      0.01745329251994329577f /* Degrees per radian        */
-#define MATH_DEG_2_RAD(d) ( d * DEG_RAD )         /* Inline degrees to radians */
+#define MATH_DEG_2_RAD(d) ( (d) * MATH_DEG_RAD )  /* Inline degrees to radians */
 #define MATH_M4_IDENTITY \
     {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f}
 
@@ -56,7 +56,17 @@ typedef union
     float ptr[4][4];
 } Mat4f;
 
+typedef struct  
+{
+	float x, padxy[3];
+	float y, padyz[3];
+	float z, padzw[3];
+	float w;
+} Mat4fRow;
+
 /* Vector manipulations */
+
+#define Vec3f_Copy(d,s) ((d)->x=(s)->x, (d)->y=(s)->y, (d)->z=(s)->z, (d))
 
 float Vec3f_Dot(const Vec3f* a, const Vec3f* b);
 
@@ -72,7 +82,11 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
 
 /* Matrix init functions */
 
-Mat4f* mat4f_Perspective(Mat4f* dst, float fov, float aspect, float near, float far);
+Mat4f* Mat4_From3DBasis(Mat4f* dst, const Vec3f* x, const Vec3f* y, const Vec3f* z);
+
+Mat4f* Mat4f_PerspectiveRH(Mat4f* dst, float fov, float aspect, float near, float far);
+
+Mat4f* Mat4f_PerspectiveLH(Mat4f* dst, float fov, float aspect, float near, float far);
 
 Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up);
 
@@ -81,6 +95,10 @@ Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f
 Mat4f* mat4f_Rotation(Mat4f* dst, const Vec4f* quat);
 
 Mat4f* mat4f_Mul(Mat4f* dst, const Mat4f* a, const Mat4f* b);
+
+Mat4f* Mat4f_Translate(Mat4f* dst, const Vec3f* delta);
+
+Mat4fRow* Mat4f_GetRow(Mat4f* src, unsigned int r);
 
 /* create rotation, translation, scale */
     
