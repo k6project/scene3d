@@ -1,10 +1,9 @@
 #include "memory.hpp"
 
 #include <stdlib.h>
+#include <string.h>
 
 #define PAGE_ALIGN 4096
-
-#define ALIGN(size, align) ( (size > 0) ? ((((size-1)/align)+1)*align) : align )
 
 struct DefaultMemAlloc : public MemAlloc
 {
@@ -39,6 +38,12 @@ void MemAllocBase::Init(size_t capacity, const MemAlloc* parent)
 	}
 }
 
+void MemAllocLinear::CopyTo(void* buffer, size_t max) const
+{
+    size_t count = (max < Offset) ? max : Offset;
+    memcpy_s(buffer, max, BasePtr, count);
+}
+
 void MemAllocBase::Destroy()
 {
 	if (Parent && BasePtr)
@@ -65,7 +70,7 @@ void MemAllocLinear::Free(void*) const
 void MemAllocStack::PushFrame() const
 {
 	size_t offset = Offset;
-	size_t* Prev = AllocT<size_t>();
+	size_t* Prev = TAlloc<size_t>();
 	*Prev = Frame;
 	Frame = offset;
 }

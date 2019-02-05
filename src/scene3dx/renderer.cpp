@@ -76,7 +76,7 @@ struct TD3D11Primitive : public D3D11Primitive
 class D3D11Renderer : public RendererAPI
 {
 public:
-	virtual void Initialize(void* window, size_t pbSize) override;
+	virtual void Initialize(void* window, size_t pbSize, size_t gpSize) override;
 	virtual void RenderScene(const Scene* scene) override;
 	virtual void Finalize() override;
 	virtual void CreateTexture(const TextureDescriptor& desc, Texture** texturePtr) override;
@@ -84,6 +84,7 @@ public:
 protected:
 	void CreateBuffer(const D3D11_BUFFER_DESC& desc, D3D11Buffer*& buffer);
 	D3D11Buffer* Parameters = nullptr;
+    MemRange GlobalParams;
 private:
 	static const D3D_FEATURE_LEVEL REQUIRED_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
 	MemAllocLinear LocalMemory;
@@ -102,7 +103,7 @@ private:
 	HWND Window;
 };
 
-void D3D11Renderer::Initialize(void* window, size_t pbSize)
+void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 {
 	RECT windowRect;
 	Window = static_cast<HWND>(window);
@@ -182,9 +183,9 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize)
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	CreateBuffer(desc, Parameters);
-	MemRange range = { 0, 16 };
-	Context->VSSetConstantBuffers1(0, 1, &Parameters->Buffer, &range.offset, &range.size);
-	Context->PSSetConstantBuffers1(0, 1, &Parameters->Buffer, &range.offset, &range.size);
+    GlobalParams.Size = gpSize & UINT32_MAX;
+	Context->VSSetConstantBuffers1(0, 1, &Parameters->Buffer, &GlobalParams.Offset, &GlobalParams.Size);
+	Context->PSSetConstantBuffers1(0, 1, &Parameters->Buffer, &GlobalParams.Offset, &GlobalParams.Size);
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
@@ -198,10 +199,18 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 	{
 		const ScenePrimitive& primitive = *ptr;
 		const D3D11Material* material = static_cast<D3D11Material*>(primitive.MaterialPtr);
-		Context->VSSetShader(material->VertexShader, nullptr, 0);
-		Context->PSSetShader(material->PixelShader, nullptr, 0);
-		Context->RSSetState(material->RasterizerState);
+        ID3D11Buffer* cBuffer[] = { Parameters->Buffer, Parameters->Buffer };
+        uint32_t vsOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[1] };
+        uint32_t vsLength[] = { primitive.ParamLength[0], primitive.ParamLength[1] };
+        Context->VSSetConstantBuffers1(1, 2, cBuffer, vsOffset, vsLength);
+        uint32_t psOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[2] };
+        uint32_t psLength[] = { primitive.ParamLength[0], primitive.ParamLength[2] };
+        Context->PSSetConstantBuffers1(1, 2, cBuffer, psOffset, psLength);
+        Context->VSSetShader(material->VertexShader, nullptr, 0);
+        Context->PSSetShader(material->PixelShader, nullptr, 0);
+        Context->RSSetState(material->RasterizerState);
 		//set vertex buffer
+        //draw
 	}
 
     /*for (D3D11Material* m = Materials; m != nullptr; m = m->Next)

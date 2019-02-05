@@ -4,9 +4,28 @@
 #include <renderer.hpp>
 #include <scene3dx.hpp>
 
+#define MAX_PRIMITIVES 256
+
+struct GlobalParameters
+{
+    Matrix4f Projection;
+    Matrix4f ViewTransform;
+};
+
+struct LocalParameters
+{
+    Matrix4f ModelTransform;
+};
+
 void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 {
-
+    Parameters.Reset();
+    GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
+    //build globals->Projection from camera settings
+    //build globals->ViewTransform from camera settings
+    //create linear allocator, allocating with 16 byte granularity
+    //allocate globals, allocate object-specifics
+    Parameters.CopyTo(buffer, max);
 }
 
 const ScenePrimitive* Scene3DXApp::GetPrimitives() const
@@ -22,24 +41,19 @@ bool Scene3DXApp::ShouldKeepRunning() const
 void Scene3DXApp::Initialize(void* window)
 {
 	Renderer = RendererAPI::Get();
-	Renderer->Initialize(window, 65536);
+    size_t globals = ALIGN(sizeof(GlobalParameters), 256);
+    size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
+    Parameters.Init(globals + perPrimitive);
+	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
+
 	MaterialDescriptor mInfo;
 	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
     Material* material = nullptr;
     Renderer->CreateMaterial(mInfo, &material);
-	//IPrimitiveInfo* pInfo = Renderer->NewPrimitiveInfo();
-	//pInfo->SetVertexBufferData(void*, size_t);
-	//pInfo->SetTopology(TRIANGLE_STRIP);
-	//pInfo->SetMaterial(material);
-	//IPrimitive* primitive = Renderer->CreatePrimitive(pInfo);
-
-	//Uniforms:
-	//Renderer->AllocateParameterBlock(size, params); // allocate a block within parameter buffer
-	
-	//Renderer->InitParameterBuffer();
 	CreateTextures();
 	CreateMaterials();
+
 	KeepRunning = true;
 }
 

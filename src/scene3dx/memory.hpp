@@ -2,10 +2,12 @@
 
 #include <stdint.h>
 
+#define ALIGN(size, align) ( (size > 0) ? ((((size-1)/align)+1)*align) : align )
+
 struct MemRange
 {
-	uint32_t offset;
-	uint32_t size;
+	uint32_t Offset = 0;
+	uint32_t Size = 0;
 };
 
 struct MemAlloc
@@ -19,11 +21,12 @@ class MemAllocBase : public MemAlloc
 {
 public:
 	static const MemAlloc* Default();
-	template <typename T> T* AllocT(size_t count = 1, size_t align = sizeof(T)) const
+	template <typename T> T* TAlloc(size_t count = 1, size_t align = sizeof(T)) const
 	{ 
 		return static_cast<T*>(Alloc(sizeof(T)*count, align)); 
 	}
 	void Init(size_t capacity, const MemAlloc* parent = Default());
+    size_t GetCapacity() const { return Capacity; }
 	void Destroy();
 protected:
 	uint8_t* BasePtr = nullptr;
@@ -36,6 +39,8 @@ class MemAllocLinear : public MemAllocBase
 public:
 	virtual void* Alloc(size_t size, size_t align = DEFAULT_ALIGN) const override;
 	virtual void Free(void* ptr) const override;
+    void CopyTo(void* buffer, size_t max) const;
+    void Reset() const { Offset = 0u; }
 protected:
 	mutable size_t Offset = 0u;
 };
