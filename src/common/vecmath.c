@@ -36,6 +36,14 @@ Vec3f* vec3f_Normalize(Vec3f* dst, const Vec3f* src)
     return dst;
 }
 
+Vec3f* Vec3f_Add(Vec3f* dst, const Vec3f* a, const Vec3f* b)
+{
+	dst->x = a->x + b->x;
+	dst->y = a->y + b->y;
+	dst->z = a->z + b->z;
+	return dst;
+}
+
 Vec3f* vec3f_Sub(Vec3f* dst, const Vec3f* a, const Vec3f* b)
 {
     dst->x = a->x - b->x;
@@ -44,7 +52,31 @@ Vec3f* vec3f_Sub(Vec3f* dst, const Vec3f* a, const Vec3f* b)
     return dst;
 }
 
-Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b)
+Vec3f* Vec3f_SSub(Vec3f* dst, const Vec3f* a, float s)
+{
+	dst->x = a->x - s;
+	dst->y = a->y - s;
+	dst->z = a->z - s;
+	return dst;
+}
+
+Vec3f* Vec3f_Mul(Vec3f* dst, const Vec3f* a, const Vec3f* b)
+{
+	dst->x = a->x * b->x;
+	dst->y = a->y * b->y;
+	dst->z = a->z * b->z;
+	return dst;
+}
+
+Vec3f* Vec3f_SMul(Vec3f* dst, const Vec3f* a, float s)
+{
+	dst->x = a->x * s;
+	dst->y = a->y * s;
+	dst->z = a->z * s;
+	return dst;
+}
+
+Vec3f* Vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b)
 {
     dst->x = a->y * b->z - a->z * b->y;
     dst->y = a->z * b->x - a->x * b->z;
@@ -62,6 +94,20 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
     dst->z = axis->z * sinA;
     dst->w = cosA;
     return dst;
+}
+
+Vec3f* Vec3f_Rotate(Vec3f* dst, const Vec3f* src, const Vec4f* quat)
+{
+	float s = quat->w;
+	Vec3f v = { src->x, src->y, src->z };
+	Vec3f u = { quat->x, quat->y, quat->z }, tmp;
+	Vec3f_SMul(dst, &u, 2.f * Vec3f_Dot(&u, &v));
+	Vec3f_SMul(&tmp, &v, s * s - Vec3f_Dot(&u, &u));
+	Vec3f_Add(dst, dst, &tmp);
+	Vec3f_Cross(&tmp, &u, &v);
+	Vec3f_SMul(&tmp, &tmp, 2.f * s);
+	Vec3f_Add(dst, dst, &tmp);
+	return dst;
 }
 
 Mat4f* Mat4f_Identity(Mat4f* dst)
@@ -135,8 +181,8 @@ Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec
 Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up)
 {
     Vec3f newX, newY;
-    vec3f_Cross(&newX, up, dir);
-    vec3f_Cross(&newY, dir, &newX);
+    Vec3f_Cross(&newX, up, dir);
+    Vec3f_Cross(&newY, dir, &newX);
     dst->ptr[0][0] = newX.x;
     dst->ptr[0][1] = newY.x;
     dst->ptr[0][2] = dir->x;

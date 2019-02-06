@@ -72,13 +72,23 @@ float Vec3f_Dot(const Vec3f* a, const Vec3f* b);
 
 Vec3f* vec3f_Normalize(Vec3f* dst, const Vec3f* src);
 
+Vec3f* Vec3f_Add(Vec3f* dst, const Vec3f* a, const Vec3f* b);
+
 Vec3f* vec3f_Sub(Vec3f* dst, const Vec3f* a, const Vec3f* b);
 
-Vec3f* vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b);
+Vec3f* Vec3f_SSub(Vec3f* dst, const Vec3f* a, float s);
+
+Vec3f* Vec3f_Mul(Vec3f* dst, const Vec3f* a, const Vec3f* b);
+
+Vec3f* Vec3f_SMul(Vec3f* dst, const Vec3f* a, float s);
+
+Vec3f* Vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b);
 
 float vec4f_Dot(const Vec4f* a, const Vec4f* b);
 
 Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
+
+Vec3f* Vec3f_Rotate(Vec3f* dst, const Vec3f* src, const Vec4f* quat);
 
 /* Matrix init functions */
 

@@ -5,20 +5,31 @@
 
 static LRESULT WINAPI WndProc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 {
-	static Scene3DXApp* state = nullptr;
+
+	static Scene3DXApp* app = nullptr;
 	LRESULT retval = 0;
 	switch (msg)
 	{
 	case WM_CREATE:
-		state = reinterpret_cast<Scene3DXApp*>(reinterpret_cast<LPCREATESTRUCT>(l)->lpCreateParams);
-		state->Initialize(wnd);
+		if (!app)
+		{
+			RECT wRect;
+			GetWindowRect(wnd, &wRect);
+			uint32_t w = static_cast<uint32_t>(wRect.right - wRect.left);
+			uint32_t h = static_cast<uint32_t>(wRect.bottom - wRect.top);
+			app = reinterpret_cast<Scene3DXApp*>(reinterpret_cast<LPCREATESTRUCT>(l)->lpCreateParams);
+			app->Initialize(wnd, w, h);
+		}
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		state->Finalize();
+		app->Finalize();
 		break;
 	case WM_CLOSE:
 		DestroyWindow(wnd);
+		break;
+	case WM_MOUSEMOVE:
+		app->MouseMoved(LOWORD(l), HIWORD(l), (w & MK_LBUTTON));
 		break;
 	default:
 		retval = DefWindowProc(wnd, msg, w, l);

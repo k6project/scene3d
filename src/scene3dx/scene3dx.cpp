@@ -24,6 +24,7 @@ Scene3DXApp::Scene3DXApp()
 	, ViewDirection({0.f, 0.f, 1.f})
 	, UpVector({0.f, 1.f, 0.f})
 	, RightVector({1.f, 0.f, 0.f})
+	, ViewOrigin({ 0.f, 0.f, 10.f })
 {
 }
 
@@ -33,13 +34,12 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
     GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
 	if (Renderer->HasRHClipSpace())
 	{
-		Mat4f_PerspectiveRH(&globals->Projection, VerticalFOV, Renderer->GetAspectRatio(), 0.001f, ClipDistance);
+		Mat4f_PerspectiveRH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
 	}
 	else
 	{
-		Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, Renderer->GetAspectRatio(), 0.001f, ClipDistance);
+		Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
 	}
-	Vec3f ViewOrigin = { -CameraPosition.x, -CameraPosition.y, -CameraPosition.z };
 	Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
 	//math test
 	//Vec3f test = {0};
@@ -66,15 +66,21 @@ bool Scene3DXApp::ShouldKeepRunning() const
 	return KeepRunning;
 }
 
-void Scene3DXApp::Initialize(void* window)
+void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 {
 	Renderer = RendererAPI::Get();
     size_t globals = ALIGN(sizeof(GlobalParameters), 256);
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
-	MaterialDescriptor mInfo = {};
+	ViewportDimensions.x = static_cast<float>(w);
+	ViewportDimensions.y = static_cast<float>(h);
+	ViewportDimensions.z = 1.f / ViewportDimensions.x;
+	ViewportDimensions.w = 1.f / ViewportDimensions.y;
+	AspectRate.Val = ViewportDimensions.x * ViewportDimensions.w;
+	AspectRate.Rcp = 1.f / AspectRate.Val;
 
+	MaterialDescriptor mInfo = {};
 	ScenePrimitive* test = MemAllocBase::Default()->TAlloc<ScenePrimitive>();
 	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
@@ -83,6 +89,60 @@ void Scene3DXApp::Initialize(void* window)
 	Primitives = test;
 	
 	KeepRunning = true;
+}
+
+void Scene3DXApp::MouseMoved(int32_t x, int32_t y, bool lb)
+{
+	if (lb)
+	{
+		if (Mouse.Captured)
+		{
+			bool modified = false;
+			int32_t dx = x - Mouse.Pos.x;
+			int32_t dy = y - Mouse.Pos.y;
+			if (dx < -3 || dx > 3)
+			{
+				Vec4f rotation = {};
+				Mat4f newLookAt = {};
+				Vec3f viewTarget = { 0.f, 0.f, 0.f };
+				float ndx = static_cast<float>(dx) * ViewportDimensions.z * AspectRate.Val;
+				float angle = -ndx * MATH_PI * 2.f;
+				Vec4f_RQuat(&rotation, &UpVector, angle);
+				Vec3f_Rotate(&CameraPosition, &CameraPosition, &rotation);
+				Mat4f_LookAt(&newLookAt, &CameraPosition, &viewTarget, &UpVector);
+				ViewOrigin = { newLookAt.col[3].x, newLookAt.col[3].y, newLookAt.col[3].z };
+				Vec3f_Copy(&ViewDirection, Mat4f_GetRow(&newLookAt, 2));
+				Vec3f_Copy(&RightVector, Mat4f_GetRow(&newLookAt, 0));
+				Vec3f_Copy(&UpVector, Mat4f_GetRow(&newLookAt, 1));
+				modified = true;
+			}
+			if (dy < -3 || dy > 3)
+			{
+				Vec4f rotation = {};
+				Mat4f newLookAt = {};
+				Vec3f viewTarget = { 0.f, 0.f, 0.f };
+				float ndy = static_cast<float>(dy) * ViewportDimensions.w;
+				float angle = ndy * MATH_PI * 2.f;
+				Vec4f_RQuat(&rotation, &RightVector, angle);
+				Vec3f_Rotate(&CameraPosition, &CameraPosition, &rotation);
+				Mat4f_LookAt(&newLookAt, &CameraPosition, &viewTarget, &UpVector);
+				ViewOrigin = { newLookAt.col[3].x, newLookAt.col[3].y, newLookAt.col[3].z };
+				Vec3f_Copy(&ViewDirection, Mat4f_GetRow(&newLookAt, 2));
+				Vec3f_Copy(&RightVector, Mat4f_GetRow(&newLookAt, 0));
+				Vec3f_Copy(&UpVector, Mat4f_GetRow(&newLookAt, 1));
+				modified = true;
+			}
+			//compute rotation as product of two quaternions
+			//apply to camera position, derive matrix
+		}
+		Mouse.Captured = true;
+	}
+	else
+	{
+		Mouse.Captured = false;
+	}
+	Mouse.Pos.x = x;
+	Mouse.Pos.y = y;
 }
 
 void Scene3DXApp::CreateTextures()
