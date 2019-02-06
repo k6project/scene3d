@@ -85,6 +85,7 @@ public:
 	virtual void CreateMaterial(const MaterialDescriptor& info, Material** materialPtr) override;
 protected:
 	void CreateBuffer(const D3D11_BUFFER_DESC& desc, D3D11Buffer*& buffer);
+	uint32_t ParamOffset(size_t bytes) const { return (bytes >> 4) & UINT32_MAX; }
 	D3D11Buffer* Parameters = nullptr;
 private:
 	static const D3D_FEATURE_LEVEL REQUIRED_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
@@ -185,7 +186,7 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	D3D11Buffer* pBuff = nullptr;
 	CreateBuffer(desc, pBuff);
-	uint32_t pOffset = 0, pSize = ALIGN(gpSize, 256) & UINT_MAX;
+	uint32_t pOffset = 0, pSize = ParamOffset(ALIGN(gpSize, 256));
 	Context->VSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
 	Context->PSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
 	Parameters = pBuff;
@@ -194,23 +195,31 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 void D3D11Renderer::RenderScene(const Scene* scene)
 {
 	D3D11_MAPPED_SUBRESOURCE mappedBuff;
+	ID3D11Buffer* pBuffer = Parameters->Buffer;
 	Context->Map(Parameters->Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuff);
 	scene->CommitParameters(mappedBuff.pData, Parameters->Size);
 	Context->Unmap(Parameters->Buffer, 0);
 	Context->ClearRenderTargetView(RenderTarget, ClearColor);
 	for (const ScenePrimitive* ptr = scene->GetPrimitives(); ptr != nullptr; ptr = ptr->Next)
 	{
-		const ScenePrimitive& primitive = *ptr;
-		const D3D11Material* material = static_cast<D3D11Material*>(primitive.MaterialPtr);
-        /*
-		ID3D11Buffer* cBuffer[] = { Parameters->Buffer, Parameters->Buffer };
-        uint32_t vsOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[1] };
-        uint32_t vsLength[] = { primitive.ParamLength[0], primitive.ParamLength[1] };
-        Context->VSSetConstantBuffers1(1, 2, cBuffer, vsOffset, vsLength);
-        uint32_t psOffset[] = { primitive.ParamOffset[0], primitive.ParamOffset[2] };
-        uint32_t psLength[] = { primitive.ParamLength[0], primitive.ParamLength[2] };
-        Context->PSSetConstantBuffers1(1, 2, cBuffer, psOffset, psLength);
+		const ScenePrimitive& prim = *ptr;
+		const D3D11Material* material = static_cast<D3D11Material*>(prim.MaterialPtr);
+		ID3D11Buffer* pBuffers[] = { pBuffer/*, pBuffer*/ };
+		uint32_t pBufferCount = ArrayLength(pBuffers) & UINT32_MAX;
+        uint32_t pbOffset[] = 
+		{ 
+			ParamOffset(prim.LocalParameters.Offset)
+		};
+        uint32_t pbLength[] = 
+		{ 
+			ParamOffset(prim.LocalParameters.Length) 
+		};
+        Context->VSSetConstantBuffers1(1, pBufferCount, pBuffers, pbOffset, pbLength);
+		/*
+		pbOffset[1] = ParamOffset(prim.PerVertexParameters.Offset);
+		pbLength[1] = ParamOffset(prim.PerVertexParameters.Length);
 		*/
+        Context->PSSetConstantBuffers1(1, pBufferCount, pBuffers, pbOffset, pbLength);
         Context->VSSetShader(material->VertexShader, nullptr, 0);
         Context->PSSetShader(material->PixelShader, nullptr, 0);
         Context->RSSetState(material->RasterizerState);

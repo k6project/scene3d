@@ -82,6 +82,8 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
 
 /* Matrix init functions */
 
+Mat4f* Mat4f_Identity(Mat4f* dst);
+
 Mat4f* Mat4_From3DBasis(Mat4f* dst, const Vec3f* x, const Vec3f* y, const Vec3f* z);
 
 Mat4f* Mat4f_PerspectiveRH(Mat4f* dst, float fov, float aspect, float near, float far);

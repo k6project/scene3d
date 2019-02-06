@@ -64,6 +64,16 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
     return dst;
 }
 
+Mat4f* Mat4f_Identity(Mat4f* dst)
+{
+	memset(dst, 0, sizeof(*dst));
+	dst->ptr[0][0] = 1.f;
+	dst->ptr[1][1] = 1.f;
+	dst->ptr[2][2] = 1.f;
+	dst->ptr[3][3] = 1.f;
+	return dst;
+}
+
 Mat4f* Mat4_From3DBasis(Mat4f* dst, const Vec3f* x, const Vec3f* y, const Vec3f* z)
 {
 	dst->ptr[0][0] = x->x;

@@ -46,6 +46,13 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 	//Mat4fRow* ptr = Mat4f_GetRow(&globals->ViewTransform, 2);
 	//Vec3f* test0 = Vec3f_Copy(&test, Mat4f_GetRow(&globals->ViewTransform, 0));
     //allocate globals, allocate object-specifics
+	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
+	{
+		p->LocalParameters.Offset = Parameters.GetBytesUsed();
+		LocalParameters* locals = Parameters.TAlloc<LocalParameters>(1, 256);
+		p->LocalParameters.Length = Parameters.GetBytesUsed();
+		Mat4f_Identity(&locals->ModelTransform);
+	}
     Parameters.CopyTo(buffer, max);
 }
 
@@ -67,12 +74,14 @@ void Scene3DXApp::Initialize(void* window)
     Parameters.Init(globals + perPrimitive);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
 	MaterialDescriptor mInfo = {};
+
 	ScenePrimitive* test = MemAllocBase::Default()->TAlloc<ScenePrimitive>();
 	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
     Renderer->CreateMaterial(mInfo, &test->MaterialPtr);
 	test->Next = nullptr;
 	Primitives = test;
+	
 	KeepRunning = true;
 }
 

@@ -21,7 +21,7 @@ protected:
 	Vec3f CameraPosition, ViewDirection;
 	Vec3f UpVector, RightVector;
 private:
-	const ScenePrimitive* Primitives = nullptr;
+	ScenePrimitive* Primitives = nullptr;
 	void CreateTextures();
 	void CreateMaterials();
 	bool KeepRunning = false;

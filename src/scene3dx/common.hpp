@@ -48,3 +48,9 @@ struct Scene
 	virtual void CommitParameters(void* buffer, size_t max) const = 0;
 	virtual const ScenePrimitive* GetPrimitives() const = 0;
 };
+
+template <typename T, size_t N>
+constexpr size_t ArrayLength(T(&)[N])
+{
+	return N;
+}

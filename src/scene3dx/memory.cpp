@@ -7,6 +7,9 @@
 
 struct DefaultMemAlloc : public MemAlloc
 {
+	virtual void Init(size_t capacity, const MemAlloc* parent) override
+	{
+	}
 	virtual void* Alloc(size_t size, size_t align) const override
 	{
 		return malloc(ALIGN(size, align));
@@ -14,6 +17,9 @@ struct DefaultMemAlloc : public MemAlloc
 	virtual void Free(void* ptr) const override
 	{
 		free(ptr);
+	}
+	virtual void Destroy() override
+	{
 	}
 };
 
@@ -42,6 +48,11 @@ void MemAllocLinear::CopyTo(void* buffer, size_t max) const
 {
     size_t count = (max < Offset) ? max : Offset;
     memcpy_s(buffer, max, BasePtr, count);
+}
+
+size_t MemAllocLinear::GetBytesUsed() const
+{
+	return Offset;
 }
 
 void MemAllocBase::Destroy()

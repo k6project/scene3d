@@ -4,6 +4,11 @@ cbuffer GlobalParameters : register(b0)
     float4x4 ViewTransform;
 }
 
+cbuffer LocalParameters : register(b1)
+{
+    float4x4 ModelTransform;
+}
+
 struct VSOutput
 {
     float4 Position : SV_POSITION;
