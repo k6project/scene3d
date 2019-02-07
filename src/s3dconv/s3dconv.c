@@ -24,7 +24,8 @@ const char* GetLibraryName()
 
 static PyObject* Python_about(PyObject *self, PyObject *args)
 {
-	return PyBytes_FromString(GetLibraryName());
+	PySys_WriteStdout("Scene3D Asset Conversion Library v0.1\n");
+	return Py_None; //PyUnicode_FromString(GetLibraryName());
 }
 
 PyMODINIT_FUNC PyInit_s3dconv(void)
