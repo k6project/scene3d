@@ -6,6 +6,26 @@
 
 #define MAX_PRIMITIVES 256
 
+/*
+// Left-facing (-X, Y)
+{ -1.f, 0.f,  1.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+{ -1.f, 0.f, -1.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+{  0.f, 1.f,  0.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+// Right-facing (X, Y)
+{  1.f, 0.f, -1.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+{  1.f, 0.f,  1.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+{  0.f, 1.f,  0.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
+// Front-facing (Y,-Z)
+{ -1.f, 0.f, -1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
+{  1.f, 0.f, -1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
+{  0.f, 1.f,  0.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
+// Back-facing (Y, Z)
+{  1.f, 0.f,  1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
+{ -1.f, 0.f,  1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
+{  0.f, 1.f,  0.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
+// Bottom (Y)
+*/
+
 struct GlobalParameters
 {
     Mat4f Projection;
@@ -41,11 +61,6 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 		Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
 	}
 	Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
-	//math test
-	//Vec3f test = {0};
-	//Mat4fRow* ptr = Mat4f_GetRow(&globals->ViewTransform, 2);
-	//Vec3f* test0 = Vec3f_Copy(&test, Mat4f_GetRow(&globals->ViewTransform, 0));
-    //allocate globals, allocate object-specifics
 	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
 	{
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
@@ -53,6 +68,7 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 		p->LocalParameters.Length = Parameters.GetBytesUsed();
 		Mat4f_Identity(&locals->ModelTransform);
 	}
+	float test[] = { PackColor(1,1,1,1), PackColor(255,255,255,255) };
     Parameters.CopyTo(buffer, max);
 }
 

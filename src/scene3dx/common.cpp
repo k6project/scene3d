@@ -33,3 +33,9 @@ void IOBuffer::LoadFromFile(const char* name, const MemAlloc& mem)
 		CloseHandle(file);
 	}
 }
+
+float PackColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+	uint32_t tmp = (r << 24) | (g << 16) | (b << 8) | a;
+	return *(reinterpret_cast<float*>(&tmp));
+}

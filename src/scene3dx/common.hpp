@@ -5,8 +5,6 @@
 
 #include <memory.hpp>
 
-typedef float Matrix4f[16];
-
 template <typename T>
 struct TLinkedListNode
 {
@@ -48,6 +46,8 @@ struct Scene
 	virtual void CommitParameters(void* buffer, size_t max) const = 0;
 	virtual const ScenePrimitive* GetPrimitives() const = 0;
 };
+
+float PackColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 template <typename T, size_t N>
 constexpr size_t ArrayLength(T(&)[N])

@@ -7,6 +7,9 @@
 #define MATH_PI_RCP       0.31830988618379067154f /* 1 over PI                 */
 #define MATH_DEG_RAD      0.01745329251994329577f /* Degrees per radian        */
 #define MATH_DEG_2_RAD(d) ( (d) * MATH_DEG_RAD )  /* Inline degrees to radians */
+#define MATH_SQRT2        1.4142135623730951f	  /* Square root of 2          */
+#define MATH_SQRT2_RCP    0.7071067811865475f     /* Square root of 1/2        */
+#define MATH_SQRT3        1.7320508075688772f     /* Square root of 3          */
 #define MATH_M4_IDENTITY \
     {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f}
 

@@ -95,7 +95,7 @@ private:
 	ID3D11DeviceContext1* Context;
 	ID3D11RenderTargetView* RenderTarget;
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_9_1;
-	float ClearColor[4] = { 0.f, 0.4f, 0.9f, 1.f };
+	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };//{ 0.f, 0.4f, 0.9f, 1.f };
 	D3D11Texture* Textures = nullptr;
     D3D11Material* Materials = nullptr;
 	D3D11Primitive* Primitives = nullptr;
