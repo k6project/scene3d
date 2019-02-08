@@ -16,16 +16,15 @@
 #pragma comment(lib, "kernel32.lib")
 #pragma comment(lib, "python3.lib")
 
-const char* GetLibraryName()
-{
-	static const char* name = "Scene3D Asset Conversion Library";
-	return name;
-}
-
 static PyObject* Python_about(PyObject *self, PyObject *args)
 {
 	PySys_WriteStdout("Scene3D Asset Conversion Library v0.1\n");
 	return Py_None; //PyUnicode_FromString(GetLibraryName());
+}
+
+static PyObject* PyGetHeaderString(PyObject *self, PyObject *args)
+{
+	return PyUnicode_FromString("# This is coming from C library");
 }
 
 PyMODINIT_FUNC PyInit_s3dconv(void)
@@ -33,6 +32,7 @@ PyMODINIT_FUNC PyInit_s3dconv(void)
 	static PyMethodDef methods[] =
 	{
 		{ "about",  Python_about, METH_NOARGS, "About this module." },
+		{ "header",  PyGetHeaderString, METH_NOARGS, "Get header string." },
 		{ NULL, NULL, 0, NULL }
 	};
 	static struct PyModuleDef module =
