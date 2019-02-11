@@ -27,7 +27,7 @@
 #endif
 
 #define NumVertexComponents 6
-#define PyModuleEntryPoint  PyInit_s3dconv
+#define MODULE_ENTRY_POINT  PyInit_s3dconv
 
 typedef struct
 {
@@ -110,7 +110,7 @@ static PyObject* PyEnd(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-PyMODINIT_FUNC PyModuleEntryPoint(void)
+PyMODINIT_FUNC MODULE_ENTRY_POINT(void)
 {
 	static PyMethodDef methods[] =
 	{

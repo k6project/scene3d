@@ -95,12 +95,16 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(PYTHON3_HOME)\Include\;$(SolutionDir)src\common\;$(SolutionDir)src\$(ProjectName)\</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
       <NoEntryPoint>true</NoEntryPoint>
       <AdditionalLibraryDirectories>$(PYTHON3_HOME)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -109,12 +113,16 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(PYTHON3_HOME)\Include\;$(SolutionDir)src\common\;$(SolutionDir)src\$(ProjectName)\</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
       <NoEntryPoint>true</NoEntryPoint>
       <AdditionalLibraryDirectories>$(PYTHON3_HOME)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -125,6 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(PYTHON3_HOME)\Include\;$(SolutionDir)src\common\;$(SolutionDir)src\$(ProjectName)\</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -133,6 +142,9 @@
       <NoEntryPoint>true</NoEntryPoint>
       <AdditionalLibraryDirectories>$(PYTHON3_HOME)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -143,6 +155,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(PYTHON3_HOME)\Include\;$(SolutionDir)src\common\;$(SolutionDir)src\$(ProjectName)\</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -151,6 +164,9 @@
       <NoEntryPoint>true</NoEntryPoint>
       <AdditionalLibraryDirectories>$(PYTHON3_HOME)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\vecmath.c" />
