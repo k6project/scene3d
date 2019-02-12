@@ -17,7 +17,7 @@ class S3DExport(bpy.types.Operator, ExportHelper):
     filename_ext = ".s3d"
     filter_glob = StringProperty(default="*.s3d", options={"HIDDEN"})
     def execute(self, context):
-        f = open(self.filepath, "w", encoding="utf-8")
+        s3dconv.begin(self.filepath)
         scene = context.scene
         for obj in scene.objects: 
             if obj.type == "MESH":
@@ -28,16 +28,16 @@ class S3DExport(bpy.types.Operator, ExportHelper):
                 tmp.to_mesh(mesh)
                 tmp.free()
                 mesh.calc_normals_split()
-                f.write("%s\n" % s3dconv.header())
                 for face in mesh.polygons:
-                    lines = []
+                    indices = []
                     for li in face.loop_indices:
                         loop = mesh.loops[li]
                         v = mesh.vertices[loop.vertex_index]
-                        vdata = [ v.co.x, v.co.y, v.co.z ] + loop.normal # Array of 6 floats to be passed into C library
-                        lines.append("%i {%.4f, %.4f %.4f}" % (loop.vertex_index, loop.normal[0], loop.normal[1], loop.normal[2]))
-                    f.write("%s\n" % " - ".join(lines))
-        f.close()
+                        vdata = [ v.co.x, v.co.y, v.co.z ] + loop.normal
+                        indices.append(s3dconv.add_vertex(vdata))
+                    # indices list has a triangle now
+                    # pass it to C
+        s3dconv.end()
         return {"FINISHED"}
 
 def menu_func_export(self, context):
