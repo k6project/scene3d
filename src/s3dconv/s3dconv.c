@@ -5,10 +5,10 @@
 #ifdef _WIN32
     #ifdef _DEBUG
 	    #undef _DEBUG
-	    #include <python.h>
+	    #include <Python.h>
 	    #define _DEBUG
     #else
-	    #include <python.h>
+	    #include <Python.h>
     #endif
 #else
     #include <Python.h>
@@ -35,13 +35,18 @@ typedef struct
     Vec3f pos, norm;
 } VertexEntry;
 
+typedef struct  
+{
+	uint32_t One, Two, Three;
+} FaceEntry;
+
 typedef struct
 {
     VertexEntry* Entry;
     uint32_t Left, Right;
 } VertexMap;
 
-float VertexEntry_Compare(const VertexEntry* a, const VertexEntry* b)
+int VertexEntry_Compare(const VertexEntry* a, const VertexEntry* b)
 {
     float diff = 0.f;
     float aVal[] = { a->pos.x, a->pos.y, a->pos.z, a->norm.x, a->norm.y, a->norm.z };
@@ -49,12 +54,12 @@ float VertexEntry_Compare(const VertexEntry* a, const VertexEntry* b)
     for (int i = 0; i < 6; i++)
     {
         float sub = aVal[i] - bVal[i];
-        if (fabsf(sub) > fabsf(diff))
+        if (fabsf(sub) - fabsf(diff) > 0.0001f)
         {
             diff = sub;
         }
     }
-    return diff;
+    return (diff < -0.0001f) ? -1 : ( (diff > 0.0001f) ? 1 : 0 );
 }
 
 VertexMap* VertexMap_Find(VertexMap* map, const VertexEntry* ve, uint32_t* count)
@@ -63,11 +68,10 @@ VertexMap* VertexMap_Find(VertexMap* map, const VertexEntry* ve, uint32_t* count
     while (item->Entry)
     {
         const VertexEntry* other = item->Entry;
-        float key = VertexEntry_Compare(ve, other);
-        if (fabsf(key) > 0.0001f)
+        int key = VertexEntry_Compare(ve, other);
+        if (key != 0)
         {
-            int side = (key > 0.f) ? 1 : -1;
-            uint32_t idx = (side > 0) ? item->Right : item->Left;
+            uint32_t idx = (key > 0) ? item->Right : item->Left;
             if (idx == 0) // if no element bound to selected branch
             {
                 uint32_t newIdx = *count;
@@ -76,7 +80,7 @@ VertexMap* VertexMap_Find(VertexMap* map, const VertexEntry* ve, uint32_t* count
                 newItem->Left = 0;
                 newItem->Right = 0;
                 *count += 1;
-                if (side > 0)
+                if (key > 0)
                 {
                     item->Right = *count;
                 }
@@ -122,6 +126,11 @@ void VertexEntry_SerializeTxt(FILE* fp, const VertexEntry* ve)
     fprintf(fp, "\n");
 }
 
+void FaceEntry_SerializeTxt(FILE* fp, const FaceEntry* fe)
+{
+	fprintf(fp, "%u %u %u\n", fe->One, fe->Two, fe->Three);
+}
+
 typedef struct
 {
     uint32_t Count, Stride;
@@ -142,8 +151,10 @@ typedef struct
     BufferLayout VertexData, IndexData;
     VertexEntry Vertices[MODULE_MAX_VERTS];
     VertexMap VertexMapRoot[MODULE_MAX_VERTS];
+	FaceEntry Faces[MODULE_MAX_VERTS];
     void(*WriteLayout)(FILE*, const BufferLayout*);
     void(*WriteVertex)(FILE*, const VertexEntry*);
+	void(*WriteFace)(FILE*, const FaceEntry*);
 } PyModuleState;
 
 #define PYMODULE_GET_STATE(v) \
@@ -205,17 +216,58 @@ static PyObject* PyAddVertex(PyObject *self, PyObject *args)
     return PyLong_FromUnsignedLong(index);
 }
 
+static PyObject* PyAddFace(PyObject *self, PyObject *args)
+{
+	PYMODULE_GET_STATE(state);
+	uint32_t idx = state->IndexData.Count / 3;
+	if (!PySequence_Check(args))
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid argument: not a list");
+		return NULL;
+	}
+	if (PySequence_Length(args) != 3)
+	{
+		PyErr_SetString(PyExc_RuntimeError, "Invalid argument: invalid number of elements");
+		return NULL;
+	}
+	uint32_t* items[] = { &state->Faces[idx].One, &state->Faces[idx].Two, &state->Faces[idx].Three };
+	for (int i = 0; i < 3; i++)
+	{
+		PyObject* obj = PySequence_GetItem(args, i);
+		if (!PyNumber_Check(obj))
+		{
+			PyErr_SetString(PyExc_RuntimeError, "Invalid item: not a number");
+			return NULL;
+		}
+		PyObject* lObj = PyNumber_Long(obj);
+		if (!lObj)
+		{
+			PyErr_SetString(PyExc_RuntimeError, "Invalid item: not a long integer");
+			return NULL;
+		}
+		*items[i] = PyLong_AsUnsignedLong(lObj) & UINT32_MAX;
+	}
+	state->IndexData.Count += 3;
+	return Py_None;
+}
+
 static PyObject* PyBegin(PyObject *self, PyObject *args)
 {
     PYMODULE_GET_STATE(state);
+	memset(state, 0, sizeof(PyModuleState));
     const char* fileName = PyUnicode_AsUTF8(args);
     if (fileName && state && !state->file)
     {
-        //state->file = fopen(fileName, "wb");
-        //struct { char magick[3], type; } header = { {'S', '3', 'D'}, 'G' };
-        //fwrite(&header, sizeof(header), 1, state->file);
         state->file = fopen(fileName, "w");
-        fprintf(state->file, "Scene3D v0.1\n");
+		if (state->file)
+		{
+			fprintf(state->file, "Scene3D v0.1\n");
+			state->WriteLayout = &BufferLayout_SerializeTxt;
+			state->WriteVertex = &VertexEntry_SerializeTxt;
+			state->WriteFace = &FaceEntry_SerializeTxt;
+			state->VertexData.Stride = 2;
+			state->IndexData.Stride = 4;
+		}
     }
     return Py_None;
 }
@@ -231,7 +283,10 @@ static PyObject* PyEnd(PyObject *self, PyObject *args)
             state->WriteVertex(state->file, &state->Vertices[i]);
         }
         state->WriteLayout(state->file, &state->IndexData);
-        //write face triangles
+		for (uint32_t i = 0; i < (state->IndexData.Count / 3); i++)
+		{
+			state->WriteFace(state->file, &state->Faces[i]);
+		}
         fclose(state->file);
     }
     return Py_None;
@@ -243,6 +298,7 @@ PyMODINIT_FUNC MODULE_ENTRY_POINT(void)
 	{
         { "begin",  PyBegin, METH_O, "Create new export file" },
         { "add_vertex",  PyAddVertex, METH_O, "Find/add new vertex entry" },
+		{ "add_face",  PyAddFace, METH_O, "Find/add new face entry" },
         { "end", PyEnd, METH_NOARGS, "Close current file" },
 		{ NULL, NULL, 0, NULL }
 	};
@@ -251,11 +307,5 @@ PyMODINIT_FUNC MODULE_ENTRY_POINT(void)
 		PyModuleDef_HEAD_INIT, "s3dconv", NULL, sizeof(PyModuleState), methods
 	};
     PyObject* mod = PyModule_Create(&module);
-    PyModuleState* state = (PyModuleState*)PyModule_GetState(mod);
-    memset(state, 0, sizeof(PyModuleState));
-    state->WriteLayout = &BufferLayout_SerializeTxt;
-    state->WriteVertex = &VertexEntry_SerializeTxt;
-    state->VertexData.Stride = 2;
-    state->IndexData.Stride = 4;
 	return mod;
 }

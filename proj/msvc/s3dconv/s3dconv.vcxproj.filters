@@ -4,6 +4,9 @@
     <Filter Include="common">
       <UniqueIdentifier>{22d6a169-3496-4540-ae29-ce66e21e4992}</UniqueIdentifier>
     </Filter>
+    <Filter Include="blender">
+      <UniqueIdentifier>{e2c2b2ca-d662-42a4-9a99-cee8f015c33b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\vecmath.c">
@@ -15,5 +18,10 @@
     <ClInclude Include="..\..\..\src\common\vecmath.h">
       <Filter>common</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\python\s3dexport.py">
+      <Filter>blender</Filter>
+    </None>
   </ItemGroup>
 </Project>

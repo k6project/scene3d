@@ -33,10 +33,9 @@ class S3DExport(bpy.types.Operator, ExportHelper):
                     for li in face.loop_indices:
                         loop = mesh.loops[li]
                         v = mesh.vertices[loop.vertex_index]
-                        vdata = [ v.co.x, v.co.y, v.co.z ] + loop.normal
+                        vdata = [ v.co.x, v.co.y, v.co.z ] + [loop.normal.x, loop.normal.y, loop.normal.z]
                         indices.append(s3dconv.add_vertex(vdata))
-                    # indices list has a triangle now
-                    # pass it to C
+                    s3dconv.add_face(indices)
         s3dconv.end()
         return {"FINISHED"}
 

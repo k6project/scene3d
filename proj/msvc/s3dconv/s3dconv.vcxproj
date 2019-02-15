@@ -104,7 +104,14 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+      <Message>Copy native Python module...</Message>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>copy /Y $(SolutionDir)python\s3dexport.py "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Copy Blender addon script...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -122,7 +129,14 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+      <Message>Copy native Python module...</Message>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>copy /Y $(SolutionDir)python\s3dexport.py "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Copy Blender addon script...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -144,7 +158,14 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+      <Message>Copy native Python module...</Message>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>copy /Y $(SolutionDir)python\s3dexport.py "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Copy Blender addon script...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -166,7 +187,14 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /Y $(TargetPath) "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+      <Message>Copy native Python module...</Message>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>copy /Y $(SolutionDir)python\s3dexport.py "$(APPDATA)\Blender Foundation\Blender\2.79\scripts\addons"</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Copy Blender addon script...</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\vecmath.c" />
@@ -174,6 +202,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\common\vecmath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\python\s3dexport.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
