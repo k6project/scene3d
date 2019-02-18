@@ -214,17 +214,13 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 		{ 
 			ParamOffset(prim.LocalParameters.Length) 
 		};
+		Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
         Context->VSSetConstantBuffers1(1, pBufferCount, pBuffers, pbOffset, pbLength);
-		/*
-		pbOffset[1] = ParamOffset(prim.PerVertexParameters.Offset);
-		pbLength[1] = ParamOffset(prim.PerVertexParameters.Length);
-		*/
         Context->PSSetConstantBuffers1(1, pBufferCount, pBuffers, pbOffset, pbLength);
         Context->VSSetShader(material->VertexShader, nullptr, 0);
         Context->PSSetShader(material->PixelShader, nullptr, 0);
         Context->RSSetState(material->RasterizerState);
 		//set vertex buffer
-		Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		Context->Draw(4, 0);
 	}
 

@@ -64,9 +64,7 @@ typedef RendererAPI::Material Material;
 struct ScenePrimitive
 {
 	ScenePrimitive* Next;
-	struct 
-	{
-		size_t Offset, Length;
-	} LocalParameters;
+	void(*CommitParameters)(void*, size_t);
+	struct { size_t Offset, Length; } LocalParameters;
 	Material* MaterialPtr;
 };

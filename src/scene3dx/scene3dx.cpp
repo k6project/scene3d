@@ -6,25 +6,12 @@
 
 #define MAX_PRIMITIVES 256
 
-/*
-// Left-facing (-X, Y)
-{ -1.f, 0.f,  1.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-{ -1.f, 0.f, -1.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-{  0.f, 1.f,  0.f, PackColor(255, 0, 0, 255) }, { -MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-// Right-facing (X, Y)
-{  1.f, 0.f, -1.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-{  1.f, 0.f,  1.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-{  0.f, 1.f,  0.f, PackColor(255, 0, 0, 255) }, {  MATH_SQRT2_RCP, MATH_SQRT2_RCP, 0.f, 0.f },
-// Front-facing (Y,-Z)
-{ -1.f, 0.f, -1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
-{  1.f, 0.f, -1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
-{  0.f, 1.f,  0.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP, -MATH_SQRT2_RCP, 0.f },
-// Back-facing (Y, Z)
-{  1.f, 0.f,  1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
-{ -1.f, 0.f,  1.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
-{  0.f, 1.f,  0.f, PackColor(0, 0, 255, 255) }, { 0.f, MATH_SQRT2_RCP,  MATH_SQRT2_RCP, 0.f },
-// Bottom (Y)
-*/
+static const char* TEST_MAP =
+"#####"
+"#...#"
+"#...#"
+"##.##"
+" #.# ";
 
 struct GlobalParameters
 {
@@ -36,6 +23,12 @@ struct LocalParameters
 {
     Mat4f ModelTransform;
 };
+
+static void DefaultCommitParamerters(void* ptr, size_t max)
+{
+	LocalParameters* locals = static_cast<LocalParameters*>(ptr);
+	Mat4f_Identity(&locals->ModelTransform);
+}
 
 Scene3DXApp::Scene3DXApp()
 	: VerticalFOV(MATH_DEG_2_RAD(90.f))
@@ -64,11 +57,10 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
 	{
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
-		LocalParameters* locals = Parameters.TAlloc<LocalParameters>(1, 256);
-		p->LocalParameters.Length = Parameters.GetBytesUsed();
-		Mat4f_Identity(&locals->ModelTransform);
+		void* locals = Parameters.Alloc(sizeof(LocalParameters), 256);
+		p->LocalParameters.Length = Parameters.GetBytesUsed() - p->LocalParameters.Offset;
+		p->CommitParameters(locals, sizeof(LocalParameters));
 	}
-	float test[] = { PackColor(1,1,1,1), PackColor(255,255,255,255) };
     Parameters.CopyTo(buffer, max);
 }
 
@@ -85,6 +77,7 @@ bool Scene3DXApp::ShouldKeepRunning() const
 void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 {
 	Renderer = RendererAPI::Get();
+	LevelMap.Initialize(5, 5, TEST_MAP);
     size_t globals = ALIGN(sizeof(GlobalParameters), 256);
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
@@ -101,6 +94,7 @@ void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
     Renderer->CreateMaterial(mInfo, &test->MaterialPtr);
+	test->CommitParameters = &DefaultCommitParamerters;
 	test->Next = nullptr;
 	Primitives = test;
 	
@@ -211,5 +205,6 @@ void Scene3DXApp::Finalize()
 {
 	KeepRunning = false;
 	Renderer->Finalize();
+	LevelMap.Finalize();
 }
 

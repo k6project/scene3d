@@ -1,7 +1,7 @@
 #pragma once
 
 #include <common.hpp>
-#include <vecmath.hpp>
+#include <tilemap.hpp>
 
 class RendererAPI;
 struct ScenePrimitive;
@@ -39,5 +39,6 @@ private:
 	bool KeepRunning = false;
     MemAllocLinear Parameters;
 	RendererAPI* Renderer;
+	TileMap LevelMap;
 };
 

@@ -9,6 +9,7 @@
     <ClCompile Include="..\..\..\src\common\vecmath.c">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\scene3dx\tilemap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
@@ -19,6 +20,7 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\scene3dx\vecmath.hpp" />
+    <ClInclude Include="..\..\..\src\scene3dx\tilemap.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -33,6 +35,12 @@
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\..\..\shaders\OverlayPixelShader.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\..\shaders\TileMapVertexShader.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\..\shaders\TileMapPixelShader.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
