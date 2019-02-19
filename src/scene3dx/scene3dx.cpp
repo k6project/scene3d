@@ -6,6 +6,8 @@
 
 #define MAX_PRIMITIVES 256
 
+#define  TEST_MAP_W 5
+#define  TEST_MAP_H 5
 static const char* TEST_MAP =
 "#####"
 "#...#"
@@ -24,7 +26,7 @@ struct LocalParameters
     Mat4f ModelTransform;
 };
 
-static void DefaultCommitParamerters(void* ptr, size_t max)
+static void DefaultCommitParamerters(ScenePrimitive* prim, void* ptr, size_t max)
 {
 	LocalParameters* locals = static_cast<LocalParameters*>(ptr);
 	Mat4f_Identity(&locals->ModelTransform);
@@ -59,7 +61,7 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
 		void* locals = Parameters.Alloc(sizeof(LocalParameters), 256);
 		p->LocalParameters.Length = Parameters.GetBytesUsed() - p->LocalParameters.Offset;
-		p->CommitParameters(locals, sizeof(LocalParameters));
+		p->CommitParameters(p, locals, sizeof(LocalParameters));
 	}
     Parameters.CopyTo(buffer, max);
 }
@@ -77,27 +79,17 @@ bool Scene3DXApp::ShouldKeepRunning() const
 void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 {
 	Renderer = RendererAPI::Get();
-	LevelMap.Initialize(5, 5, TEST_MAP);
     size_t globals = ALIGN(sizeof(GlobalParameters), 256);
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
+	LevelMap.Initialize(TEST_MAP_W, TEST_MAP_H, TEST_MAP);
 	ViewportDimensions.x = static_cast<float>(w);
 	ViewportDimensions.y = static_cast<float>(h);
 	ViewportDimensions.z = 1.f / ViewportDimensions.x;
 	ViewportDimensions.w = 1.f / ViewportDimensions.y;
 	AspectRate.Val = ViewportDimensions.x * ViewportDimensions.w;
 	AspectRate.Rcp = 1.f / AspectRate.Val;
-
-	MaterialDescriptor mInfo = {};
-	ScenePrimitive* test = MemAllocBase::Default()->TAlloc<ScenePrimitive>();
-	mInfo.VertexShader.LoadFromFile("OverlayVertexShader.cso");
-	mInfo.PixelShader.LoadFromFile("OverlayPixelShader.cso");
-    Renderer->CreateMaterial(mInfo, &test->MaterialPtr);
-	test->CommitParameters = &DefaultCommitParamerters;
-	test->Next = nullptr;
-	Primitives = test;
-	
 	KeepRunning = true;
 }
 
@@ -198,6 +190,7 @@ void Scene3DXApp::CreateMaterials()
 
 void Scene3DXApp::Update(float deltaT)
 {
+	Primitives = LevelMap.GetPrimitives();
 	Renderer->RenderScene(this);
 }
 

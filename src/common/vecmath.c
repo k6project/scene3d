@@ -240,9 +240,9 @@ Mat4f* mat4f_Mul(Mat4f* dst, const Mat4f* a, const Mat4f* b)
 
 Mat4f* Mat4f_Translate(Mat4f* dst, const Vec3f* delta)
 {
-	dst->col[3].x = delta->x;
-	dst->col[3].y = delta->y;
-	dst->col[3].z = delta->z;
+	dst->col[3].x += delta->x;
+	dst->col[3].y += delta->y;
+	dst->col[3].z += delta->z;
 	return dst;
 }
 

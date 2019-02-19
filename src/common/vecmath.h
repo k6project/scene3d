@@ -22,6 +22,12 @@ extern "C"
 
 typedef union
 {
+	struct { int32_t x, y; };
+	int32_t ptr[2];
+} Vec2i;
+
+typedef union
+{
 	struct { uint32_t c, r; };
 	struct { uint32_t w, h; };
 	uint32_t ptr[2];
