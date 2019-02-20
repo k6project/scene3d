@@ -37,11 +37,12 @@ VSOutput TileMapVSMain(uint vertexId : SV_VERTEXID)
 {
 	VSOutput output;
 	uint index = vertexId % 6;
-	float4 localPosition = float4(Vertex[index], 0, 1);
+	float2 baseVertex = Vertex[index];
+	float4 localPosition = float4(baseVertex, 0, 1);
 	float4 worldPosition = mul(ModelTransform, localPosition);
 	float4 viewPosition = mul(ViewTransform, worldPosition);
 	output.Position = mul(Projection, viewPosition);
 	output.FaceColor = UnpackColor(asuint(FaceNormalAndColor.w));
-	output.TexCoord = (Vertex[index] + float2(1, 1)) * 0.5;
+	output.TexCoord = (baseVertex + float2(1, 1)) * 0.5;
 	return output;
 }

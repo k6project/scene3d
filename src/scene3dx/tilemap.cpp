@@ -35,6 +35,7 @@ void TileMap::Initialize(uint32_t rows, uint32_t cols, const char* data /*= null
 	MaterialDescriptor mInfo = {};
 	mInfo.VertexShader.LoadFromFile("TileMapVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("TileMapPixelShader.cso");
+	//Renderer_CreateMaterial(mInfo, &MapMaterial);
 	RendererAPI::Get()->CreateMaterial(mInfo, &MapMaterial);
 	size_t memSize = rows * cols * 5 * sizeof(TilePrimitive);
 	memSize += rows * cols * sizeof(TileInfo);

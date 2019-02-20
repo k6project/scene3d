@@ -10,6 +10,7 @@
 #define MATH_SQRT2        1.4142135623730951f	  /* Square root of 2          */
 #define MATH_SQRT2_RCP    0.7071067811865475f     /* Square root of 1/2        */
 #define MATH_SQRT3        1.7320508075688772f     /* Square root of 3          */
+#define MATH_SQRT3_RCP    0.5773502691896258f     /* Square root of 1/3        */
 #define MATH_M4_IDENTITY \
     {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f}
 
@@ -115,6 +116,8 @@ Mat4f* Mat4_From3DBasis(Mat4f* dst, const Vec3f* x, const Vec3f* y, const Vec3f*
 Mat4f* Mat4f_PerspectiveRH(Mat4f* dst, float fov, float aspect, float near, float far);
 
 Mat4f* Mat4f_PerspectiveLH(Mat4f* dst, float fov, float aspect, float near, float far);
+
+Mat4f* Mat4f_OrthographicLH(Mat4f* dst, float size, float aspect, float near, float far);
 
 Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up);
 

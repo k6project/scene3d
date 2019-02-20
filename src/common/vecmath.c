@@ -171,6 +171,17 @@ Mat4f* Mat4f_PerspectiveLH(Mat4f* dst, float fov, float aspect, float near, floa
 	return dst;
 }
 
+Mat4f* Mat4f_OrthographicLH(Mat4f* dst, float size, float aspect, float near, float far)
+{
+	memset(dst, 0, sizeof(*dst));
+	dst->ptr[0][0] = 2.f / (size * aspect);
+	dst->ptr[1][1] = 2.f / (size);
+	dst->ptr[2][2] = 2.f / (far - near);
+	dst->ptr[3][2] = -(far + near) / (far - near);
+	dst->ptr[3][3] = 1.f;
+	return dst;
+}
+
 Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec3f* up)
 {
 	Vec3f dir;

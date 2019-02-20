@@ -35,27 +35,48 @@ static void DefaultCommitParamerters(ScenePrimitive* prim, void* ptr, size_t max
 Scene3DXApp::Scene3DXApp()
 	: VerticalFOV(MATH_DEG_2_RAD(90.f))
 	, ClipDistance(1000.f)
+#if 0
+	, CameraPosition({ 5.f, 5.f, -5.f })
+	, ViewDirection({ -MATH_SQRT3_RCP, -MATH_SQRT3_RCP, MATH_SQRT3_RCP })
+	, UpVector({ -1.f/3.f, 2.f/3.f, 1.f/3.f })
+	, RightVector({ MATH_SQRT3_RCP, 0.f, MATH_SQRT3_RCP })
+	, ViewOrigin({ 0.f, 0.f, 8.6602527f })//Offset of every object in camera space, as if camera was at (0,0,0)
+#else
 	, CameraPosition({0.f, 0.f, -10.f})
 	, ViewDirection({0.f, 0.f, 1.f})
 	, UpVector({0.f, 1.f, 0.f})
 	, RightVector({1.f, 0.f, 0.f})
-	, ViewOrigin({ 0.f, 0.f, 10.f })
+	, ViewOrigin({ 0.f, 0.f, 10.f })//Offset of every object in camera space, as if camera was at (0,0,0)
+#endif
 {
 }
 
 void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 {
-    Parameters.Reset();
-    GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
+	Parameters.Reset();
+	GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
 	if (Renderer->HasRHClipSpace())
 	{
 		Mat4f_PerspectiveRH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
 	}
 	else
 	{
-		Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
+		//Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
+		Mat4f_OrthographicLH(&globals->Projection, 32.f, AspectRate.Val, 0.f, ClipDistance); // zoom by modulating second parameter
 	}
-	Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
+	//Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection);
+	//Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
+	Mat4f_Identity(&globals->ViewTransform);
+	//Rotate around Z followed by X
+	globals->ViewTransform.col[0].x = 0.7071f;
+	globals->ViewTransform.col[0].y = 0.409f;
+	globals->ViewTransform.col[0].z = 0.577f;
+	globals->ViewTransform.col[1].x = -0.7071f;
+	globals->ViewTransform.col[1].y = 0.409f;
+	globals->ViewTransform.col[1].z = 0.577f;
+	globals->ViewTransform.col[2].x = 0.f;
+	globals->ViewTransform.col[2].y = -0.816f;
+	globals->ViewTransform.col[2].z = 0.578f;
 	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
 	{
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
@@ -82,6 +103,7 @@ void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
     size_t globals = ALIGN(sizeof(GlobalParameters), 256);
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
+	//Renderer_Initialize(window, Parameters.GetCapacity(), globals);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
 	LevelMap.Initialize(TEST_MAP_W, TEST_MAP_H, TEST_MAP);
 	ViewportDimensions.x = static_cast<float>(w);
@@ -102,13 +124,13 @@ void Scene3DXApp::MouseMoved(int32_t x, int32_t y, bool lb)
 			bool modified = false;
 			int32_t dx = x - Mouse.Pos.x;
 			int32_t dy = y - Mouse.Pos.y;
-			if (dx < -3 || dx > 3)
+			/*if (dx < -3 || dx > 3)
 			{
 				Vec4f rotation = {};
 				Mat4f newLookAt = {};
-				Vec3f viewTarget = { 0.f, 0.f, 0.f };
+				Vec3f viewTarget = {};
 				float ndx = static_cast<float>(dx) * ViewportDimensions.z * AspectRate.Val;
-				float angle = -ndx * MATH_PI * 2.f;
+				float angle = ndx * MATH_PI * 2.f;
 				Vec4f_RQuat(&rotation, &UpVector, angle);
 				Vec3f_Rotate(&CameraPosition, &CameraPosition, &rotation);
 				Mat4f_LookAt(&newLookAt, &CameraPosition, &viewTarget, &UpVector);
@@ -122,7 +144,7 @@ void Scene3DXApp::MouseMoved(int32_t x, int32_t y, bool lb)
 			{
 				Vec4f rotation = {};
 				Mat4f newLookAt = {};
-				Vec3f viewTarget = { 0.f, 0.f, 0.f };
+				Vec3f viewTarget = {};
 				float ndy = static_cast<float>(dy) * ViewportDimensions.w;
 				float angle = ndy * MATH_PI * 2.f;
 				Vec4f_RQuat(&rotation, &RightVector, angle);
@@ -133,9 +155,7 @@ void Scene3DXApp::MouseMoved(int32_t x, int32_t y, bool lb)
 				Vec3f_Copy(&RightVector, Mat4f_GetRow(&newLookAt, 0));
 				Vec3f_Copy(&UpVector, Mat4f_GetRow(&newLookAt, 1));
 				modified = true;
-			}
-			//compute rotation as product of two quaternions
-			//apply to camera position, derive matrix
+			}*/
 		}
 		Mouse.Captured = true;
 	}

@@ -94,12 +94,14 @@ private:
 	ID3D11Device1* Device;
 	ID3D11DeviceContext1* Context;
 	ID3D11RenderTargetView* RenderTarget;
+	ID3D11DepthStencilView* DepthStencilTarget;
 	D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_9_1;
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };//{ 0.f, 0.4f, 0.9f, 1.f };
 	D3D11Texture* Textures = nullptr;
     D3D11Material* Materials = nullptr;
 	D3D11Primitive* Primitives = nullptr;
 	D3D11Buffer* Buffers = nullptr;
+	D3D11Texture* DepthBuffer = nullptr;
 	ID3D11InputLayout* VBOLayout;
 	D3D11_VIEWPORT Viewport;
 	HWND Window;
@@ -173,11 +175,12 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 		return;
 	}
 	Context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	Context->OMSetRenderTargets(1, &RenderTarget, nullptr);
 	Viewport.TopLeftX = static_cast<float>(windowRect.left);
 	Viewport.TopLeftY = static_cast<float>(windowRect.top);
     Viewport.Width = static_cast<float>(windowRect.right - windowRect.left);
     Viewport.Height = static_cast<float>(windowRect.bottom - windowRect.top);
+	Viewport.MinDepth = 0.f;
+	Viewport.MaxDepth = 1.f;
     Context->RSSetViewports(1, &Viewport);
 	D3D11_BUFFER_DESC desc = {};
 	desc.ByteWidth = pbSize & UINT_MAX;
@@ -190,6 +193,33 @@ void D3D11Renderer::Initialize(void* window, size_t pbSize, size_t gpSize)
 	Context->VSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
 	Context->PSSetConstantBuffers1(0, 1, &pBuff->Buffer, &pOffset, &pSize);
 	Parameters = pBuff;
+	//TODO: use CreateTexture
+	D3D11_TEXTURE2D_DESC dsDesc = {};
+	dsDesc.Width = windowRect.right - windowRect.left;
+	dsDesc.Height = windowRect.bottom - windowRect.top;
+	dsDesc.ArraySize = 1;
+	dsDesc.MipLevels = 1;
+	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsDesc.SampleDesc.Count = 1;
+	dsDesc.SampleDesc.Quality = 0;
+	dsDesc.Usage = D3D11_USAGE_DEFAULT;
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	DepthBuffer = new D3D11Texture();
+	DepthBuffer->Next = Textures;
+	Textures = DepthBuffer;
+	hr = Device->CreateTexture2D(&dsDesc, nullptr, &DepthBuffer->Texture);
+	if (FAILED(hr))
+	{
+		MessageBox(Window, "Failed to create depth buffer", "Fatal", MB_OK);
+		return;
+	}
+	hr = Device->CreateDepthStencilView(DepthBuffer->Texture, nullptr, &DepthStencilTarget);
+	if (FAILED(hr))
+	{
+		MessageBox(Window, "Failed to create depth/stencil render target", "Fatal", MB_OK);
+		return;
+	}
+	Context->OMSetRenderTargets(1, &RenderTarget, DepthStencilTarget);
 }
 
 void D3D11Renderer::RenderScene(const Scene* scene)
@@ -200,6 +230,7 @@ void D3D11Renderer::RenderScene(const Scene* scene)
 	scene->CommitParameters(mappedBuff.pData, Parameters->Size);
 	Context->Unmap(Parameters->Buffer, 0);
 	Context->ClearRenderTargetView(RenderTarget, ClearColor);
+	Context->ClearDepthStencilView(DepthStencilTarget, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	for (const ScenePrimitive* ptr = scene->GetPrimitives(); ptr != nullptr; ptr = ptr->Next)
 	{
 		const ScenePrimitive& prim = *ptr;
@@ -222,20 +253,12 @@ void D3D11Renderer::RenderScene(const Scene* scene)
         Context->RSSetState(material->RasterizerState);
 		Context->Draw(6, 0);
 	}
-
-    /*for (D3D11Material* m = Materials; m != nullptr; m = m->Next)
-    {
-        Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-        Context->VSSetShader(m->VertexShader, nullptr, 0);
-        Context->PSSetShader(m->PixelShader, nullptr, 0);
-        Context->RSSetState(m->RasterizerState);
-        Context->Draw(4, 0);
-    }*/
 	SwapChain->Present(0, 0);
 }
 
 void D3D11Renderer::Finalize()
 {
+	DepthStencilTarget->Release();
 	DeleteAll(Textures);
 	DeleteAll(Materials);
 	DeleteAll(Buffers);
