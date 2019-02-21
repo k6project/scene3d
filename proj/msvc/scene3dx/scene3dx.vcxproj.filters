@@ -21,6 +21,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\scene3dx\vecmath.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\tilemap.hpp" />
+    <ClInclude Include="..\..\..\src\3rdparty\nuklear.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -28,6 +31,9 @@
     </Filter>
     <Filter Include="common">
       <UniqueIdentifier>{b0c36912-037b-4a70-90c0-06dfd13c0105}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{9662166e-a184-4f9f-be82-714580d253c4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
