@@ -2,9 +2,6 @@
 
 #include <windows.h>
 
-#define NK_IMPLEMENTATION
-#include <nuklear.h>
-
 float MakeColorRGB(uint32_t r, uint32_t g, uint32_t b)
 {
 	uint32_t tmp = (((r) << 24) | ((g) << 16) | ((b) << 8) | 0xff);

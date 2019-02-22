@@ -1,5 +1,7 @@
 #include "tilemap.hpp"
 
+#include <tinyxml2.h>
+
 static const float TILE_COLOR[]
 {
 	PackColor(255, 255, 0, 255), 
@@ -32,6 +34,18 @@ TileMap::TileMap()
 
 void TileMap::Initialize(uint32_t rows, uint32_t cols, const char* data /*= nullptr*/)
 {
+	tinyxml2::XMLDocument xmlMap;
+	xmlMap.LoadFile("maps/default.tmx");
+	if (tinyxml2::XMLElement* xmlRoot = xmlMap.FirstChildElement("map"))
+	{
+		int xmlWidth = atoi(xmlRoot->Attribute("width"));
+		int xmlHeight = atoi(xmlRoot->Attribute("height"));
+		if (tinyxml2::XMLElement* xmlLayer = xmlRoot->FirstChildElement("layer"))
+		{
+			tinyxml2::XMLElement* xmlData = xmlLayer->FirstChildElement("data");
+			const char* csvData = xmlData->GetText();
+		}
+	}
 	MaterialDescriptor mInfo = {};
 	mInfo.VertexShader.LoadFromFile("TileMapVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("TileMapPixelShader.cso");

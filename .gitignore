@@ -1,4 +1,5 @@
 *.spv
+*.cso
 *.vcxproj.user
 *.VC.db
 *.VC.VC.opendb

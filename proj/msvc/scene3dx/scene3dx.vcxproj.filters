@@ -10,6 +10,12 @@
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\scene3dx\tilemap.cpp" />
+    <ClCompile Include="..\..\..\src\3rdparty\nuklear.c">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\3rdparty\tinyxml2.cpp">
+      <Filter>3rdparty</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
@@ -22,6 +28,9 @@
     <ClInclude Include="..\..\..\src\scene3dx\vecmath.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\tilemap.hpp" />
     <ClInclude Include="..\..\..\src\3rdparty\nuklear.h">
+      <Filter>3rdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\3rdparty\tinyxml2.h">
       <Filter>3rdparty</Filter>
     </ClInclude>
   </ItemGroup>
@@ -37,12 +46,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\..\assets\shaders\OverlayVertexShader.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\..\shaders\OverlayPixelShader.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\..\shaders\TileMapVertexShader.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
