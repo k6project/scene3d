@@ -4,7 +4,7 @@
 #include <renderer.hpp>
 #include <scene3dx.hpp>
 
-#define MAX_PRIMITIVES 256
+#define MAX_PRIMITIVES 4096
 
 #define  TEST_MAP_W 5
 #define  TEST_MAP_H 5
@@ -77,12 +77,15 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 	globals->ViewTransform.col[2].x = 0.f;
 	globals->ViewTransform.col[2].y = -0.816f;
 	globals->ViewTransform.col[2].z = 0.578f;
+	uint32_t count = 0;
 	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
 	{
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
 		void* locals = Parameters.Alloc(sizeof(LocalParameters), 256);
 		p->LocalParameters.Length = Parameters.GetBytesUsed() - p->LocalParameters.Offset;
 		p->CommitParameters(p, locals, sizeof(LocalParameters));
+
+		++count;
 	}
     Parameters.CopyTo(buffer, max);
 }

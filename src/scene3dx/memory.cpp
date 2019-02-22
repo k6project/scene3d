@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define PAGE_ALIGN 4096
 
@@ -69,8 +70,10 @@ void MemAllocBase::Destroy()
 void* MemAllocLinear::Alloc(size_t size, size_t align) const
 {
 	size_t alignedOffset = (Offset > 0) ? ALIGN(Offset, align) : 0;
+	assert(alignedOffset < Capacity);
 	void* retval = BasePtr + alignedOffset;
 	Offset = alignedOffset + ALIGN(size, align);
+	assert(Offset < Capacity);
 	return retval;
 }
 

@@ -17,6 +17,8 @@ public:
 
 	void Initialize(uint32_t rows, uint32_t cols, const char* data = nullptr);
 
+	void LoadFromTMX(const char* fileName);
+
 	void SetTileData(const char* data);
 
 	ScenePrimitive* GetPrimitives();

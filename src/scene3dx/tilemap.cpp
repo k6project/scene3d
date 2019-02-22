@@ -4,8 +4,8 @@
 
 static const float TILE_COLOR[]
 {
-	PackColor(255, 255, 0, 255), 
-	PackColor(255, 0, 0, 255)
+	PackColor(195, 195, 195, 255), 
+	PackColor(185, 122, 87,  255)
 };
 
 struct TileInfo
@@ -34,29 +34,61 @@ TileMap::TileMap()
 
 void TileMap::Initialize(uint32_t rows, uint32_t cols, const char* data /*= nullptr*/)
 {
+	MaterialDescriptor mInfo = {};
+	mInfo.VertexShader.LoadFromFile("shaders/TileMapVertexShader.cso");
+	mInfo.PixelShader.LoadFromFile("shaders/TileMapPixelShader.cso");
+	//Renderer_CreateMaterial(mInfo, &MapMaterial);
+	RendererAPI::Get()->CreateMaterial(mInfo, &MapMaterial);
+	LoadFromTMX("maps/default.tmx");
+}
+
+void TileMap::LoadFromTMX(const char* fileName)
+{
 	tinyxml2::XMLDocument xmlMap;
 	xmlMap.LoadFile("maps/default.tmx");
 	if (tinyxml2::XMLElement* xmlRoot = xmlMap.FirstChildElement("map"))
 	{
-		int xmlWidth = atoi(xmlRoot->Attribute("width"));
-		int xmlHeight = atoi(xmlRoot->Attribute("height"));
+		int w = atoi(xmlRoot->Attribute("width"));
+		int h = atoi(xmlRoot->Attribute("height"));
+
+		GridSize = { w & UINT32_MAX, h &UINT32_MAX };
+		uint32_t gridArea = GridSize.w * GridSize.h;
+		size_t memSize = gridArea * 5 * sizeof(TilePrimitive);
+		memSize += gridArea * sizeof(TileInfo);
+		TileMapMem.Init(memSize);
+		Tiles = TileMapMem.TAlloc<TileInfo>(gridArea);
+		Primitives = TileMapMem.TAlloc<TilePrimitive>(gridArea);
+
 		if (tinyxml2::XMLElement* xmlLayer = xmlRoot->FirstChildElement("layer"))
 		{
+			int tileIndex = 0, maxX = w /2, x = -maxX, y = h / 2;
 			tinyxml2::XMLElement* xmlData = xmlLayer->FirstChildElement("data");
 			const char* csvData = xmlData->GetText();
+			for (const char *ptr = csvData, *str = ptr;; ptr++)
+			{
+				if (*ptr == ',' || !*ptr)
+				{
+					TileInfo& tile = Tiles[tileIndex];
+					tile.Type = atoi(str) - 1;
+					tile.Position.x = x;
+					tile.Position.y = y;
+					if (!*ptr)
+					{
+						break;
+					}
+					else if (++x > maxX)
+					{
+						x = -maxX;
+						--y;
+					}
+					str = ptr + 1;
+					++tileIndex;
+				}
+			}
 		}
 	}
-	MaterialDescriptor mInfo = {};
-	mInfo.VertexShader.LoadFromFile("TileMapVertexShader.cso");
-	mInfo.PixelShader.LoadFromFile("TileMapPixelShader.cso");
-	//Renderer_CreateMaterial(mInfo, &MapMaterial);
-	RendererAPI::Get()->CreateMaterial(mInfo, &MapMaterial);
-	size_t memSize = rows * cols * 5 * sizeof(TilePrimitive);
-	memSize += rows * cols * sizeof(TileInfo);
-	TileMapMem.Init(memSize);
-	GridSize.h = rows;
-	GridSize.w = cols;
-	SetTileData(data);
+	xmlMap.Clear();
+	IsChanged = true;
 }
 
 void TileMap::SetTileData(const char* data)
