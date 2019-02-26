@@ -2,10 +2,24 @@
 
 #include <tinyxml2.h>
 
+enum TileType : int32_t
+{
+	TILE_EMPTY = -1,
+	TILE_FLOOR =  0,
+	TILE_WALL  =  1,
+	TILE_FLAT_MAX = TILE_FLOOR
+};
+
 static const float TILE_COLOR[]
 {
 	PackColor(195, 195, 195, 255), 
 	PackColor(185, 122, 87,  255)
+};
+
+static const float TILE_ZOFFSET[]
+{
+	0.f,
+	1.f
 };
 
 struct TileInfo
@@ -37,7 +51,6 @@ void TileMap::Initialize(uint32_t rows, uint32_t cols, const char* data /*= null
 	MaterialDescriptor mInfo = {};
 	mInfo.VertexShader.LoadFromFile("shaders/TileMapVertexShader.cso");
 	mInfo.PixelShader.LoadFromFile("shaders/TileMapPixelShader.cso");
-	//Renderer_CreateMaterial(mInfo, &MapMaterial);
 	RendererAPI::Get()->CreateMaterial(mInfo, &MapMaterial);
 	LoadFromTMX("maps/default.tmx");
 }
@@ -50,7 +63,6 @@ void TileMap::LoadFromTMX(const char* fileName)
 	{
 		int w = atoi(xmlRoot->Attribute("width"));
 		int h = atoi(xmlRoot->Attribute("height"));
-
 		GridSize = { w & UINT32_MAX, h &UINT32_MAX };
 		uint32_t gridArea = GridSize.w * GridSize.h;
 		size_t memSize = gridArea * 5 * sizeof(TilePrimitive);
@@ -58,7 +70,6 @@ void TileMap::LoadFromTMX(const char* fileName)
 		TileMapMem.Init(memSize);
 		Tiles = TileMapMem.TAlloc<TileInfo>(gridArea);
 		Primitives = TileMapMem.TAlloc<TilePrimitive>(gridArea);
-
 		if (tinyxml2::XMLElement* xmlLayer = xmlRoot->FirstChildElement("layer"))
 		{
 			int tileIndex = 0, maxX = w /2, x = -maxX, y = h / 2;
@@ -137,6 +148,11 @@ void TileMap::SetTileData(const char* data)
 	IsChanged = true;
 }
 
+/*
+When collecting primitives, estimate number of float4 units for per-primitive parameters.
+Max. float4 per primitive is 4096
+Commit parameters: acquire 16*4096 bytes if possible per primitive, write values
+*/
 ScenePrimitive* TileMap::GetPrimitives()
 {
 	if (IsChanged)
@@ -171,6 +187,36 @@ ScenePrimitive* TileMap::GetPrimitives()
 void TileMap::Finalize()
 {
 	TileMapMem.Destroy();
+}
+
+void TileMap::CollectPrimitives()
+{
+	// per-face parameters should fit into 1xfloat4 (with mat. id)
+	const uint32_t vectorPerParameter = sizeof(TileParameters) >> 4u;
+	const uint32_t maxFacesPerPrimitive = 4096u / vectorPerParameter;
+	for (uint32_t y = 0; y < GridSize.h; y++)
+	{
+		const uint32_t offset = y * GridSize.w;
+		for (uint32_t x = 0; x < GridSize.w; x++)
+		{
+			const TileInfo& tile = Tiles[offset + x];
+			if (tile.Type != TILE_EMPTY /*&& check visibility*/)
+			{
+				AddTileFace(0.f, 0.f, 0.f, TILE_ZOFFSET[tile.Type]);
+				if (tile.Type > TILE_FLAT_MAX)
+				{ 
+					// add surrounding faces
+				}
+			}
+		}
+	}
+}
+
+void TileMap::AddTileFace(float rx, float ry, float rz, float dz)
+{
+	// check if face fits into current primitive
+	// ...
+	// increment draw count
 }
 
 void TileMap::CommitParameters(ScenePrimitive* base, void* ptr, size_t max)

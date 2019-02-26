@@ -27,6 +27,10 @@ public:
 
 private:
 
+	void CollectPrimitives();
+
+	void AddTileFace(float rx, float ry, float rz, float dz);
+
 	static void CommitParameters(ScenePrimitive* prim, void* ptr, size_t max);
 
 	MemAllocLinear TileMapMem;
