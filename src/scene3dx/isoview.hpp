@@ -7,19 +7,27 @@ class IsoView
 
 public:
 
-    void SetView(float aspectRatio, float clipDistance);
+    float ClipDistance = 1000.f;
+
+    float AspectRatio = 1.f;
+
+    float PanningSpeed = 1.f;
+
+    float PanningAccel = 1.f;
 
     void Commit(Mat4f& projection, Mat4f& viewTransform) const;
 
+    void Update(float deltaT);
+
 private:
+
+    Vec2f CurrentPanSpeed;
+
+    Vec2f TargetPanSpeed;
 
     float XOffset = 0.f;
 
     float YOffset = 0.f;
-
-    float ClipDistance = 1.f;
-
-    float AspectRatio = 1.f;
 
     int Zoom = 32;
 

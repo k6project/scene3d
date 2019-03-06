@@ -95,7 +95,8 @@ void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 	ViewportDimensions.w = 1.f / ViewportDimensions.y;
 	AspectRate.Val = ViewportDimensions.x * ViewportDimensions.w;
 	AspectRate.Rcp = 1.f / AspectRate.Val;
-    MapView.SetView(AspectRate.Val, ClipDistance);
+    MapView.AspectRatio = AspectRate.Val;
+    MapView.ClipDistance = ClipDistance;
 	KeepRunning = true;
 }
 

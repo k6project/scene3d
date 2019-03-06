@@ -2,12 +2,6 @@
 
 #include <renderer.hpp>
 
-void IsoView::SetView(float aspectRatio, float clipDistance)
-{
-    AspectRatio = (aspectRatio > 0.f) ? aspectRatio : 1.f;
-    ClipDistance = (clipDistance > 0.f) ? clipDistance : 1.f;
-}
-
 void IsoView::Commit(Mat4f& projection, Mat4f& viewTransform) const
 {
     Vec4f rotA, rotB, rotC;
@@ -18,8 +12,8 @@ void IsoView::Commit(Mat4f& projection, Mat4f& viewTransform) const
     Vec4f_RQuat(&rotB, &bAxis, MATH_DEG_2_RAD(54.682f));
     Vec4f_RQuatMul(&rotC, &rotB, &rotA);
     Mat4f_Rotation(&viewTransform, &rotC);
-    //viewTransform.col[3].x = XOffset;
-    //viewTransform.col[3].y = YOffset;
+    viewTransform.col[3].x = XOffset;
+    viewTransform.col[3].y = YOffset;
     float zoom = static_cast<float>(Zoom);
     if (RendererAPI::Get()->HasRHClipSpace())
     {
@@ -29,4 +23,10 @@ void IsoView::Commit(Mat4f& projection, Mat4f& viewTransform) const
     {
         Mat4f_OrthographicLH(&projection, zoom, AspectRatio, 0.f, ClipDistance);
     }
+}
+
+void IsoView::Update(float deltaT)
+{
+    XOffset = XOffset + CurrentPanSpeed.x * deltaT;
+    YOffset = YOffset + CurrentPanSpeed.y * deltaT;
 }
