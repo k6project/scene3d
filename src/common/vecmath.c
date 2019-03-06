@@ -27,6 +27,15 @@ float vec4f_Dot(const Vec4f* a, const Vec4f* b)
     return result;
 }
 
+Vec3f* Vec4f_Add(Vec4f* dst, const Vec4f* a, const Vec4f* b)
+{
+    dst->x = a->x + b->x;
+    dst->y = a->y + b->y;
+    dst->z = a->z + b->z;
+    dst->w = a->w + b->w;
+    return dst;
+}
+
 Vec3f* vec3f_Normalize(Vec3f* dst, const Vec3f* src)
 {
     float divisor = 1.f / sqrtf(Vec3f_Dot(src, src));
@@ -93,6 +102,19 @@ Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle)
     dst->y = axis->y * sinA;
     dst->z = axis->z * sinA;
     dst->w = cosA;
+    return dst;
+}
+
+Vec4f* Vec4f_RQuatMul(Vec4f* dst, const Vec4f* q1, const Vec4f* q2)
+{
+    float x = q1->x * q2->w + q1->y * q2->z - q1->z * q2->y + q1->w * q2->x;
+    float y = -q1->x * q2->z + q1->y * q2->w + q1->z * q2->x + q1->w * q2->y;
+    float z = q1->x * q2->y - q1->y * q2->x + q1->z * q2->w + q1->w * q2->z;
+    float w = -q1->x * q2->x - q1->y * q2->y - q1->z * q2->z + q1->w * q2->w;
+    dst->x = x;
+    dst->y = y;
+    dst->z = z;
+    dst->w = w;
     return dst;
 }
 
@@ -213,7 +235,7 @@ Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f
     return dst;
 }
 
-Mat4f* mat4f_Rotation(Mat4f* dst, const Vec4f* quat)
+Mat4f* Mat4f_Rotation(Mat4f* dst, const Vec4f* quat)
 {
     float qxSq2 = 2.f * quat->x * quat->x;
     float qySq2 = 2.f * quat->y * quat->y;
@@ -224,12 +246,27 @@ Mat4f* mat4f_Rotation(Mat4f* dst, const Vec4f* quat)
     float qzqw2 = 2.f * quat->z * quat->w;
     float qyqw2 = 2.f * quat->y * quat->w;
     float qyqz2 = 2.f * quat->y * quat->z;
-    M4SET(dst,
-          (1.f - qySq2 - qzSq2), (qxqy2 - qzqw2),       (qxqz2 + qyqw2),        0.f,
-          (qxqy2 + qzqw2),       (1.f - qxSq2 - qzSq2), (qyqz2 - qxqw2),        0.f,
-          (qxqz2 - qyqw2),       (qyqz2 + qxqw2),       (1.f - qxSq2 - qySq2),  0.f,
-          0.f,                   0.f,                   0.f,                    1.f
-    );
+
+    dst->ptr[0][0] = (1.f - qySq2 - qzSq2);
+    dst->ptr[0][1] = (qxqy2 + qzqw2);
+    dst->ptr[0][2] = (qxqz2 - qyqw2);
+    dst->ptr[0][3] = 0.f;
+
+    dst->ptr[1][0] = (qxqy2 - qzqw2);
+    dst->ptr[1][1] = (1.f - qxSq2 - qzSq2);
+    dst->ptr[1][2] = (qyqz2 + qxqw2);
+    dst->ptr[1][3] = 0.f;
+
+    dst->ptr[2][0] = (qxqz2 + qyqw2);
+    dst->ptr[2][1] = (qyqz2 - qxqw2);
+    dst->ptr[2][2] = (1.f - qxSq2 - qySq2);
+    dst->ptr[2][3] = 0.f;
+
+    dst->ptr[3][0] = 0.f;
+    dst->ptr[3][1] = 0.f;
+    dst->ptr[3][2] = 0.f;
+    dst->ptr[3][3] = 1.f;
+
     return dst;
 }
 

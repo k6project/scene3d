@@ -148,8 +148,10 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\3rdparty\nuklear.c" />
     <ClCompile Include="..\..\..\src\3rdparty\tinyxml2.cpp" />
+    <ClCompile Include="..\..\..\src\common\random.c" />
     <ClCompile Include="..\..\..\src\common\vecmath.c" />
     <ClCompile Include="..\..\..\src\scene3dx\common.cpp" />
+    <ClCompile Include="..\..\..\src\scene3dx\isoview.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\memory.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\scene3dx.cpp" />
     <ClCompile Include="..\..\..\src\scene3dx\renderer.cpp" />
@@ -159,8 +161,10 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\src\3rdparty\nuklear.h" />
     <ClInclude Include="..\..\..\src\3rdparty\tinyxml2.h" />
+    <ClInclude Include="..\..\..\src\common\random.h" />
     <ClInclude Include="..\..\..\src\common\vecmath.h" />
     <ClInclude Include="..\..\..\src\scene3dx\common.hpp" />
+    <ClInclude Include="..\..\..\src\scene3dx\isoview.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\memory.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
     <ClInclude Include="..\..\..\src\scene3dx\scene3dx.hpp" />

@@ -55,29 +55,10 @@ void Scene3DXApp::CommitParameters(void* buffer, size_t max) const
 {
 	Parameters.Reset();
 	GlobalParameters* globals = Parameters.TAlloc<GlobalParameters>(1, 256);
-	if (Renderer->HasRHClipSpace())
-	{
-		Mat4f_PerspectiveRH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
-	}
-	else
-	{
-		//Mat4f_PerspectiveLH(&globals->Projection, VerticalFOV, AspectRate.Val, 0.001f, ClipDistance);
-		Mat4f_OrthographicLH(&globals->Projection, 32.f, AspectRate.Val, 0.f, ClipDistance); // zoom by modulating second parameter
-	}
 	//Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection);
 	//Mat4f_Translate(Mat4_From3DBasis(&globals->ViewTransform, &RightVector, &UpVector, &ViewDirection), &ViewOrigin);
-	Mat4f_Identity(&globals->ViewTransform);
-	//Rotate around Z followed by X
-	globals->ViewTransform.col[0].x = 0.7071f;
-	globals->ViewTransform.col[0].y = 0.409f;
-	globals->ViewTransform.col[0].z = 0.577f;
-	globals->ViewTransform.col[1].x = -0.7071f;
-	globals->ViewTransform.col[1].y = 0.409f;
-	globals->ViewTransform.col[1].z = 0.577f;
-	globals->ViewTransform.col[2].x = 0.f;
-	globals->ViewTransform.col[2].y = -0.816f;
-	globals->ViewTransform.col[2].z = 0.578f;
-	uint32_t count = 0;
+    MapView.Commit(globals->Projection, globals->ViewTransform);
+    uint32_t count = 0;
 	for (ScenePrimitive* p = Primitives; p != nullptr; p = p->Next)
 	{
 		p->LocalParameters.Offset = Parameters.GetBytesUsed();
@@ -106,7 +87,6 @@ void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
     size_t globals = ALIGN(sizeof(GlobalParameters), 256);
     size_t perPrimitive = MAX_PRIMITIVES * ALIGN(sizeof(LocalParameters), 256);
     Parameters.Init(globals + perPrimitive);
-	//Renderer_Initialize(window, Parameters.GetCapacity(), globals);
 	Renderer->Initialize(window, Parameters.GetCapacity(), globals);
 	LevelMap.Initialize(TEST_MAP_W, TEST_MAP_H, TEST_MAP);
 	ViewportDimensions.x = static_cast<float>(w);
@@ -115,6 +95,7 @@ void Scene3DXApp::Initialize(void* window, uint32_t w, uint32_t h)
 	ViewportDimensions.w = 1.f / ViewportDimensions.y;
 	AspectRate.Val = ViewportDimensions.x * ViewportDimensions.w;
 	AspectRate.Rcp = 1.f / AspectRate.Val;
+    MapView.SetView(AspectRate.Val, ClipDistance);
 	KeepRunning = true;
 }
 

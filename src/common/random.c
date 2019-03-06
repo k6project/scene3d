@@ -19,5 +19,5 @@ uint32_t Random_UInt32(PRNG prng)
 
 float Random_Float(PRNG prng)
 {
-    return PCGRandomU32(prng) * UINT32_NORM;
+    return Random_UInt32(prng) * UINT32_NORM;
 }

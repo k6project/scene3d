@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.hpp>
+#include <isoview.hpp>
 #include <tilemap.hpp>
 
 class RendererAPI;
@@ -40,5 +41,6 @@ private:
     MemAllocLinear Parameters;
 	RendererAPI* Renderer;
 	TileMap LevelMap;
+    IsoView MapView;
 };
 

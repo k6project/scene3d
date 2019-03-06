@@ -16,6 +16,10 @@
     <ClCompile Include="..\..\..\src\3rdparty\tinyxml2.cpp">
       <Filter>3rdparty</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\common\random.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\scene3dx\isoview.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\scene3dx\renderer.hpp" />
@@ -33,6 +37,10 @@
     <ClInclude Include="..\..\..\src\3rdparty\tinyxml2.h">
       <Filter>3rdparty</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\common\random.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\scene3dx\isoview.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">

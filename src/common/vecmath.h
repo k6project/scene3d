@@ -101,11 +101,15 @@ Vec3f* Vec3f_SMul(Vec3f* dst, const Vec3f* a, float s);
 
 Vec3f* Vec3f_Cross(Vec3f* dst, const Vec3f* a, const Vec3f* b);
 
+Vec3f* Vec3f_Rotate(Vec3f* dst, const Vec3f* src, const Vec4f* quat);
+
 float vec4f_Dot(const Vec4f* a, const Vec4f* b);
+
+Vec3f* Vec4f_Add(Vec4f* dst, const Vec4f* a, const Vec4f* b);
 
 Vec4f* Vec4f_RQuat(Vec4f* dst, const Vec3f* axis, float angle);
 
-Vec3f* Vec3f_Rotate(Vec3f* dst, const Vec3f* src, const Vec4f* quat);
+Vec4f* Vec4f_RQuatMul(Vec4f* dst, const Vec4f* q1, const Vec4f* q2);
 
 /* Matrix init functions */
 
@@ -123,7 +127,7 @@ Mat4f* Mat4f_LookAt(Mat4f* dst, const Vec3f* eye, const Vec3f* target, const Vec
 
 Mat4f* Mat4f_LookDir(Mat4f* dst, const Vec3f* eye, const Vec3f* dir, const Vec3f* up);
 
-Mat4f* mat4f_Rotation(Mat4f* dst, const Vec4f* quat);
+Mat4f* Mat4f_Rotation(Mat4f* dst, const Vec4f* quat);
 
 Mat4f* mat4f_Mul(Mat4f* dst, const Mat4f* a, const Mat4f* b);
 
