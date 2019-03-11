@@ -9,3 +9,4 @@ xcode.sh
 xcode/
 .vs/
 /scene3d.cap
+sdl2
